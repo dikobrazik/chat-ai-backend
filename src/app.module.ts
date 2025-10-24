@@ -1,10 +1,79 @@
 import { Module } from '@nestjs/common';
 import { AppController } from './app.controller';
-import { AppService } from './app.service';
+import { AuthModule } from './auth/auth.module';
+import { UsersModule } from './users/users.module';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import { readFileSync } from 'fs';
+import { join } from 'path';
+import { cwd } from 'process';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { JwtModule } from '@nestjs/jwt';
+import { User } from './entities/User';
+import { Session } from './entities/Session';
+import { ChatModule } from './chat/chat.module';
+import { Chat } from './entities/Chat';
+import { Prompt } from './entities/Prompt';
+import { ThrottlerModule, hours } from '@nestjs/throttler';
+import { APP_GUARD } from '@nestjs/core';
+import { JwtAuthGuard } from './auth/guards/jwt.guard';
+import { AppThrottlerGuard } from './guards/prompt.guard';
 
 @Module({
-  imports: [],
+  imports: [
+    JwtModule.registerAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      global: true,
+      useFactory: (configService: ConfigService) => ({
+        secret: configService.getOrThrow('JWT_SECRET'),
+        // signOptions: { expiresIn: '7d' },
+      }),
+    }),
+    TypeOrmModule.forRootAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (configService: ConfigService) => ({
+        type: 'postgres',
+        host: configService.getOrThrow('DB_HOST'),
+        port: configService.getOrThrow('DB_PORT'),
+        username: configService.getOrThrow('DB_USERNAME'),
+        password: configService.getOrThrow('DB_PASS'),
+        database: configService.getOrThrow('DB_NAME'),
+        ssl: {
+          ca: readFileSync(join(cwd(), 'db.pem')),
+        },
+        synchronize: true,
+        dropSchema: false,
+        logging: configService.get('IS_DEV') === 'true',
+        entities: [Chat, Prompt, User, Session],
+        subscribers: [],
+        migrations: [],
+      }),
+    }),
+    ConfigModule.forRoot({
+      isGlobal: true,
+    }),
+    AuthModule,
+    UsersModule,
+    ChatModule,
+    ThrottlerModule.forRoot([
+      {
+        name: 'default',
+        ttl: hours(1),
+        limit: 1000,
+      },
+    ]),
+  ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [
+    {
+      provide: APP_GUARD,
+      useClass: JwtAuthGuard, // Используем кастомный Guard
+    },
+    {
+      provide: APP_GUARD,
+      useClass: AppThrottlerGuard, // Используем кастомный Guard
+    },
+  ],
 })
 export class AppModule {}
