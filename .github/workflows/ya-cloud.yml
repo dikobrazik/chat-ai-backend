@@ -72,6 +72,7 @@ jobs:
           key: ${{ secrets.ID_RSA }}
           script: |
             cd ~/frontend &&
+            docker login -u ${{ github.actor }} -p ${{ secrets.GITHUB_TOKEN }} ghcr.io &&
             docker compose -f configs/yc/docker-compose.yaml stop backend && 
             docker compose -f configs/yc/docker-compose.yaml pull backend && 
             docker compose -f configs/yc/docker-compose.yaml up -d backend &&
