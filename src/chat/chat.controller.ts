@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   ExecutionContext,
+  ForbiddenException,
   Get,
   Inject,
   Param,
@@ -30,12 +31,16 @@ export class ChatController {
   }
 
   @Get(':id')
-  getChat(@Param('id') id: string, @User() user: UserEntity) {
+  async getChat(@Param('id') id: string, @User() user: UserEntity) {
+    if ((await this.chatService.getIsUsersChat(id, user)) === false) {
+      throw new ForbiddenException();
+    }
+
     return this.chatService.getChatById(id, user);
   }
 
   @Throttle({
-    default: {
+    prompt: {
       ttl: days(1),
       limit: (context: ExecutionContext) => {
         const user = context.switchToHttp().getRequest().user as UserEntity;

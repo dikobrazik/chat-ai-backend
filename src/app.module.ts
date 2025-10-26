@@ -13,10 +13,11 @@ import { Session } from './entities/Session';
 import { ChatModule } from './chat/chat.module';
 import { Chat } from './entities/Chat';
 import { Prompt } from './entities/Prompt';
-import { ThrottlerModule, hours } from '@nestjs/throttler';
+import { ThrottlerModule, days, hours } from '@nestjs/throttler';
 import { APP_GUARD } from '@nestjs/core';
 import { JwtAuthGuard } from './auth/guards/jwt.guard';
 import { AppThrottlerGuard } from './guards/prompt.guard';
+import { ChatController } from './chat/chat.controller';
 
 @Module({
   imports: [
@@ -61,6 +62,17 @@ import { AppThrottlerGuard } from './guards/prompt.guard';
         name: 'default',
         ttl: hours(1),
         limit: 1000,
+      },
+      {
+        name: 'prompt',
+        ttl: days(1),
+        limit: 1,
+        skipIf: (context) => {
+          return (
+            context.getHandler().name !==
+            ChatController.prototype.createPrompt.name
+          );
+        },
       },
     ]),
   ],

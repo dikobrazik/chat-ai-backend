@@ -66,6 +66,16 @@ export class ChatService {
     });
   }
 
+  public async getIsUsersChat(id: string, user: User) {
+    return (
+      (
+        await this.chatRepository.findOne({
+          where: { id },
+        })
+      ).user_id === user.id
+    );
+  }
+
   public async getChatById(id: string, user: User) {
     return (
       await this.promptRepository.find({
