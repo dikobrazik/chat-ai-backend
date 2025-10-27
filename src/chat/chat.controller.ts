@@ -1,29 +1,28 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   ExecutionContext,
-  ForbiddenException,
   Get,
   Inject,
   Param,
   Post,
+  UseGuards,
 } from '@nestjs/common';
 import { Throttle, days } from '@nestjs/throttler';
 import { User } from '../decorators/user.decorator';
 import { User as UserEntity, UserStatus } from '../entities/User';
+import { ModelService } from '../model/model.service';
 import { ChatService } from './chat.service';
-import { PromptDTO } from './dto';
-import { MODELS } from './models';
+import { CreateChatDTO, PromptDTO, PromptParamsDTO } from './dto';
+import { ChatGuard } from './guards/chat.guard';
 
 @Controller('chat')
 export class ChatController {
   @Inject(ChatService)
   private readonly chatService: ChatService;
-
-  @Get('models')
-  getModels() {
-    return MODELS;
-  }
+  @Inject(ModelService)
+  private readonly modelService: ModelService;
 
   @Get()
   getChats(@User() user: UserEntity) {
@@ -31,12 +30,21 @@ export class ChatController {
   }
 
   @Get(':id')
+  @UseGuards(ChatGuard)
   async getChat(@Param('id') id: string, @User() user: UserEntity) {
-    if ((await this.chatService.getIsUsersChat(id, user)) === false) {
-      throw new ForbiddenException();
+    return this.chatService.getChatById(id, user);
+  }
+
+  @Post()
+  async createChat(@User() user: UserEntity, @Body() body: CreateChatDTO) {
+    const model = await this.modelService.getModel(body.model_id ?? 1);
+
+    if (!model) {
+      throw new BadRequestException('Model not found');
     }
 
-    return this.chatService.getChatById(id, user);
+    return (await this.chatService.createChat(user, body.model_id))
+      .identifiers[0].id;
   }
 
   @Throttle({
@@ -49,22 +57,18 @@ export class ChatController {
       },
     },
   })
-  @Post('prompt')
-  async createPrompt(@Body() body: PromptDTO, @User() user: UserEntity) {
-    let chatId = body.chatId;
+  @Post(':id/prompt')
+  @UseGuards(ChatGuard)
+  async createPrompt(
+    @Param() params: PromptParamsDTO,
+    @Body() body: PromptDTO,
+  ) {
+    const chatId = params.id;
 
-    if (!chatId) {
-      chatId = (await this.chatService.createChat(user)).identifiers[0].id;
-    }
-
-    const response = await this.chatService.sendPrompt(
-      body.input,
-      chatId,
-      body.model,
-    );
+    const response = await this.chatService.sendPrompt(body.input, chatId);
 
     return {
-      response: { id: response.id, text: response.output_text },
+      response: { id: response.id, text: response.text, role: 'model' },
       chatId,
     };
   }

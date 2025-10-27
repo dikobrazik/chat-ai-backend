@@ -1,68 +1,68 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { OpenAIProvider } from './providers/openai.provider';
-import { OpenAI } from 'openai';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Chat } from '../entities/Chat';
 import { IsNull, Not, Repository } from 'typeorm';
-import { User } from '../entities/User';
+import { Chat } from '../entities/Chat';
 import { Prompt } from '../entities/Prompt';
-import { GoogleGenAIProvider } from './providers/google.provider';
-import { GoogleGenAI } from '@google/genai';
+import { User } from '../entities/User';
+import { ModelProviderService } from '../model-provider/model-provider.service';
+import { ModelService } from '../model/model.service';
 
 @Injectable()
 export class ChatService {
-  @Inject(OpenAIProvider.provide)
-  private openAI: OpenAI;
-  @Inject(GoogleGenAIProvider.provide)
-  private googleGenAI: GoogleGenAI;
+  @Inject(ModelProviderService)
+  private readonly modelProviderService: ModelProviderService;
+  @Inject(ModelService)
+  private readonly modelService: ModelService;
 
   @InjectRepository(Chat)
   private readonly chatRepository: Repository<Chat>;
   @InjectRepository(Prompt)
   private readonly promptRepository: Repository<Prompt>;
 
-  public async createChat(user: User) {
-    const conversation = await this.openAI.conversations.create({});
+  public async createChat(user: User, model_id: number) {
+    const model = await this.modelService.getModel(model_id);
+
+    const conversationId = await this.modelProviderService.createConversation(
+      model.provider_id,
+    );
 
     const chat = await this.chatRepository.insert({
-      external_chat_id: conversation.id,
-      user,
+      model_id: model.id,
+      external_chat_id: conversationId,
+      user_id: user.id,
     });
 
     return chat;
   }
 
-  public async sendPrompt(
-    input: string,
-    chatId: string,
-    model = 'gpt-4o-mini',
-  ) {
+  public async sendPrompt(input: string, chatId: string) {
     const chat = await this.chatRepository.findOne({
       where: { id: chatId },
+      relations: ['model'],
     });
 
-    const response = await this.openAI.responses.create({
-      model,
+    const model = await chat.model;
+
+    const response = await this.modelProviderService.generateResponse(
+      model.provider_id,
+      model.name,
       input,
-      // max_output_tokens: 100,
-      conversation: chat.external_chat_id,
-    });
+    );
 
     await this.promptRepository.insert({
       input,
       chat,
-      response: response.output_text,
+      response: response.text,
     });
 
     return response;
   }
 
   public async getUserChats(user: User) {
-    console.log((await this.openAI.chat.completions.list()).data);
-
     return await this.chatRepository.find({
       where: { user_id: user.id, last_prompt: Not(IsNull()) },
       order: { created_at: 'DESC' },
+      relations: ['model'],
     });
   }
 
@@ -77,13 +77,27 @@ export class ChatService {
   }
 
   public async getChatById(id: string, user: User) {
-    return (
-      await this.promptRepository.find({
-        where: { chat: { id, user_id: user.id } },
-        order: { created_at: 'DESC' },
-      })
-    )
-      .map((prompt) => [prompt.response, prompt.input])
-      .flat();
+    const chat = await this.chatRepository.findOne({
+      where: { id, user_id: user.id },
+      relations: ['model'],
+    });
+
+    return {
+      prompts: (
+        await this.promptRepository.find({
+          where: { chat: { id, user_id: user.id } },
+          order: { created_at: 'DESC' },
+        })
+      )
+        .map((prompt) => [
+          { id: prompt.id, text: prompt.response, role: 'model' },
+          { id: `user-${prompt.id}`, text: prompt.input, role: 'user' },
+        ])
+        .flat(),
+      chat: {
+        id: chat.id,
+        model: await chat.model,
+      },
+    };
   }
 }

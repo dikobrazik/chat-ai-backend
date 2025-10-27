@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { UsersService } from '../users/users.service';
+import { UserService } from '../user/user.service';
 import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Session, SessionProvider } from '../entities/Session';
@@ -12,8 +12,8 @@ export class AuthService {
   @InjectRepository(Session)
   private readonly sessionRepository: Repository<Session>;
 
-  @Inject(UsersService)
-  private readonly usersService: UsersService;
+  @Inject(UserService)
+  private readonly usersService: UserService;
   @Inject(JwtService)
   private readonly jwtService: JwtService;
 

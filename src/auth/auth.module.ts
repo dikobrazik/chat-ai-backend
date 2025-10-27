@@ -5,7 +5,7 @@ import { PassportModule } from '@nestjs/passport';
 import { YandexStrategy } from './strategies/yandex.strategy';
 import { GoogleStrategy } from './strategies/google.strategy';
 import { HttpModule } from '@nestjs/axios';
-import { UsersModule } from '../users/users.module';
+import { UserModule } from '../user/user.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Session } from '../entities/Session';
 import { JwtStrategy } from './strategies/jwt.strategy';
@@ -14,7 +14,7 @@ import { JwtStrategy } from './strategies/jwt.strategy';
   imports: [
     PassportModule,
     HttpModule,
-    UsersModule,
+    UserModule,
     TypeOrmModule.forFeature([Session]),
   ],
   providers: [AuthService, YandexStrategy, GoogleStrategy, JwtStrategy],

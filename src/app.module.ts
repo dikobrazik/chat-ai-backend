@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AuthModule } from './auth/auth.module';
-import { UsersModule } from './users/users.module';
+import { UserModule } from './user/user.module';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { readFileSync } from 'fs';
 import { join } from 'path';
@@ -18,6 +18,11 @@ import { APP_GUARD } from '@nestjs/core';
 import { JwtAuthGuard } from './auth/guards/jwt.guard';
 import { AppThrottlerGuard } from './guards/prompt.guard';
 import { ChatController } from './chat/chat.controller';
+import { ModelProvider } from './entities/ModelProvider';
+import { Model } from './entities/Model';
+import { ModelModule } from './model/model.module';
+import { ModelProvderModule } from './model-provder/model-provder.module';
+import { ModelProviderModule } from './model-provider/model-provider.module';
 
 @Module({
   imports: [
@@ -46,7 +51,7 @@ import { ChatController } from './chat/chat.controller';
         synchronize: true,
         dropSchema: false,
         logging: configService.get('IS_DEV') === 'true',
-        entities: [Chat, Prompt, User, Session],
+        entities: [Chat, Prompt, User, Session, ModelProvider, Model],
         subscribers: [],
         migrations: [],
       }),
@@ -55,7 +60,7 @@ import { ChatController } from './chat/chat.controller';
       isGlobal: true,
     }),
     AuthModule,
-    UsersModule,
+    UserModule,
     ChatModule,
     ThrottlerModule.forRoot([
       {
@@ -75,6 +80,9 @@ import { ChatController } from './chat/chat.controller';
         },
       },
     ]),
+    ModelModule,
+    ModelProvderModule,
+    ModelProviderModule,
   ],
   controllers: [AppController],
   providers: [

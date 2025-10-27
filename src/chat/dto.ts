@@ -1,15 +1,19 @@
-import { IsIn, IsNotEmpty, IsOptional, IsUUID } from 'class-validator';
-import { MODELS } from './models';
+import { Type } from 'class-transformer';
+import { IsNotEmpty, IsNumber, IsUUID, Min } from 'class-validator';
+
+export class PromptParamsDTO {
+  @IsUUID()
+  id: string;
+}
 
 export class PromptDTO {
   @IsNotEmpty()
   input: string;
+}
 
-  @IsUUID()
-  @IsOptional()
-  chatId?: string;
-
-  @IsIn(MODELS.map((model) => model.id))
-  @IsOptional()
-  model?: (typeof MODELS)[number]['id'];
+export class CreateChatDTO {
+  @IsNumber()
+  @Type(() => Number)
+  @Min(1)
+  model_id: number;
 }

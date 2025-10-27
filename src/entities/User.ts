@@ -9,6 +9,9 @@ export enum UserStatus {
   // с привязаной почтой
   ACTIVE = 'active',
   GUEST = 'guest',
+  SUBSCRIPTION_BASE = 'subscription_base',
+  SUBSCRIPTION_PLUS = 'subscription_plus',
+  SUBSCRIPTION_PRO = 'subscription_pro',
 }
 
 @Entity()
