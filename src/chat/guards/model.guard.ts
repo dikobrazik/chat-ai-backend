@@ -1,6 +1,7 @@
 import {
   CanActivate,
   ExecutionContext,
+  ForbiddenException,
   Inject,
   Injectable,
 } from '@nestjs/common';
@@ -30,9 +31,13 @@ export class ModelGuard implements CanActivate {
 
     const model = await this.modelService.getModel(body.model_id);
 
-    return (
-      USER_STATUS_LIST.indexOf(user.status) >=
+    if (
+      USER_STATUS_LIST.indexOf(user.status) <
       USER_STATUS_LIST.indexOf(model.available_for_status)
-    );
+    ) {
+      throw new ForbiddenException('Данная модель не доступна на вашем тарифе');
+    }
+
+    return true;
   }
 }
