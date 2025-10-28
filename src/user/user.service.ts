@@ -12,12 +12,17 @@ export class UserService {
     return this.userRepository.save({});
   }
 
-  public async createOrGetUser(email: string, name: string) {
+  public async createOrGetUser(email: string, name: string, photo?: string) {
     const user = await this.userRepository.findOne({ where: { email } });
 
     if (user) return user;
 
-    return this.userRepository.save({ email, name, status: UserStatus.ACTIVE });
+    return this.userRepository.save({
+      email,
+      name,
+      photo,
+      status: UserStatus.ACTIVE,
+    });
   }
 
   public findById(userId: string) {

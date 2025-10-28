@@ -43,6 +43,7 @@ export class AuthService {
     const user = await this.usersService.createOrGetUser(
       profile.emails[0].value,
       profile.displayName,
+      profile.photos?.[0]?.value,
     );
 
     await this.sessionRepository.upsert(

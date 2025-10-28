@@ -25,6 +25,9 @@ export class User {
   @Column({ nullable: true })
   name: string;
 
+  @Column({ nullable: true })
+  photo: string;
+
   @Column({
     type: 'enum',
     enum: UserStatus,
