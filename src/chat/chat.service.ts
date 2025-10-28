@@ -76,16 +76,24 @@ export class ChatService {
     );
   }
 
-  public async getChatById(id: string, user: User) {
+  public async getChatModel(id: string) {
     const chat = await this.chatRepository.findOne({
-      where: { id, user_id: user.id },
+      where: { id },
+      relations: ['model'],
+    });
+    return await chat.model;
+  }
+
+  public async getChatById(id: string) {
+    const chat = await this.chatRepository.findOne({
+      where: { id },
       relations: ['model'],
     });
 
     return {
       prompts: (
         await this.promptRepository.find({
-          where: { chat: { id, user_id: user.id } },
+          where: { chat: { id } },
           order: { created_at: 'DESC' },
         })
       )

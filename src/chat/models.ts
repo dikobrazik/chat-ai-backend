@@ -7,6 +7,10 @@ export const PROVIDERS = {
         description:
           'A smaller, faster version of GPT-4o optimized for chat applications.',
       },
+      {
+        id: 'gpt-4o',
+        description: 'GPT-4o is an omnidirectional, multimodal AI model',
+      },
     ],
   },
   google: {

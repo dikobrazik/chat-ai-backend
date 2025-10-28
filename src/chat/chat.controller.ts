@@ -16,6 +16,7 @@ import { ModelService } from '../model/model.service';
 import { ChatService } from './chat.service';
 import { CreateChatDTO, PromptDTO, PromptParamsDTO } from './dto';
 import { ChatGuard } from './guards/chat.guard';
+import { ModelGuard } from './guards/model.guard';
 
 @Controller('chat')
 export class ChatController {
@@ -31,11 +32,12 @@ export class ChatController {
 
   @Get(':id')
   @UseGuards(ChatGuard)
-  async getChat(@Param('id') id: string, @User() user: UserEntity) {
-    return this.chatService.getChatById(id, user);
+  async getChat(@Param('id') id: string) {
+    return this.chatService.getChatById(id);
   }
 
   @Post()
+  @UseGuards(ModelGuard)
   async createChat(@User() user: UserEntity, @Body() body: CreateChatDTO) {
     const model = await this.modelService.getModel(body.model_id ?? 1);
 
