@@ -21,7 +21,6 @@ import { ChatController } from './chat/chat.controller';
 import { ModelProvider } from './entities/ModelProvider';
 import { Model } from './entities/Model';
 import { ModelModule } from './model/model.module';
-import { ModelProvderModule } from './model-provder/model-provder.module';
 import { ModelProviderModule } from './model-provider/model-provider.module';
 
 @Module({
@@ -81,7 +80,6 @@ import { ModelProviderModule } from './model-provider/model-provider.module';
       },
     ]),
     ModelModule,
-    ModelProvderModule,
     ModelProviderModule,
   ],
   controllers: [AppController],
