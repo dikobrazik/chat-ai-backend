@@ -4,14 +4,15 @@ import {
   Entity,
   PrimaryGeneratedColumn,
 } from 'typeorm';
+import { SubscriptionPlan } from './Subscription';
 
 export enum UserStatus {
   // с привязаной почтой
   ACTIVE = 'active',
   GUEST = 'guest',
-  SUBSCRIPTION_BASE = 'subscription_base',
-  SUBSCRIPTION_PLUS = 'subscription_plus',
-  SUBSCRIPTION_PRO = 'subscription_pro',
+  SUBSCRIPTION_BASE = `subscription_${SubscriptionPlan.BASE}`,
+  SUBSCRIPTION_PLUS = `subscription_${SubscriptionPlan.PLUS}`,
+  SUBSCRIPTION_PRO = `subscription_${SubscriptionPlan.PRO}`,
 }
 
 @Entity()
@@ -34,6 +35,9 @@ export class User {
     default: UserStatus.GUEST,
   })
   status: UserStatus;
+
+  @Column({ nullable: true })
+  active_subscription_id: string;
 
   @CreateDateColumn()
   created_at: Date;

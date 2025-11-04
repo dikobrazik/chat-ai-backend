@@ -22,6 +22,7 @@ import { ModelProvider } from './entities/ModelProvider';
 import { Model } from './entities/Model';
 import { ModelModule } from './model/model.module';
 import { ModelProviderModule } from './model-provider/model-provider.module';
+import { SubscriptionModule } from './subscription/subscription.module';
 
 @Module({
   imports: [
@@ -81,6 +82,7 @@ import { ModelProviderModule } from './model-provider/model-provider.module';
     ]),
     ModelModule,
     ModelProviderModule,
+    SubscriptionModule,
   ],
   controllers: [AppController],
   providers: [
