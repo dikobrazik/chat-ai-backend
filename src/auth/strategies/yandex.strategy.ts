@@ -15,7 +15,7 @@ export class YandexStrategy extends PassportStrategy(Strategy, 'yandex', true) {
     super({
       clientID: configService.get('YA_CLIENT_ID'),
       clientSecret: configService.get('YA_CLIENT_SECRET'),
-      callbackURL: `${configService.get('BASE_APP_AUTH_REDIRECT_URL')}/auth/ya`,
+      callbackURL: `${configService.get('BASE_URL')}/auth/ya`,
     });
   }
 
