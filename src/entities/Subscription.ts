@@ -1,5 +1,6 @@
 import {
   Column,
+  CreateDateColumn,
   Entity,
   JoinColumn,
   ManyToOne,
@@ -14,8 +15,8 @@ export enum SubscriptionPlan {
 }
 
 export enum SubscriptionStatus {
-  ACTIVE = 'active',
   PENDING = 'pending',
+  ACTIVE = 'active',
   CANCELED = 'canceled',
   EXPIRED = 'expired',
 }
@@ -35,18 +36,21 @@ export class Subscription {
   @Column({ type: 'enum', enum: SubscriptionPlan })
   plan: SubscriptionPlan;
 
-  @Column({ type: 'enum', enum: SubscriptionPlan })
-  status: SubscriptionPlan;
+  @Column({ type: 'enum', enum: SubscriptionStatus })
+  status: SubscriptionStatus;
 
-  @Column('date')
+  @Column('timestamp', { nullable: true })
   current_period_start: number;
 
-  @Column('date')
+  @Column('timestamp', { nullable: true })
   current_period_end: number;
 
-  @Column()
+  @Column({ nullable: true })
   tinkoffSubscriptionId: string;
 
-  @Column('timestamp with time zone', { nullable: true })
+  @Column('timestamp', { nullable: true })
   expires_at: Date;
+
+  @CreateDateColumn()
+  created_at: Date;
 }

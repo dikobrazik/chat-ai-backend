@@ -1,10 +1,10 @@
 import { SubscriptionPlan } from '../entities/Subscription';
 
-export const plans = [
+export const PLANS = [
   {
     id: SubscriptionPlan.BASE,
     name: 'Базовая подписка',
-    amount: 200,
+    price: 200,
     features: [
       'Подойдет для личного использования',
       'Доступ к базовым функциям сервиса',
@@ -14,7 +14,7 @@ export const plans = [
   {
     id: SubscriptionPlan.PLUS,
     name: 'Подписка Плюс',
-    amount: 550,
+    price: 550,
     features: [
       'Для активных пользователей и небольших команд',
       'Расширенный доступ к функциям сервиса',
@@ -25,7 +25,7 @@ export const plans = [
   {
     id: SubscriptionPlan.PRO,
     name: 'Подписка Про',
-    amount: 3000,
+    price: 3000,
     features: [
       'Для профессионалов и крупных команд',
       'Полный доступ ко всем функциям сервиса',
@@ -34,3 +34,7 @@ export const plans = [
     ],
   },
 ];
+
+export const PLAN_PRICE = Object.fromEntries(
+  PLANS.map((plan) => [plan.id, plan.price]),
+);

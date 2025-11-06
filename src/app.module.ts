@@ -23,6 +23,8 @@ import { Model } from './entities/Model';
 import { ModelModule } from './model/model.module';
 import { ModelProviderModule } from './model-provider/model-provider.module';
 import { SubscriptionModule } from './subscription/subscription.module';
+import { Payment } from './entities/Payment';
+import { Subscription } from './entities/Subscription';
 
 @Module({
   imports: [
@@ -51,7 +53,16 @@ import { SubscriptionModule } from './subscription/subscription.module';
         synchronize: true,
         dropSchema: false,
         logging: configService.get('IS_DEV') === 'true',
-        entities: [Chat, Prompt, User, Session, ModelProvider, Model],
+        entities: [
+          Chat,
+          Prompt,
+          User,
+          Session,
+          ModelProvider,
+          Model,
+          Payment,
+          Subscription,
+        ],
         subscribers: [],
         migrations: [],
       }),

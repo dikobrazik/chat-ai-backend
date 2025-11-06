@@ -35,15 +35,16 @@ export class Payment {
   @Column()
   subscription_id: string;
 
-  @Column()
-  orderId: string;
+  // tinkoff payment id
+  @Column({ nullable: true })
+  paymentId: string;
 
   @Column()
   amount: number;
 
-  @Column()
-  status: string;
+  @Column({ type: 'enum', enum: PaymentStatus })
+  status: PaymentStatus;
 
-  @Column('datetime')
+  @Column('timestamp', { nullable: true })
   paymentDate: Date;
 }
