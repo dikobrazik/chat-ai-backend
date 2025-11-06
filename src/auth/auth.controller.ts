@@ -40,8 +40,8 @@ export class AuthController {
   async authYaRedirect(@Req() request, @Res() res) {
     const { user, token } = request.user;
     res.redirect(
-      this.configService.get('BASE_APP_URL') +
-        `/auth/callback?token=${token}&email=${user.email}&id=${user.id}&source=ya`,
+      this.configService.get('BASE_APP_AUTH_REDIRECT_URL') +
+        `?token=${token}&email=${user.email}&id=${user.id}&source=ya`,
     );
   }
 
@@ -51,8 +51,8 @@ export class AuthController {
     const { user, token } = request.user;
 
     res.redirect(
-      this.configService.get('BASE_APP_URL') +
-        `/auth/callback?token=${token}&email=${user.email}&id=${user.id}`,
+      this.configService.get('BASE_APP_AUTH_REDIRECT_URL') +
+        `?token=${token}&email=${user.email}&id=${user.id}`,
     );
   }
 }
