@@ -52,15 +52,10 @@ export class SubscriptionPaymentNotificationService {
           // currentPeriodEnd.setMonth(new Date().getMonth() + 1);
 
           await Promise.all([
-            this.paymentRepository.update(
-              {
-                id: orderId,
-              },
-              {
-                status: PaymentStatus.CONFIRMED,
-                payment_date: new Date(),
-              },
-            ),
+            this.paymentRepository.update(orderId, {
+              status: PaymentStatus.CONFIRMED,
+              payment_date: new Date(),
+            }),
             this.subscriptionRepository.update(payment.subscription_id, {
               status: SubscriptionStatus.ACTIVE,
               current_period_start: new Date(),
@@ -75,19 +70,12 @@ export class SubscriptionPaymentNotificationService {
           ]);
         }
       } else {
-        await Promise.all([
-          this.paymentRepository.update(
-            {
-              id: orderId,
-            },
-            {
-              status: PaymentStatus.REJECTED,
-            },
-          ),
-        ]);
+        this.paymentRepository.update(orderId, {
+          status: PaymentStatus.REJECTED,
+        });
       }
     } else {
-      new BadRequestException();
+      throw new BadRequestException();
     }
   }
 }

@@ -10,12 +10,14 @@ export class TinkoffKassaService {
 
   private baseUrl: string;
   private baseAppUrl: string;
+  private baseApiUrl: string;
   private terminalKey: string;
   private password: string;
 
   constructor(private configService: ConfigService) {
     this.baseUrl = this.configService.getOrThrow('KASSA_BASE_URL');
     this.baseAppUrl = this.configService.getOrThrow('BASE_APP_URL');
+    this.baseApiUrl = this.configService.getOrThrow('BASE_URL');
     this.terminalKey = this.configService.getOrThrow('KASSA_TERMINAL_KEY');
     this.password = this.configService.getOrThrow('KASSA_PASSWORD');
 
@@ -37,7 +39,7 @@ export class TinkoffKassaService {
       Recurrent: 'Y',
       // PayType: 'O',
       // Language: 'ru',
-      // NotificationURL: '<uri>',
+      NotificationURL: `${this.baseApiUrl}/subscription/notify`,
       SuccessURL: `${this.baseAppUrl}/subscription/success`,
       FailURL: `${this.baseAppUrl}/subscription/fail`,
       // RedirectDueDate: new Date(Date.now() + 30 * 60_000).toJSON(),
