@@ -40,16 +40,13 @@ export class Subscription {
   status: SubscriptionStatus;
 
   @Column('timestamp', { nullable: true })
-  current_period_start: number;
+  current_period_start: Date;
 
   @Column('timestamp', { nullable: true })
-  current_period_end: number;
+  current_period_end: Date;
 
   @Column({ nullable: true })
-  tinkoffSubscriptionId: string;
-
-  @Column('timestamp', { nullable: true })
-  expires_at: Date;
+  rebillId: string;
 
   @CreateDateColumn()
   created_at: Date;

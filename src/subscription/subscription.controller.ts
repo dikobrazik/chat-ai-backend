@@ -38,6 +38,18 @@ export class SubscriptionController {
       .then((r) => ({ PaymentURL: r.PaymentURL }));
   }
 
+  @Post('cancel')
+  public cancelSubscription(@User() user: UserEntity) {
+    return this.subscriptionService.cancelSubscription(user.id);
+  }
+
+  @Get()
+  public getActiveSubscription(@User() user: UserEntity) {
+    return this.subscriptionService.getSubscription(
+      user.active_subscription_id,
+    );
+  }
+
   @Post('/notify')
   async notification(
     @Body() body: KassaNotification,

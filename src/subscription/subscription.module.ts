@@ -6,9 +6,10 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { Subscription } from '../entities/Subscription';
 import { Payment } from '../entities/Payment';
 import { SubscriptionPaymentNotificationService } from './subscription-payment-notification.service';
+import { User } from 'src/entities/User';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Subscription, Payment])],
+  imports: [TypeOrmModule.forFeature([Subscription, Payment, User])],
   providers: [
     SubscriptionService,
     SubscriptionPaymentNotificationService,

@@ -21,7 +21,7 @@ export class SubscriptionService {
   private readonly tinkoffKassaService: TinkoffKassaService;
 
   public async initPayment(plan: SubscriptionPlan, userId: string) {
-    const planPrice = PLAN_PRICE[plan] * 100;
+    const amount = PLAN_PRICE[plan] * 100;
 
     const {
       identifiers: [{ id: subscriptionId }],
@@ -34,14 +34,15 @@ export class SubscriptionService {
       identifiers: [{ id: orderId }],
     } = await this.paymentRepository.insert({
       user_id: userId,
-      amount: PLAN_PRICE[plan] * 100,
+      amount,
       status: PaymentStatus.NEW,
       subscription_id: subscriptionId,
     });
 
     const paymentResponse = await this.tinkoffKassaService.initPayment(
       orderId,
-      planPrice,
+      amount,
+      userId,
     );
 
     await this.paymentRepository.update(orderId, {
@@ -49,5 +50,28 @@ export class SubscriptionService {
     });
 
     return paymentResponse;
+  }
+
+  public getSubscription(subscriptionId: string) {
+    return Promise.all([
+      this.subscriptionRepository.findOne({
+        where: { id: subscriptionId },
+      }),
+      this.paymentRepository.find({
+        where: { subscription_id: subscriptionId },
+      }),
+    ]).then(([subscription, payments]) => ({ subscription, payments }));
+  }
+
+  public cancelSubscription(userId: string) {
+    return this.subscriptionRepository.update(
+      {
+        user_id: userId,
+        status: SubscriptionStatus.ACTIVE,
+      },
+      {
+        status: SubscriptionStatus.CANCELED,
+      },
+    );
   }
 }
