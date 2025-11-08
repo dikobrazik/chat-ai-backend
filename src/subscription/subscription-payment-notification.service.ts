@@ -49,7 +49,7 @@ export class SubscriptionPaymentNotificationService {
         if (notification.Status === 'CONFIRMED') {
           const currentPeriodEnd = new Date();
           // для тестов
-          currentPeriodEnd.setDate(new Date().getDate() + 1);
+          currentPeriodEnd.setHours(new Date().getHours() + 1);
           // currentPeriodEnd.setMonth(new Date().getMonth() + 1);
 
           await Promise.all([
