@@ -45,8 +45,8 @@ export class Subscription {
   @Column('timestamp', { nullable: true })
   current_period_end: Date;
 
-  @Column({ nullable: true })
-  rebillId: number;
+  @Column({ type: 'bigint', nullable: true })
+  rebill_id: number;
 
   @CreateDateColumn()
   created_at: Date;

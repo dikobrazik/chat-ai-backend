@@ -61,7 +61,7 @@ export class SubscriptionPaymentNotificationService {
               status: SubscriptionStatus.ACTIVE,
               current_period_start: new Date(),
               current_period_end: currentPeriodEnd, // next month same day
-              rebillId: notification.RebillId,
+              rebill_id: notification.RebillId,
             }),
             this.userRepository.update(payment.user_id, {
               active_subscription_id: payment.subscription_id,

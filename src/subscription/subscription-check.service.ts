@@ -31,7 +31,7 @@ export class SubscriptionCheckService {
 
     await Promise.all(
       expiredSubscriptions.map(async (subscription) => {
-        if (subscription.rebillId) {
+        if (subscription.rebill_id) {
           const amount = PLAN_PRICE[subscription.plan] * 100;
 
           const {
@@ -51,7 +51,7 @@ export class SubscriptionCheckService {
 
           const rebillResponse = await this.kassaService.rebill(
             paymentResponse.PaymentId,
-            subscription.rebillId,
+            subscription.rebill_id,
           );
 
           console.log(paymentResponse, rebillResponse);
