@@ -46,7 +46,7 @@ export class SubscriptionService {
     );
 
     await this.paymentRepository.update(orderId, {
-      paymentId: paymentResponse.PaymentId,
+      payment_id: paymentResponse.PaymentId,
     });
 
     return paymentResponse;

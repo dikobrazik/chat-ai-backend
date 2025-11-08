@@ -37,7 +37,7 @@ export class Payment {
 
   // tinkoff payment id
   @Column({ nullable: true })
-  paymentId: string;
+  payment_id: string;
 
   @Column()
   amount: number;
