@@ -63,7 +63,7 @@ export class TinkoffKassaService {
     return response;
   }
 
-  public async rebill(paymentId: string, rebillId: string) {
+  public async rebill(paymentId: string, rebillId: number) {
     const body = this.prepareBody({
       TerminalKey: this.terminalKey,
       PaymentId: paymentId,
