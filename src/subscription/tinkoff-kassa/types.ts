@@ -26,14 +26,14 @@ export type KassaNotification = {
   OrderId: string;
   Success: boolean;
   Status: string;
-  PaymentId: string;
+  PaymentId: number;
   ErrorCode: string;
   Amount: number;
   CardId: number;
   Pan: string;
   ExpDate: string;
+  RebillId: number;
   Token: string;
-  RebillId?: string;
 };
 
 export type CancelResponse = {

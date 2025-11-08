@@ -46,7 +46,7 @@ export class Subscription {
   current_period_end: Date;
 
   @Column({ nullable: true })
-  rebillId: string;
+  rebillId: number;
 
   @CreateDateColumn()
   created_at: Date;

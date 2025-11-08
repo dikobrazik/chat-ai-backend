@@ -39,6 +39,7 @@ export class SubscriptionPaymentNotificationService {
       const orderId = notification.OrderId;
       const payment = await this.paymentRepository.findOne({
         where: { id: orderId },
+        relations: { subscription: true },
       });
 
       if (!payment) {
