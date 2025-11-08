@@ -46,5 +46,5 @@ export class Payment {
   status: PaymentStatus;
 
   @Column('timestamp', { nullable: true })
-  paymentDate: Date;
+  payment_date: Date;
 }

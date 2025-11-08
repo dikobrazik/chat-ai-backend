@@ -57,7 +57,7 @@ export class SubscriptionPaymentNotificationService {
               },
               {
                 status: PaymentStatus.CONFIRMED,
-                paymentDate: new Date(),
+                payment_date: new Date(),
               },
             ),
             this.subscriptionRepository.update(payment.subscription_id, {
