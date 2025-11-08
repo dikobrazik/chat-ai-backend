@@ -39,10 +39,10 @@ export class Subscription {
   @Column({ type: 'enum', enum: SubscriptionStatus })
   status: SubscriptionStatus;
 
-  @Column('timestamp', { nullable: true })
+  @Column('timestamptz', { nullable: true })
   current_period_start: Date;
 
-  @Column('timestamp', { nullable: true })
+  @Column('timestamptz', { nullable: true })
   current_period_end: Date;
 
   @Column({ type: 'bigint', nullable: true })

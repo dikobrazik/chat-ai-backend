@@ -45,6 +45,6 @@ export class Payment {
   @Column({ type: 'enum', enum: PaymentStatus })
   status: PaymentStatus;
 
-  @Column('timestamp', { nullable: true })
+  @Column('timestamptz', { nullable: true })
   payment_date: Date;
 }

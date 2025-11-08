@@ -28,6 +28,6 @@ export class Session {
   @Column({ nullable: true })
   refresh_token: string;
 
-  @Column('timestamp with time zone', { nullable: true })
+  @Column('timestamptz', { nullable: true })
   expires_at: Date;
 }
