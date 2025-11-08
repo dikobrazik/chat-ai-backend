@@ -15,6 +15,7 @@ import { User as UserEntity } from '../entities/User';
 import { KassaNotification } from './tinkoff-kassa/types';
 import { Response } from 'express';
 import { SubscriptionPaymentNotificationService } from './subscription-payment-notification.service';
+import { Public } from 'src/auth/decorators/public.decorator';
 
 @Controller('subscription')
 export class SubscriptionController {
@@ -50,6 +51,7 @@ export class SubscriptionController {
     );
   }
 
+  @Public()
   @Post('/notify')
   async notification(
     @Body() body: KassaNotification,
