@@ -31,6 +31,7 @@ export class SubscriptionPaymentNotificationService {
   private kassaService: TinkoffKassaService;
 
   public async processNotification(notification: KassaNotification) {
+    console.log(notification);
     const isTokenValid = this.kassaService.checkToken(notification);
 
     if (isTokenValid) {
