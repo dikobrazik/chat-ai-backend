@@ -58,7 +58,10 @@ export class SubscriptionService {
         where: { id: subscriptionId },
       }),
       this.paymentRepository.find({
-        where: { subscription_id: subscriptionId },
+        where: {
+          subscription_id: subscriptionId,
+          status: PaymentStatus.CONFIRMED,
+        },
       }),
     ]).then(([subscription, payments]) => ({ subscription, payments }));
   }

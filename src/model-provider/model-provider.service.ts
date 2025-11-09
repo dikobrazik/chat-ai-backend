@@ -30,6 +30,7 @@ export class ModelProviderService {
     providerId: number,
     modelName: string,
     query: string,
+    conversationId: string,
   ): Promise<{ id: string; text: string }> {
     // Логика выбора Стратегии: ищем провайдера, который может обработать модель
     const provider = this.providers.find((p) => p.id === providerId);
@@ -41,6 +42,6 @@ export class ModelProviderService {
     }
 
     // Делегирование выполнения выбранной Стратегии
-    return provider.generateResponse(modelName, query);
+    return provider.generateResponse(conversationId, modelName, query);
   }
 }

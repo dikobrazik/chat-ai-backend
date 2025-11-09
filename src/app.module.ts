@@ -25,9 +25,11 @@ import { ModelProviderModule } from './model-provider/model-provider.module';
 import { SubscriptionModule } from './subscription/subscription.module';
 import { Payment } from './entities/Payment';
 import { Subscription } from './entities/Subscription';
+import { ScheduleModule } from '@nestjs/schedule';
 
 @Module({
   imports: [
+    ScheduleModule.forRoot(),
     JwtModule.registerAsync({
       imports: [ConfigModule],
       inject: [ConfigService],

@@ -47,6 +47,7 @@ export class ChatService {
       model.provider_id,
       model.name,
       input,
+      chat.external_chat_id,
     );
 
     await this.promptRepository.insert({

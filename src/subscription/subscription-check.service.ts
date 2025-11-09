@@ -20,7 +20,7 @@ export class SubscriptionCheckService {
   @InjectRepository(User)
   private readonly userRepository: Repository<User>;
 
-  @Cron(CronExpression.EVERY_HOUR) // Каждый час
+  // @Cron(CronExpression.EVERY_MINUTE) // Каждый час
   async handleSubscriptionCheck() {
     const expiredSubscriptions = await this.subscriptionRepository.find({
       where: {
@@ -49,26 +49,10 @@ export class SubscriptionCheckService {
             subscription.user_id,
           );
 
-          const rebillResponse = await this.kassaService.rebill(
+          await this.kassaService.charge(
             paymentResponse.PaymentId,
             subscription.rebill_id,
           );
-
-          console.log(paymentResponse, rebillResponse);
-
-          // if (rebillResponse.Success) {
-          //   const newPeriodEnd = new Date();
-          //   newPeriodEnd.setMonth(new Date().getMonth() + 1);
-
-          //   await this.subscriptionRepository.update(subscription.id, {
-          //     current_period_start: new Date(),
-          //     current_period_end: newPeriodEnd,
-          //   });
-          // } else {
-          //   await this.subscriptionRepository.update(subscription.id, {
-          //     status: SubscriptionStatus.EXPIRED,
-          //   });
-          // }
         } else {
           await this.subscriptionRepository.update(subscription.id, {
             status: SubscriptionStatus.EXPIRED,

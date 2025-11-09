@@ -23,11 +23,14 @@ export class GoogleProviderService implements IModelProvider {
   }
 
   createConversation(): Promise<string> {
-    // const chat = this.providerInstance.models.generateContent({});
+    // const chat = this.providerInstance.chats.create({
+    //   model: 'gemini-1.5-turbo',
+    // });
     return Promise.resolve('google-conversation-id');
   }
 
   generateResponse(
+    conversationId: string,
     model: string,
     input: string,
   ): Promise<{ id: string; text: string }> {

@@ -3,6 +3,7 @@ export interface IModelProvider {
   name: string;
   createConversation(): Promise<string>;
   generateResponse(
+    conversationId: string,
     model: string,
     input: string,
   ): Promise<{ id: string; text: string }>;

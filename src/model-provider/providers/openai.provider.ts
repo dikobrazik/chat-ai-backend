@@ -26,11 +26,13 @@ export class OpenAIProviderService implements IModelProvider {
   }
 
   generateResponse(
+    conversationId: string,
     model: string,
     input: string,
   ): Promise<{ id: string; text: string }> {
     return this.providerInstance.responses
       .create({
+        conversation: conversationId,
         model,
         input,
       })
@@ -38,9 +40,5 @@ export class OpenAIProviderService implements IModelProvider {
         id: response.id,
         text: response.output_text,
       }));
-  }
-
-  async canHandle(modelName: string): Promise<boolean> {
-    return modelName === 'gemini';
   }
 }

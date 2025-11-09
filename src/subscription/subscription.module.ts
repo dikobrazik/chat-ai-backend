@@ -7,6 +7,7 @@ import { Subscription } from '../entities/Subscription';
 import { Payment } from '../entities/Payment';
 import { SubscriptionPaymentNotificationService } from './subscription-payment-notification.service';
 import { User } from 'src/entities/User';
+import { SubscriptionCheckService } from './subscription-check.service';
 
 @Module({
   imports: [TypeOrmModule.forFeature([Subscription, Payment, User])],
@@ -14,6 +15,7 @@ import { User } from 'src/entities/User';
     SubscriptionService,
     SubscriptionPaymentNotificationService,
     TinkoffKassaService,
+    SubscriptionCheckService,
   ],
   controllers: [SubscriptionController],
 })

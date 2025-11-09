@@ -63,7 +63,7 @@ export class TinkoffKassaService {
     return response;
   }
 
-  public async rebill(paymentId: string, rebillId: number) {
+  public async charge(paymentId: string, rebillId: number) {
     const body = this.prepareBody({
       TerminalKey: this.terminalKey,
       PaymentId: paymentId,
@@ -73,10 +73,10 @@ export class TinkoffKassaService {
     });
 
     const response = await this.client
-      .post<RebillResponse>('/Init', body)
+      .post<RebillResponse>('/Charge', body)
       .then((r) => r.data);
 
-    console.warn('Init response', body, response);
+    console.warn('Charge response', body, response);
 
     if (!response.Success) {
       throw new InternalServerErrorException();
