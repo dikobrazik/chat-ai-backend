@@ -1,7 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import OpenAI from 'openai';
-import { IModelProvider } from '../model-provider.interface';
+import {
+  IModelProvider,
+  UnifiedAIStreamChunk,
+} from '../model-provider.interface';
+// import { ResponseStreamEvent } from 'openai/resources/responses/responses';
+// import { Stream } from 'openai/core/streaming';
+import { Observable, catchError, throwError } from 'rxjs';
 
 @Injectable()
 export class OpenAIProviderService implements IModelProvider {
@@ -40,5 +46,90 @@ export class OpenAIProviderService implements IModelProvider {
         id: response.id,
         text: response.output_text,
       }));
+  }
+
+  async generateStreamResponse(
+    conversationId: string,
+    model: string,
+    input: string,
+  ): Promise<Observable<UnifiedAIStreamChunk>> {
+    const stream = await this.providerInstance.responses.create({
+      conversation: conversationId,
+      model,
+      input,
+      stream: true,
+    });
+
+    return new Observable<UnifiedAIStreamChunk>((subscriber) => {
+      let fullContent = '',
+        responseId = '';
+
+      const processStream = async () => {
+        try {
+          for await (const chunk of stream) {
+            if (chunk.type === 'response.created') {
+              responseId = chunk.response.id;
+              // console.log(chunk);
+              // subscriber.next({
+              //   type: 'created',
+              //   data: {
+              //     promptId: chunk.response.id,
+              //     content: '',
+              //     isComplete: false,
+              //     timestamp: new Date(),
+              //     index: chunk.sequence_number,
+              //     // chatId: conversationId,
+              //   },
+              // });
+            }
+            if (chunk.type === 'response.output_text.delta') {
+              fullContent += chunk.delta;
+
+              subscriber.next({
+                promptId: responseId,
+                content: chunk.delta,
+                isComplete: false,
+                timestamp: new Date(),
+                index: chunk.sequence_number,
+              });
+            }
+            if (chunk.type === 'response.completed') {
+              subscriber.next({
+                index: -1,
+                promptId: responseId,
+                content: fullContent,
+                isComplete: true,
+                timestamp: new Date(),
+              });
+              subscriber.complete();
+            }
+            if (chunk.type === 'error') {
+              subscriber.error({
+                isComplete: true,
+                timestamp: new Date(),
+                error: chunk.message,
+              });
+            }
+          }
+        } catch (error) {
+          console.log(error);
+          subscriber.error({
+            isComplete: true,
+            timestamp: new Date(),
+            error: error.message,
+          });
+        }
+      };
+
+      processStream();
+    }).pipe(
+      catchError((error) => {
+        return throwError(() => ({
+          isComplete: true,
+          timestamp: new Date(),
+          error: error.message,
+        }));
+      }),
+    );
   }
 }

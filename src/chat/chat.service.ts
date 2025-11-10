@@ -1,11 +1,13 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
+import { map, tap } from 'rxjs';
 import { IsNull, Not, Repository } from 'typeorm';
 import { Chat } from '../entities/Chat';
 import { Prompt } from '../entities/Prompt';
 import { User } from '../entities/User';
 import { ModelProviderService } from '../model-provider/model-provider.service';
 import { ModelService } from '../model/model.service';
+import { Model } from 'src/entities/Model';
 
 @Injectable()
 export class ChatService {
@@ -35,14 +37,7 @@ export class ChatService {
     return chat;
   }
 
-  public async sendPrompt(input: string, chatId: string) {
-    const chat = await this.chatRepository.findOne({
-      where: { id: chatId },
-      relations: ['model'],
-    });
-
-    const model = await chat.model;
-
+  public async sendPrompt(chat: Chat, model: Model, input: string) {
     const response = await this.modelProviderService.generateResponse(
       model.provider_id,
       model.name,
@@ -57,6 +52,32 @@ export class ChatService {
     });
 
     return response;
+  }
+
+  public async sendStreamPrompt(chat: Chat, model: Model, input: string) {
+    const stream = await this.modelProviderService.generateStreamResponse(
+      model,
+      input,
+      chat.external_chat_id,
+    );
+
+    const pipedStream = stream.pipe(
+      map((chunk) => ({
+        type: chunk.index === -1 ? 'complete' : 'delta',
+        data: chunk,
+      })),
+      tap(async (streamChunk) => {
+        if (streamChunk.data.isComplete) {
+          await this.promptRepository.insert({
+            input,
+            chat,
+            response: streamChunk.data.content,
+          });
+        }
+      }),
+    );
+
+    return pipedStream;
   }
 
   public async getUserChats(user: User) {
@@ -77,36 +98,26 @@ export class ChatService {
     );
   }
 
-  public async getChatModel(id: string) {
-    const chat = await this.chatRepository.findOne({
+  public getChatById(id: string) {
+    return this.chatRepository.findOne({
       where: { id },
       relations: ['model'],
     });
-    return await chat.model;
   }
 
-  public async getChatById(id: string) {
-    const chat = await this.chatRepository.findOne({
-      where: { id },
-      relations: ['model'],
-    });
-
-    return {
-      prompts: (
-        await this.promptRepository.find({
-          where: { chat: { id } },
-          order: { created_at: 'DESC' },
-        })
-      )
-        .map((prompt) => [
-          { id: prompt.id, text: prompt.response, role: 'model' },
-          { id: `user-${prompt.id}`, text: prompt.input, role: 'user' },
-        ])
-        .flat(),
-      chat: {
-        id: chat.id,
-        model: await chat.model,
-      },
-    };
+  public async getChatPrompts(
+    id: string,
+  ): Promise<{ id: string; text: string; role: string }[]> {
+    return (
+      await this.promptRepository.find({
+        where: { chat: { id } },
+        order: { created_at: 'DESC' },
+      })
+    )
+      .map((prompt) => [
+        { id: prompt.id, text: prompt.response, role: 'model' },
+        { id: `user-${prompt.id}`, text: prompt.input, role: 'user' },
+      ])
+      .flat();
   }
 }

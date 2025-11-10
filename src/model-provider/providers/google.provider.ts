@@ -1,7 +1,11 @@
 import { GoogleGenAI } from '@google/genai';
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { IModelProvider } from '../model-provider.interface';
+import { Observable, catchError, throwError } from 'rxjs';
+import {
+  IModelProvider,
+  UnifiedAIStreamChunk,
+} from '../model-provider.interface';
 
 @Injectable()
 export class GoogleProviderService implements IModelProvider {
@@ -45,7 +49,64 @@ export class GoogleProviderService implements IModelProvider {
       }));
   }
 
-  async canHandle(modelName: string): Promise<boolean> {
-    return modelName === 'gemini';
+  async generateStreamResponse(
+    conversationId: string,
+    model: string,
+    input: string,
+  ): Promise<Observable<UnifiedAIStreamChunk>> {
+    const stream = await this.providerInstance.models.generateContentStream({
+      model,
+      contents: input,
+    });
+
+    return new Observable<UnifiedAIStreamChunk>((subscriber) => {
+      let fullContent = '',
+        index = 0,
+        responseId = '';
+      const processStream = async () => {
+        try {
+          for await (const chunk of stream) {
+            const content = chunk.candidates[0].content.parts[0].text;
+            if (content) {
+              fullContent += content;
+              responseId = chunk.responseId;
+
+              subscriber.next({
+                promptId: chunk.responseId,
+                index: index++,
+                content: content,
+                isComplete: false,
+                timestamp: new Date(),
+              });
+            }
+          }
+          subscriber.next({
+            promptId: responseId,
+            index: -1,
+            content: fullContent,
+            isComplete: true,
+            timestamp: new Date(),
+          });
+          subscriber.complete();
+        } catch (error) {
+          subscriber.error({
+            content: '',
+            isComplete: true,
+            timestamp: new Date(),
+            error: error.message,
+          });
+        }
+      };
+      processStream();
+    }).pipe(
+      catchError((error) => {
+        return throwError(() => ({
+          content: '',
+          isComplete: true,
+          timestamp: new Date(),
+          error: error.message,
+        }));
+      }),
+    );
   }
 }

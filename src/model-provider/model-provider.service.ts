@@ -1,7 +1,12 @@
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
-import { IModelProvider } from './model-provider.interface';
+import {
+  IModelProvider,
+  UnifiedAIStreamChunk,
+} from './model-provider.interface';
 import { OpenAIProviderService } from './providers/openai.provider';
 import { GoogleProviderService } from './providers/google.provider';
+import { Model } from 'src/entities/Model';
+import { Observable } from 'rxjs';
 
 @Injectable()
 export class ModelProviderService {
@@ -43,5 +48,24 @@ export class ModelProviderService {
 
     // Делегирование выполнения выбранной Стратегии
     return provider.generateResponse(conversationId, modelName, query);
+  }
+
+  public async generateStreamResponse(
+    model: Model,
+    query: string,
+    conversationId: string,
+  ): Promise<Observable<UnifiedAIStreamChunk>> {
+    const { provider_id: providerId, name: modelName } = model;
+    // Логика выбора Стратегии: ищем провайдера, который может обработать модель
+    const provider = this.providers.find((p) => p.id === providerId);
+
+    if (!provider) {
+      throw new NotFoundException(
+        `Model provider for ${modelName} and provider id ${providerId} not found.`,
+      );
+    }
+
+    // Делегирование выполнения выбранной Стратегии
+    return provider.generateStreamResponse(conversationId, modelName, query);
   }
 }

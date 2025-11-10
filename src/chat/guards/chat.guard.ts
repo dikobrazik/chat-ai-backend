@@ -13,10 +13,17 @@ export class ChatGuard implements CanActivate {
   @Inject(ChatService)
   private readonly chatService: ChatService;
 
-  canActivate(context: ExecutionContext): Promise<boolean> {
+  async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest<Request>();
     const user = request.user as User;
 
-    return this.chatService.getIsUsersChat(request.params.id, user);
+    const chat = await this.chatService.getChatById(request.params.id);
+
+    await chat.model;
+
+    request.chat = chat;
+    request.chatModel = await chat.model;
+
+    return chat.user_id === user.id;
   }
 }

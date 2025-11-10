@@ -7,6 +7,8 @@ import {
   Inject,
   Param,
   Post,
+  Query,
+  Sse,
   UseGuards,
 } from '@nestjs/common';
 import { Throttle, days } from '@nestjs/throttler';
@@ -17,6 +19,18 @@ import { ChatService } from './chat.service';
 import { CreateChatDTO, PromptDTO, PromptParamsDTO } from './dto';
 import { ChatGuard } from './guards/chat.guard';
 import { ModelGuard } from './guards/model.guard';
+import { Chat } from 'src/decorators/chat.decorator';
+import { Chat as ChatEntity } from 'src/entities/Chat';
+import { ChatModel } from 'src/decorators/chat-model.decorator';
+import { Model } from 'src/entities/Model';
+
+const USER_STATUS_LIMITS = {
+  [UserStatus.ACTIVE]: 15,
+  [UserStatus.GUEST]: 5,
+  [UserStatus.SUBSCRIPTION_BASE]: 0,
+  [UserStatus.SUBSCRIPTION_PLUS]: 0,
+  [UserStatus.SUBSCRIPTION_PRO]: 0,
+};
 
 @Controller('chat')
 export class ChatController {
@@ -32,8 +46,13 @@ export class ChatController {
 
   @Get(':id')
   @UseGuards(ChatGuard)
-  async getChat(@Param('id') id: string) {
-    return this.chatService.getChatById(id);
+  async getChat(
+    @Param('id') id: string,
+    @Chat() chat: ChatEntity,
+    @ChatModel() model: Model,
+  ) {
+    const prompts = await this.chatService.getChatPrompts(id);
+    return { chat: { id: chat.id, model }, prompts };
   }
 
   @Post()
@@ -55,7 +74,7 @@ export class ChatController {
       limit: (context: ExecutionContext) => {
         const user = context.switchToHttp().getRequest().user as UserEntity;
 
-        return user.status === UserStatus.ACTIVE ? 15 : 5;
+        return USER_STATUS_LIMITS[user.status];
       },
     },
   })
@@ -64,14 +83,42 @@ export class ChatController {
   async createPrompt(
     @Param() params: PromptParamsDTO,
     @Body() body: PromptDTO,
+    @Chat() chat: ChatEntity,
+    @ChatModel() model: Model,
   ) {
     const chatId = params.id;
 
-    const response = await this.chatService.sendPrompt(body.input, chatId);
+    const response = await this.chatService.sendPrompt(chat, model, body.input);
 
     return {
       response: { id: response.id, text: response.text, role: 'model' },
       chatId,
     };
+  }
+
+  @Throttle({
+    prompt: {
+      ttl: days(1),
+      limit: (context: ExecutionContext) => {
+        const user = context.switchToHttp().getRequest().user as UserEntity;
+
+        return USER_STATUS_LIMITS[user.status];
+      },
+    },
+  })
+  @Sse(':id/prompt-stream')
+  @UseGuards(ChatGuard)
+  async createPromptStream(
+    @Query() body: PromptDTO,
+    @Chat() chat: ChatEntity,
+    @ChatModel() model: Model,
+  ) {
+    const stream = await this.chatService.sendStreamPrompt(
+      chat,
+      model,
+      body.input,
+    );
+
+    return stream;
   }
 }
