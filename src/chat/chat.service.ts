@@ -8,6 +8,7 @@ import { User } from '../entities/User';
 import { ModelProviderService } from '../model-provider/model-provider.service';
 import { ModelService } from '../model/model.service';
 import { Model } from 'src/entities/Model';
+import { ChatTitleGeneratorService } from './chat-title-generator.service';
 
 @Injectable()
 export class ChatService {
@@ -15,6 +16,8 @@ export class ChatService {
   private readonly modelProviderService: ModelProviderService;
   @Inject(ModelService)
   private readonly modelService: ModelService;
+  @Inject(ChatTitleGeneratorService)
+  private readonly chatTitleGeneratorService: ChatTitleGeneratorService;
 
   @InjectRepository(Chat)
   private readonly chatRepository: Repository<Chat>;
@@ -55,6 +58,10 @@ export class ChatService {
   }
 
   public async sendStreamPrompt(chat: Chat, model: Model, input: string) {
+    if (!chat.title) {
+      await this.chatTitleGeneratorService.createChatTitle(chat);
+    }
+
     const stream = await this.modelProviderService.generateStreamResponse(
       model,
       input,

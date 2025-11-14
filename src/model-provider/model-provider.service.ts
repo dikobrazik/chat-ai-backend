@@ -1,4 +1,4 @@
-import { Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import {
   IModelProvider,
   UnifiedAIStreamChunk,
@@ -13,20 +13,14 @@ export class ModelProviderService {
   private readonly providers: IModelProvider[];
 
   constructor(
-    @Inject(OpenAIProviderService)
     private readonly openAIProviderService: OpenAIProviderService,
-    @Inject(GoogleProviderService)
     private readonly googleProviderService: GoogleProviderService,
   ) {
     this.providers = [this.openAIProviderService, this.googleProviderService];
   }
 
   public async createConversation(providerId: number): Promise<string> {
-    const provider = this.providers.find((p) => p.id === providerId);
-
-    if (!provider) {
-      throw new NotFoundException(`No model providers available.`);
-    }
+    const provider = this.getProviderById(providerId);
 
     return provider.createConversation();
   }
@@ -35,16 +29,15 @@ export class ModelProviderService {
     providerId: number,
     modelName: string,
     query: string,
-    conversationId: string,
+    conversationId?: string,
   ): Promise<{ id: string; text: string }> {
     // Логика выбора Стратегии: ищем провайдера, который может обработать модель
-    const provider = this.providers.find((p) => p.id === providerId);
+    const provider = this.getProviderById(providerId);
 
-    if (!provider) {
-      throw new NotFoundException(
-        `Model provider for ${modelName} and provider id ${providerId} not found.`,
-      );
+    if (!conversationId) {
+      console.warn('Не передан conversationId, создаем новый...');
     }
+    conversationId = await this.createConversation(providerId);
 
     // Делегирование выполнения выбранной Стратегии
     return provider.generateResponse(conversationId, modelName, query);
@@ -53,19 +46,28 @@ export class ModelProviderService {
   public async generateStreamResponse(
     model: Model,
     query: string,
-    conversationId: string,
+    conversationId?: string,
   ): Promise<Observable<UnifiedAIStreamChunk>> {
     const { provider_id: providerId, name: modelName } = model;
     // Логика выбора Стратегии: ищем провайдера, который может обработать модель
-    const provider = this.providers.find((p) => p.id === providerId);
+    const provider = this.getProviderById(providerId);
 
-    if (!provider) {
-      throw new NotFoundException(
-        `Model provider for ${modelName} and provider id ${providerId} not found.`,
-      );
+    if (!conversationId) {
+      console.warn('Не передан conversationId, создаем новый...');
     }
+    conversationId = await this.createConversation(providerId);
 
     // Делегирование выполнения выбранной Стратегии
     return provider.generateStreamResponse(conversationId, modelName, query);
+  }
+
+  private getProviderById(providerId: number) {
+    const provider = this.providers.find((p) => p.id === providerId);
+    if (!provider) {
+      throw new NotFoundException(
+        `Model provider for provider id ${providerId} not found.`,
+      );
+    }
+    return provider;
   }
 }

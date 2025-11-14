@@ -7,9 +7,10 @@ import { ModelModule } from '../model/model.module';
 import { ChatController } from './chat.controller';
 import { ChatService } from './chat.service';
 import { ChatGuard } from './guards/chat.guard';
+import { ChatTitleGeneratorService } from './chat-title-generator.service';
 
 @Module({
-  providers: [ChatService, ChatGuard],
+  providers: [ChatTitleGeneratorService, ChatService, ChatGuard],
   imports: [
     ChatModule,
     TypeOrmModule.forFeature([Chat, Prompt]),

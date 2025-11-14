@@ -15,6 +15,9 @@ export class Chat {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
+  @Column({ default: '' })
+  title: string;
+
   @Column()
   external_chat_id: string;
 
