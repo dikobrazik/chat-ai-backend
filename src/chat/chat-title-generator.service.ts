@@ -15,7 +15,7 @@ export class ChatTitleGeneratorService {
   @InjectRepository(Prompt)
   private readonly promptRepository: Repository<Prompt>;
 
-  public async createChatTitle(chat: Chat) {
+  public async createChatTitle(chat: Chat, input: string) {
     const firstMessage = await this.promptRepository.findOne({
       where: {
         chat: { id: chat.id },
@@ -27,11 +27,11 @@ export class ChatTitleGeneratorService {
     const response = await this.modelProviderService.generateResponse(
       1,
       'gpt-4o-mini',
-      `На основе первого сообщения из диалога, сгенерируй одно короткое (не более 5 слов) название, которое точно отражает основную тему чата. Название должно быть на русском языке. ${firstMessage.input}`,
+      `На основе первого сообщения из диалога, сгенерируй одно короткое (не более 5 слов) название, которое точно отражает основную тему чата. Название должно быть на русском языке. ${
+        firstMessage?.input || input
+      }`,
       '',
     );
-
-    console.log(JSON.stringify(response, null, 2));
 
     await this.chatRepository.update(chat.id, { title: response.text });
   }

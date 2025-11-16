@@ -59,7 +59,7 @@ export class ChatService {
 
   public async sendStreamPrompt(chat: Chat, model: Model, input: string) {
     if (!chat.title) {
-      await this.chatTitleGeneratorService.createChatTitle(chat);
+      await this.chatTitleGeneratorService.createChatTitle(chat, input);
     }
 
     const stream = await this.modelProviderService.generateStreamResponse(
