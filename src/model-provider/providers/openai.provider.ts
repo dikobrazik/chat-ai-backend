@@ -5,8 +5,6 @@ import {
   IModelProvider,
   UnifiedAIStreamChunk,
 } from '../model-provider.interface';
-// import { ResponseStreamEvent } from 'openai/resources/responses/responses';
-// import { Stream } from 'openai/core/streaming';
 import { Observable, catchError, throwError } from 'rxjs';
 
 @Injectable()
@@ -18,10 +16,10 @@ export class OpenAIProviderService implements IModelProvider {
 
   constructor(private configService: ConfigService) {
     const openAiApiKey = configService.get<string>('OPEN_AI_API_KEY');
-    const proxyIpAddress = configService.get<string>('NGINX_PROXY_IP');
+    // const proxyIpAddress = configService.get<string>('NGINX_PROXY_IP');
 
     this.providerInstance = new OpenAI({
-      baseURL: `http://${proxyIpAddress}/openai/v1`,
+      // baseURL: `http://${proxyIpAddress}/openai/v1`,
       apiKey: openAiApiKey,
     });
   }
