@@ -16,11 +16,11 @@ export class GoogleProviderService implements IModelProvider {
 
   constructor(private configService: ConfigService) {
     const googleApiKey = configService.get<string>('GOOGLE_API_KEY');
-    const proxyIpAddress = configService.get<string>('NGINX_PROXY_IP');
+    // const proxyIpAddress = configService.get<string>('NGINX_PROXY_IP');
 
     this.providerInstance = new GoogleGenAI({
       httpOptions: {
-        baseUrl: `http://${proxyIpAddress}/google`,
+        // baseUrl: `http://${proxyIpAddress}/google`,
       },
       apiKey: googleApiKey,
     });
