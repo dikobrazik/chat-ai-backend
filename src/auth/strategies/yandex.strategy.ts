@@ -1,10 +1,10 @@
 import { Profile, Strategy } from 'passport-yandex';
 import { PassportStrategy } from '@nestjs/passport';
 import { Injectable, UnauthorizedException } from '@nestjs/common';
-// import { AuthService } from './auth.service';
 import { ConfigService } from '@nestjs/config';
 import { AuthService } from '../auth.service';
-import { SessionProvider } from '../../entities/Session';
+import { OauthProvider } from 'src/entities/OauthAccount';
+import { Request } from 'express';
 
 @Injectable()
 export class YandexStrategy extends PassportStrategy(Strategy, 'yandex', true) {
@@ -16,24 +16,35 @@ export class YandexStrategy extends PassportStrategy(Strategy, 'yandex', true) {
       clientID: configService.get('YA_CLIENT_ID'),
       clientSecret: configService.get('YA_CLIENT_SECRET'),
       callbackURL: `${configService.get('BASE_URL')}/auth/ya`,
+      passReqToCallback: true,
     });
   }
 
   async validate(
-    accessToken: string,
-    refreshToken: string,
+    request: Request,
+    providerAccessToken: string,
+    providerRefreshToken: string,
     profile: Profile,
   ): Promise<any> {
-    console.log(accessToken, refreshToken, profile);
-    const { user, token } = await this.authService.getOrCreate(
-      accessToken,
-      refreshToken,
-      SessionProvider.YANDEX,
+    console.log(providerAccessToken, providerRefreshToken, profile);
+
+    const user = await this.authService.createUser(
+      OauthProvider.YANDEX,
       profile,
+      providerAccessToken,
+      providerRefreshToken,
     );
+    const requestDeviceId = request.cookies['deviceId'];
+
+    const { deviceId, accessToken, refreshToken } =
+      await this.authService.createSession(
+        user,
+        request.clientInfo,
+        requestDeviceId,
+      );
     if (!profile) {
       throw new UnauthorizedException();
     }
-    return { user, token };
+    return [user, { deviceId, accessToken, refreshToken }];
   }
 }

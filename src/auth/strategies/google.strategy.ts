@@ -3,8 +3,8 @@ import { PassportStrategy } from '@nestjs/passport';
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { AuthService } from '../auth.service';
-import { SessionProvider } from '../../entities/Session';
-// import { AuthService } from './auth.service';
+import { OauthProvider } from 'src/entities/OauthAccount';
+import { Request } from 'express';
 
 @Injectable()
 export class GoogleStrategy extends PassportStrategy(Strategy) {
@@ -17,24 +17,35 @@ export class GoogleStrategy extends PassportStrategy(Strategy) {
       clientSecret: configService.get('GOOGLE_CLIENT_SECRET'),
       callbackURL: `${configService.get('BASE_URL')}/auth/g`,
       scope: ['email', 'profile'],
+      passReqToCallback: true,
     });
   }
 
   async validate(
-    accessToken: string,
-    refreshToken: string,
+    request: Request,
+    providerAccessToken: string,
+    providerRefreshToken: string,
     profile: Profile,
   ): Promise<any> {
-    console.log(accessToken, refreshToken, profile);
-    const { user, token } = await this.authService.getOrCreate(
-      accessToken,
-      refreshToken,
-      SessionProvider.GOOGLE,
+    console.log(providerAccessToken, providerRefreshToken, profile);
+
+    const user = await this.authService.createUser(
+      OauthProvider.GOOGLE,
       profile,
+      providerAccessToken,
+      providerRefreshToken,
     );
+    const requestDeviceId = request.cookies['deviceId'];
+
+    const { deviceId, accessToken, refreshToken } =
+      await this.authService.createSession(
+        user,
+        request.clientInfo,
+        requestDeviceId,
+      );
     if (!profile) {
       throw new UnauthorizedException();
     }
-    return { user, token };
+    return [user, { deviceId, accessToken, refreshToken }];
   }
 }

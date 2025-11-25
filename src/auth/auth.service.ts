@@ -1,17 +1,30 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, UnauthorizedException } from '@nestjs/common';
 import { UserService } from '../user/user.service';
-import { JwtService } from '@nestjs/jwt';
+import { JwtService, JwtSignOptions } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Session, SessionProvider } from '../entities/Session';
+import { Session } from '../entities/Session';
 import { Repository } from 'typeorm';
 import { Profile as YandexProfile } from 'passport-yandex';
 import { Profile as GoogleProfile } from 'passport-google-oauth20';
+import { generateHash } from 'src/utils/generateHash';
+import { OauthAccount, OauthProvider } from 'src/entities/OauthAccount';
+import { User } from 'src/entities/User';
+import { Request } from 'express';
+import { randomUUID } from 'crypto';
+import { SessionService } from 'src/session/session.service';
+
+export const ACCESS_TOKEN_EXPIRES_IN = '1minutes';
+export const REFRESH_TOKEN_EXPIRES_IN = '60days';
 
 @Injectable()
 export class AuthService {
+  @InjectRepository(OauthAccount)
+  private readonly oauthAccountRepository: Repository<OauthAccount>;
   @InjectRepository(Session)
   private readonly sessionRepository: Repository<Session>;
 
+  @Inject(SessionService)
+  private readonly sessionService: SessionService;
   @Inject(UserService)
   private readonly usersService: UserService;
   @Inject(JwtService)
@@ -20,54 +33,116 @@ export class AuthService {
   async createGuest() {
     const user = await this.usersService.createGuest();
 
-    const token = await this.generateJwtToken(user.id);
-
-    await this.sessionRepository.upsert(
-      {
-        user_id: user.id,
-        provider: SessionProvider.LOCAL,
-        provider_user_id: user.id,
-      },
-      ['user_id'],
+    const accessToken = await this.generateJwtToken(
+      user.id,
+      ACCESS_TOKEN_EXPIRES_IN,
+    );
+    const refreshToken = await this.generateJwtToken(
+      user.id,
+      REFRESH_TOKEN_EXPIRES_IN,
     );
 
-    return { user, token };
+    await this.sessionRepository.insert({
+      user_id: user.id,
+      refresh_token_hash: generateHash(refreshToken),
+      last_active_at: new Date(),
+    });
+
+    return { user, accessToken, refreshToken };
   }
 
-  async getOrCreate(
+  async createUser(
+    provider: OauthProvider,
+    profile: YandexProfile | GoogleProfile,
     accessToken: string,
     refreshToken: string,
-    provider: SessionProvider,
-    profile: YandexProfile | GoogleProfile,
   ) {
-    const user = await this.usersService.createOrGetUser(
-      profile.emails[0].value,
-      profile.displayName,
-      profile.photos?.[0]?.value,
-    );
+    const user = await this.usersService.createUser({
+      email: profile.emails[0].value,
+      name: profile.displayName,
+      photo: profile.photos?.[0]?.value,
+    });
 
-    await this.sessionRepository.upsert(
+    await this.oauthAccountRepository.upsert(
       {
         user_id: user.id,
-        access_token: accessToken,
-        refresh_token: refreshToken,
-        expires_at: new Date().toJSON(),
         provider,
         provider_user_id: profile.id,
+        access_token: accessToken,
+        refresh_token: refreshToken,
+        // todo: calculate expires_at based on provider data
+        expires_at: new Date(),
       },
       ['user_id'],
     );
 
-    const token = await this.generateJwtToken(user.id);
-
-    return { user, token };
+    return user;
   }
 
-  public async generateJwtToken(userId: string) {
-    return this.jwtService.signAsync({ sub: userId });
+  async createSession(
+    user: User,
+    clientInfo: Request['clientInfo'],
+    requestDeviceId: string,
+  ) {
+    const accessToken = await this.generateJwtToken(
+      user.id,
+      ACCESS_TOKEN_EXPIRES_IN,
+    );
+    const refreshToken = await this.generateJwtToken(
+      user.id,
+      REFRESH_TOKEN_EXPIRES_IN,
+    );
+
+    const deviceId = requestDeviceId || randomUUID();
+
+    await this.sessionService.createSession(
+      user.id,
+      clientInfo,
+      deviceId,
+      refreshToken,
+    );
+
+    return { deviceId, accessToken, refreshToken };
   }
 
-  public async validateJwtUser(userId: string) {
-    return this.usersService.findById(userId);
+  public async generateJwtToken(
+    userId: string,
+    expiresIn: JwtSignOptions['expiresIn'],
+  ) {
+    return this.jwtService.signAsync(
+      { sub: userId },
+      { expiresIn: expiresIn || '7d' },
+    );
+  }
+
+  public async validateRefreshToken(token: string, deviceId: string) {
+    try {
+      await this.jwtService.verifyAsync(token, {
+        ignoreExpiration: false,
+      });
+    } catch (error) {
+      if (error instanceof Error && error.name === 'TokenExpiredError') {
+        throw new UnauthorizedException({
+          message: 'Refresh token is expired',
+          error: 'refresh_token_expired',
+        });
+      }
+
+      throw new UnauthorizedException({
+        message: 'Token is invalid',
+        error: 'refresh_token_invalid',
+      });
+    }
+
+    const session = await this.sessionService.getSession(token, deviceId);
+
+    if (!session) {
+      throw new UnauthorizedException({
+        message: 'Where is no such session',
+        error: 'no_session',
+      });
+    }
+
+    return { userId: session.user_id };
   }
 }

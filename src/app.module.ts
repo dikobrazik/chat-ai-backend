@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { MiddlewareConsumer, Module } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AuthModule } from './auth/auth.module';
 import { UserModule } from './user/user.module';
@@ -26,6 +26,9 @@ import { SubscriptionModule } from './subscription/subscription.module';
 import { Payment } from './entities/Payment';
 import { Subscription } from './entities/Subscription';
 import { ScheduleModule } from '@nestjs/schedule';
+import { UserAgentMiddleware } from './middlewares/user-agent.middleware';
+import { OauthAccount } from './entities/OauthAccount';
+import { SessionModule } from './session/session.module';
 
 @Module({
   imports: [
@@ -36,7 +39,6 @@ import { ScheduleModule } from '@nestjs/schedule';
       global: true,
       useFactory: (configService: ConfigService) => ({
         secret: configService.getOrThrow('JWT_SECRET'),
-        // signOptions: { expiresIn: '7d' },
       }),
     }),
     TypeOrmModule.forRootAsync({
@@ -62,6 +64,7 @@ import { ScheduleModule } from '@nestjs/schedule';
           Session,
           ModelProvider,
           Model,
+          OauthAccount,
           Payment,
           Subscription,
         ],
@@ -96,6 +99,7 @@ import { ScheduleModule } from '@nestjs/schedule';
     ModelModule,
     ModelProviderModule,
     SubscriptionModule,
+    SessionModule,
   ],
   controllers: [AppController],
   providers: [
@@ -109,4 +113,8 @@ import { ScheduleModule } from '@nestjs/schedule';
     },
   ],
 })
-export class AppModule {}
+export class AppModule {
+  configure(consumer: MiddlewareConsumer) {
+    consumer.apply(UserAgentMiddleware).forRoutes('*');
+  }
+}

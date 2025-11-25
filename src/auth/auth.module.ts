@@ -9,13 +9,16 @@ import { UserModule } from '../user/user.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Session } from '../entities/Session';
 import { JwtStrategy } from './strategies/jwt.strategy';
+import { OauthAccount } from 'src/entities/OauthAccount';
+import { SessionModule } from 'src/session/session.module';
 
 @Module({
   imports: [
+    SessionModule,
     PassportModule,
     HttpModule,
     UserModule,
-    TypeOrmModule.forFeature([Session]),
+    TypeOrmModule.forFeature([OauthAccount, Session]),
   ],
   providers: [AuthService, YandexStrategy, GoogleStrategy, JwtStrategy],
   controllers: [AuthController],

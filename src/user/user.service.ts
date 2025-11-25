@@ -12,8 +12,14 @@ export class UserService {
     return this.userRepository.save({});
   }
 
-  public async createOrGetUser(email: string, name: string, photo?: string) {
-    const user = await this.userRepository.findOne({ where: { email } });
+  public async createUser({
+    email,
+    name,
+    photo,
+  }: Pick<User, 'email' | 'name' | 'photo'>) {
+    const user = await this.userRepository.findOne({
+      where: { email },
+    });
 
     if (user) return user;
 

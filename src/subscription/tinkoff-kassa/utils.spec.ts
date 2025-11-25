@@ -1,4 +1,4 @@
-import {generateTokenFromBody} from './utils';
+import { generateTokenFromBody } from './utils';
 
 const body = {
   TerminalKey: 'MerchantTerminalKey',

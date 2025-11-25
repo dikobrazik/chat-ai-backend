@@ -15,15 +15,11 @@ async function bootstrap() {
 
   app.enableCors({
     origin: isDev
-      ? [
-          'http://localhost',
-          'http://localhost:3000',
-          'http://158.160.12.140',
-          'https://tridva.store',
-        ]
+      ? ['http://localhost', 'http://localhost:3000']
       : ['https://tridva.store'],
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
     credentials: true,
+    // allowedHeaders: ['Authorization', 'Content-Type', 'Accept', 'Cookie'],
   });
 
   app.setGlobalPrefix('api', {
