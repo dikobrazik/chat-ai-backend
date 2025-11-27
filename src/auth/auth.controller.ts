@@ -13,6 +13,7 @@ import { ACCESS_TOKEN_EXPIRES_IN, AuthService } from './auth.service';
 import { Public } from './decorators/public.decorator';
 import { Request, Response } from 'express';
 import { SessionService } from 'src/session/session.service';
+import { UserService } from 'src/user/user.service';
 
 const SECURE_COOKIE_OPTIONS = {
   httpOnly: true,
@@ -31,12 +32,26 @@ export class AuthController {
   private readonly authService: AuthService;
   @Inject(SessionService)
   private readonly sessionService: SessionService;
+  @Inject(UserService)
+  private readonly userService: UserService;
 
   @Post('guest')
-  async createGuest(@Res({ passthrough: true }) response: Response) {
-    const { accessToken, refreshToken } = await this.authService.createGuest();
+  async createGuest(
+    @Res({ passthrough: true }) response: Response,
+    @Req() request: Request,
+  ) {
+    const user = await this.userService.createGuest();
+    const requestDeviceId = request.cookies['deviceId'];
+
+    const { deviceId, accessToken, refreshToken } =
+      await this.authService.createSession(
+        user,
+        request.clientInfo,
+        requestDeviceId,
+      );
 
     response.cookie('refreshToken', refreshToken, SECURE_COOKIE_OPTIONS);
+    response.cookie('deviceId', deviceId, SECURE_COOKIE_OPTIONS);
 
     return accessToken;
   }

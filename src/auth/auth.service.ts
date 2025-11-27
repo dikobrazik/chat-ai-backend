@@ -2,26 +2,22 @@ import { Inject, Injectable, UnauthorizedException } from '@nestjs/common';
 import { UserService } from '../user/user.service';
 import { JwtService, JwtSignOptions } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Session } from '../entities/Session';
 import { Repository } from 'typeorm';
 import { Profile as YandexProfile } from 'passport-yandex';
 import { Profile as GoogleProfile } from 'passport-google-oauth20';
-import { generateHash } from 'src/utils/generateHash';
 import { OauthAccount, OauthProvider } from 'src/entities/OauthAccount';
 import { User } from 'src/entities/User';
 import { Request } from 'express';
 import { randomUUID } from 'crypto';
 import { SessionService } from 'src/session/session.service';
 
-export const ACCESS_TOKEN_EXPIRES_IN = '1minutes';
+export const ACCESS_TOKEN_EXPIRES_IN = '30seconds'; // '1minutes';
 export const REFRESH_TOKEN_EXPIRES_IN = '60days';
 
 @Injectable()
 export class AuthService {
   @InjectRepository(OauthAccount)
   private readonly oauthAccountRepository: Repository<OauthAccount>;
-  @InjectRepository(Session)
-  private readonly sessionRepository: Repository<Session>;
 
   @Inject(SessionService)
   private readonly sessionService: SessionService;
@@ -29,27 +25,6 @@ export class AuthService {
   private readonly usersService: UserService;
   @Inject(JwtService)
   private readonly jwtService: JwtService;
-
-  async createGuest() {
-    const user = await this.usersService.createGuest();
-
-    const accessToken = await this.generateJwtToken(
-      user.id,
-      ACCESS_TOKEN_EXPIRES_IN,
-    );
-    const refreshToken = await this.generateJwtToken(
-      user.id,
-      REFRESH_TOKEN_EXPIRES_IN,
-    );
-
-    await this.sessionRepository.insert({
-      user_id: user.id,
-      refresh_token_hash: generateHash(refreshToken),
-      last_active_at: new Date(),
-    });
-
-    return { user, accessToken, refreshToken };
-  }
 
   async createUser(
     provider: OauthProvider,

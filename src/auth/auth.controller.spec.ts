@@ -4,12 +4,14 @@ import { ACCESS_TOKEN_EXPIRES_IN, AuthService } from './auth.service';
 import { ConfigService } from '@nestjs/config';
 import { Response, Request } from 'express';
 import { SessionService } from 'src/session/session.service';
+import { UserService } from 'src/user/user.service';
 
 describe('AuthController', () => {
   let controller: AuthController;
   let authService: jest.Mocked<AuthService>;
   let sessionService: jest.Mocked<SessionService>;
   let configService: jest.Mocked<ConfigService>;
+  let userService: jest.Mocked<UserService>;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -19,8 +21,15 @@ describe('AuthController', () => {
           provide: AuthService,
           useValue: {
             createGuest: jest.fn(),
+            createSession: jest.fn(),
             generateJwtToken: jest.fn(),
             validateRefreshToken: jest.fn(),
+          },
+        },
+        {
+          provide: UserService,
+          useValue: {
+            createGuest: jest.fn(),
           },
         },
         {
@@ -43,6 +52,7 @@ describe('AuthController', () => {
     authService = module.get(AuthService);
     sessionService = module.get(SessionService);
     configService = module.get(ConfigService);
+    userService = module.get(UserService);
   });
 
   it('should be defined', () => {
@@ -55,28 +65,36 @@ describe('AuthController', () => {
         cookie: jest.fn(),
       } as unknown as Response;
 
-      const mockTokens = {
-        user: {
-          id: 'user-id',
-          email: 'guest@example.com',
-          name: 'Guest',
-          photo: null,
-          status: 'guest',
-          active_subscription_id: null,
-          created_at: new Date(),
-        } as any,
+      const mockRequest = {
+        cookies: {},
+      } as unknown as Request;
+
+      userService.createGuest.mockResolvedValue({ id: 'user-id' } as any);
+      authService.createSession.mockResolvedValue({
+        deviceId: 'device-id',
         accessToken: 'access-token',
         refreshToken: 'refresh-token',
-      };
+      });
 
-      authService.createGuest.mockResolvedValue(mockTokens);
+      const result = await controller.createGuest(mockResponse, mockRequest);
 
-      const result = await controller.createGuest(mockResponse);
-
-      expect(authService.createGuest).toHaveBeenCalled();
+      expect(authService.createSession).toHaveBeenCalledWith(
+        { id: 'user-id' },
+        mockRequest.clientInfo,
+        undefined,
+      );
       expect(mockResponse.cookie).toHaveBeenCalledWith(
         'refreshToken',
         'refresh-token',
+        {
+          httpOnly: true,
+          secure: true,
+          sameSite: 'strict',
+        },
+      );
+      expect(mockResponse.cookie).toHaveBeenCalledWith(
+        'deviceId',
+        'device-id',
         {
           httpOnly: true,
           secure: true,

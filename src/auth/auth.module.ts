@@ -7,7 +7,6 @@ import { GoogleStrategy } from './strategies/google.strategy';
 import { HttpModule } from '@nestjs/axios';
 import { UserModule } from '../user/user.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { Session } from '../entities/Session';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { OauthAccount } from 'src/entities/OauthAccount';
 import { SessionModule } from 'src/session/session.module';
@@ -18,7 +17,7 @@ import { SessionModule } from 'src/session/session.module';
     PassportModule,
     HttpModule,
     UserModule,
-    TypeOrmModule.forFeature([OauthAccount, Session]),
+    TypeOrmModule.forFeature([OauthAccount]),
   ],
   providers: [AuthService, YandexStrategy, GoogleStrategy, JwtStrategy],
   controllers: [AuthController],
