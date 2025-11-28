@@ -5,7 +5,7 @@ import { PassportModule } from '@nestjs/passport';
 import { YandexStrategy } from './strategies/yandex.strategy';
 import { GoogleStrategy } from './strategies/google.strategy';
 import { HttpModule } from '@nestjs/axios';
-import { UserModule } from '../user/user.module';
+import { UserModule } from 'src/user/user.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { OauthAccount } from 'src/entities/OauthAccount';

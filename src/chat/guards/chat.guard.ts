@@ -5,7 +5,7 @@ import {
   Injectable,
 } from '@nestjs/common';
 import { Request } from 'express';
-import { User } from '../../entities/User';
+import { User } from 'src/entities/User';
 import { ChatService } from '../chat.service';
 
 @Injectable()

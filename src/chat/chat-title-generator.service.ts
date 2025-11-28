@@ -1,9 +1,9 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { IsNull, Not, Repository } from 'typeorm';
-import { Chat } from '../entities/Chat';
-import { Prompt } from '../entities/Prompt';
-import { ModelProviderService } from '../model-provider/model-provider.service';
+import { Chat } from 'src/entities/Chat';
+import { Prompt } from 'src/entities/Prompt';
+import { ModelProviderService } from 'src/model-provider/model-provider.service';
 
 @Injectable()
 export class ChatTitleGeneratorService {

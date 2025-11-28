@@ -2,11 +2,11 @@ import { Inject, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { map, tap } from 'rxjs';
 import { IsNull, Not, Repository } from 'typeorm';
-import { Chat } from '../entities/Chat';
-import { Prompt } from '../entities/Prompt';
-import { User } from '../entities/User';
-import { ModelProviderService } from '../model-provider/model-provider.service';
-import { ModelService } from '../model/model.service';
+import { Chat } from 'src/entities/Chat';
+import { Prompt } from 'src/entities/Prompt';
+import { User } from 'src/entities/User';
+import { ModelProviderService } from 'src/model-provider/model-provider.service';
+import { ModelService } from 'src/model/model.service';
 import { Model } from 'src/entities/Model';
 import { ChatTitleGeneratorService } from './chat-title-generator.service';
 

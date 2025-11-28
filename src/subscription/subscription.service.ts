@@ -3,11 +3,11 @@ import {
   Subscription,
   SubscriptionPlan,
   SubscriptionStatus,
-} from '../entities/Subscription';
+} from 'src/entities/Subscription';
 import { TinkoffKassaService } from './tinkoff-kassa/tinkoff-kassa.service';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Payment, PaymentStatus } from '../entities/Payment';
+import { Payment, PaymentStatus } from 'src/entities/Payment';
 import { PLAN_PRICE } from './constants';
 
 @Injectable()

@@ -10,8 +10,8 @@ import {
 import { PLANS } from './constants';
 import { SubscriptionService } from './subscription.service';
 import { InitSubscriptionDto } from './dto';
-import { User } from '../decorators/user.decorator';
-import { User as UserEntity } from '../entities/User';
+import { User } from 'src/decorators/user.decorator';
+import { User as UserEntity } from 'src/entities/User';
 import { KassaNotification } from './tinkoff-kassa/types';
 import { Response } from 'express';
 import { SubscriptionPaymentNotificationService } from './subscription-payment-notification.service';

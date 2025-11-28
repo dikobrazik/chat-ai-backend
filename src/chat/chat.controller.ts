@@ -12,9 +12,9 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { Throttle, days } from '@nestjs/throttler';
-import { User } from '../decorators/user.decorator';
-import { User as UserEntity, UserStatus } from '../entities/User';
-import { ModelService } from '../model/model.service';
+import { User } from 'src/decorators/user.decorator';
+import { User as UserEntity, UserStatus } from 'src/entities/User';
+import { ModelService } from 'src/model/model.service';
 import { ChatService } from './chat.service';
 import { CreateChatDTO, PromptDTO, PromptParamsDTO } from './dto';
 import { ChatGuard } from './guards/chat.guard';

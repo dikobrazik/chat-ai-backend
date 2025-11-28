@@ -5,7 +5,7 @@ import { Observable, catchError, throwError } from 'rxjs';
 import {
   IModelProvider,
   UnifiedAIStreamChunk,
-} from '../model-provider.interface';
+} from 'src/model-provider/model-provider.interface';
 
 @Injectable()
 export class GoogleProviderService implements IModelProvider {

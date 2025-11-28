@@ -6,9 +6,9 @@ import {
   Injectable,
 } from '@nestjs/common';
 import { Request } from 'express';
-import { User, UserStatus } from '../../entities/User';
+import { User, UserStatus } from 'src/entities/User';
 import { CreateChatDTO } from '../dto';
-import { ModelService } from '../../model/model.service';
+import { ModelService } from 'src/model/model.service';
 
 const USER_STATUS_LIST = [
   UserStatus.GUEST,

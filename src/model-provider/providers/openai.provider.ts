@@ -4,7 +4,7 @@ import OpenAI from 'openai';
 import {
   IModelProvider,
   UnifiedAIStreamChunk,
-} from '../model-provider.interface';
+} from 'src/model-provider/model-provider.interface';
 import { Observable, catchError, throwError } from 'rxjs';
 
 @Injectable()

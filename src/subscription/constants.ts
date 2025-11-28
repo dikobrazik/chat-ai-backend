@@ -1,4 +1,4 @@
-import { SubscriptionPlan } from '../entities/Subscription';
+import { SubscriptionPlan } from 'src/entities/Subscription';
 
 export const PLANS = [
   {

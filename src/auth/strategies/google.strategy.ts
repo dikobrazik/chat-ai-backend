@@ -2,7 +2,7 @@ import { Profile, Strategy } from 'passport-google-oauth20';
 import { PassportStrategy } from '@nestjs/passport';
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { AuthService } from '../auth.service';
+import { AuthService } from 'src/auth/auth.service';
 import { OauthProvider } from 'src/entities/OauthAccount';
 import { Request } from 'express';
 
