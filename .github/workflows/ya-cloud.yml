@@ -36,7 +36,6 @@ jobs:
 
       - name: 'Create env file'
         run: |
-          echo "${{ secrets.ENV }}" > .env
           echo "${{ secrets.DB_CA }}" > db.pem
 
       - name: Login to Dockerhub
@@ -63,6 +62,15 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v3
+
+      - name: echo env file to remote server
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USERNAME }}
+          key: ${{ secrets.SSH_KEY }}
+          script: |
+            echo "${{ secrets.ENV }}" > ~/frontend/configs/yc/backend.env
 
       - name: executing remote ssh commands using password
         uses: appleboy/ssh-action@v1.0.0

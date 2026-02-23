@@ -14,11 +14,17 @@ export interface IModelProvider {
     model: string,
     input: string,
   ): Promise<Observable<UnifiedAIStreamChunk>>;
+  generateImageResponse(
+    conversationId: string,
+    model: string,
+    input: string,
+  ): Promise<Observable<UnifiedAIStreamChunk>>;
 }
 
 export interface UnifiedAIStreamChunk {
   index: number;
-  content: string;
+  content?: string;
+  imageB64?: string;
   isComplete: boolean;
   timestamp: Date;
   promptId: string;

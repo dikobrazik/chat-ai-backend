@@ -49,6 +49,40 @@ export class GoogleProviderService implements IModelProvider {
       }));
   }
 
+  async generateImageResponse(
+    conversationId: string,
+    model: string,
+    input: string,
+  ): Promise<Observable<UnifiedAIStreamChunk>> {
+    const response = await this.providerInstance.models.generateImages({
+      model,
+      prompt: input,
+      config: {
+        numberOfImages: 1,
+      },
+    });
+
+    return new Observable<UnifiedAIStreamChunk>((subscriber) => {
+      const image = response.generatedImages[0];
+      if (!image) {
+        subscriber.error({
+          isComplete: true,
+          timestamp: new Date(),
+          error: 'No image data received from Google GenAI',
+        });
+        return;
+      }
+
+      subscriber.next({
+        promptId: image.image.gcsUri,
+        imageB64: image.image.imageBytes,
+        isComplete: true,
+        timestamp: new Date(),
+        index: -1,
+      });
+    });
+  }
+
   async generateStreamResponse(
     conversationId: string,
     model: string,

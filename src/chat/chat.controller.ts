@@ -23,6 +23,7 @@ import { Chat } from 'src/decorators/chat.decorator';
 import { Chat as ChatEntity } from 'src/entities/Chat';
 import { ChatModel } from 'src/decorators/chat-model.decorator';
 import { Model } from 'src/entities/Model';
+import { FileStorageService } from 'src/file-storage/file-storage.service';
 
 const USER_STATUS_LIMITS = {
   [UserStatus.ACTIVE]: 15,
@@ -36,6 +37,8 @@ const USER_STATUS_LIMITS = {
 export class ChatController {
   @Inject(ChatService)
   private readonly chatService: ChatService;
+  @Inject(FileStorageService)
+  private readonly fileStorageService: FileStorageService;
   @Inject(ModelService)
   private readonly modelService: ModelService;
 
@@ -53,6 +56,19 @@ export class ChatController {
   ) {
     const prompts = await this.chatService.getChatPrompts(id);
     return { chat: { id: chat.id, model }, prompts };
+  }
+
+  @Get(':id/prompt/:promptId/image')
+  @UseGuards(ChatGuard)
+  async getPromptImageURL(
+    @Param('id') id: string,
+    @Param('promptId') promptId: string,
+  ) {
+    const promptImageURL = await this.fileStorageService.getPromptImageUrl(
+      id,
+      promptId,
+    );
+    return promptImageURL;
   }
 
   @Post()

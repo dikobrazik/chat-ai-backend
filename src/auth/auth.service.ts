@@ -11,7 +11,7 @@ import { Request } from 'express';
 import { randomUUID } from 'crypto';
 import { SessionService } from 'src/session/session.service';
 
-export const ACCESS_TOKEN_EXPIRES_IN = '30seconds'; // '1minutes';
+export const ACCESS_TOKEN_EXPIRES_IN = '1day';
 export const REFRESH_TOKEN_EXPIRES_IN = '60days';
 
 @Injectable()

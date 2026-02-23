@@ -29,6 +29,7 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { UserAgentMiddleware } from './middlewares/user-agent.middleware';
 import { OauthAccount } from './entities/OauthAccount';
 import { SessionModule } from './session/session.module';
+import { FileStorageModule } from './file-storage/file-storage.module';
 
 @Module({
   imports: [
@@ -100,6 +101,7 @@ import { SessionModule } from './session/session.module';
     ModelProviderModule,
     SubscriptionModule,
     SessionModule,
+    FileStorageModule,
   ],
   controllers: [AppController],
   providers: [

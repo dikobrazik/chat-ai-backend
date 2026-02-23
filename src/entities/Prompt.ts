@@ -26,6 +26,9 @@ export class Prompt {
   @Column()
   response: string;
 
+  @Column({ nullable: true })
+  is_image: boolean;
+
   @CreateDateColumn()
   created_at: Date;
 }

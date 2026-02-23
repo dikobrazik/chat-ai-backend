@@ -26,6 +26,9 @@ export class Model {
   @Column()
   description: string;
 
+  @Column({ default: false })
+  for_image: boolean;
+
   @Column({ type: 'enum', enum: UserStatus })
   available_for_status: UserStatus;
 }

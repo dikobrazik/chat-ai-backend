@@ -29,6 +29,38 @@ export class OpenAIProviderService implements IModelProvider {
     return response.id;
   }
 
+  async generateImageResponse(
+    conversationId: string,
+    model: string,
+    input: string,
+  ): Promise<Observable<UnifiedAIStreamChunk>> {
+    const response = await this.providerInstance.images.generate({
+      model,
+      prompt: input,
+    });
+
+    return new Observable<UnifiedAIStreamChunk>((subscriber) => {
+      const imageOutput = response;
+
+      if (!imageOutput) {
+        subscriber.error({
+          isComplete: true,
+          timestamp: new Date(),
+          error: 'No image data received from OpenAI',
+        });
+        return;
+      }
+
+      subscriber.next({
+        promptId: response._request_id,
+        imageB64: imageOutput.data[0].b64_json,
+        isComplete: true,
+        timestamp: new Date(),
+        index: -1,
+      });
+    });
+  }
+
   generateResponse(
     conversationId: string,
     model: string,
@@ -67,18 +99,6 @@ export class OpenAIProviderService implements IModelProvider {
           for await (const chunk of stream) {
             if (chunk.type === 'response.created') {
               responseId = chunk.response.id;
-              // console.log(chunk);
-              // subscriber.next({
-              //   type: 'created',
-              //   data: {
-              //     promptId: chunk.response.id,
-              //     content: '',
-              //     isComplete: false,
-              //     timestamp: new Date(),
-              //     index: chunk.sequence_number,
-              //     // chatId: conversationId,
-              //   },
-              // });
             }
             if (chunk.type === 'response.output_text.delta') {
               fullContent += chunk.delta;

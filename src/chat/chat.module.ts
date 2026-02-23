@@ -8,11 +8,13 @@ import { ChatController } from './chat.controller';
 import { ChatService } from './chat.service';
 import { ChatGuard } from './guards/chat.guard';
 import { ChatTitleGeneratorService } from './chat-title-generator.service';
+import { FileStorageModule } from 'src/file-storage/file-storage.module';
 
 @Module({
   providers: [ChatTitleGeneratorService, ChatService, ChatGuard],
   imports: [
     ChatModule,
+    FileStorageModule,
     TypeOrmModule.forFeature([Chat, Prompt]),
     ModelModule,
     ModelProviderModule,

@@ -28,7 +28,7 @@ export class ModelProviderService {
   public async generateResponse(
     providerId: number,
     modelName: string,
-    query: string,
+    prompt: string,
     conversationId?: string,
   ): Promise<{ id: string; text: string }> {
     // Логика выбора Стратегии: ищем провайдера, который может обработать модель
@@ -36,16 +36,16 @@ export class ModelProviderService {
 
     if (!conversationId) {
       console.warn('Не передан conversationId, создаем новый...');
+      conversationId = await this.createConversation(providerId);
     }
-    conversationId = await this.createConversation(providerId);
 
     // Делегирование выполнения выбранной Стратегии
-    return provider.generateResponse(conversationId, modelName, query);
+    return provider.generateResponse(conversationId, modelName, prompt);
   }
 
   public async generateStreamResponse(
     model: Model,
-    query: string,
+    prompt: string,
     conversationId?: string,
   ): Promise<Observable<UnifiedAIStreamChunk>> {
     const { provider_id: providerId, name: modelName } = model;
@@ -54,11 +54,34 @@ export class ModelProviderService {
 
     if (!conversationId) {
       console.warn('Не передан conversationId, создаем новый...');
+      conversationId = await this.createConversation(providerId);
     }
-    conversationId = await this.createConversation(providerId);
 
     // Делегирование выполнения выбранной Стратегии
-    return provider.generateStreamResponse(conversationId, modelName, query);
+    return provider.generateStreamResponse(conversationId, modelName, prompt);
+  }
+
+  public async generateImageResponse(
+    model: Model,
+    prompt: string,
+    conversationId?: string,
+  ): Promise<Observable<UnifiedAIStreamChunk>> {
+    const { provider_id: providerId, name: modelName, for_image } = model;
+    // Логика выбора Стратегии: ищем провайдера, который может обработать модель
+    const provider = this.getProviderById(providerId);
+
+    if (!for_image) {
+      console.warn('Модель не предназначена для генерации изображений.');
+      return;
+    }
+    if (!conversationId) {
+      console.warn('Не передан conversationId, создаем новый...');
+      conversationId = await this.createConversation(providerId);
+    }
+
+    // Делегирование выполнения выбранной Стратегии
+
+    return provider.generateImageResponse(conversationId, modelName, prompt);
   }
 
   private getProviderById(providerId: number) {

@@ -1,6 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { map, tap } from 'rxjs';
+import { map, mergeMap, tap } from 'rxjs';
 import { IsNull, Not, Repository } from 'typeorm';
 import { Chat } from 'src/entities/Chat';
 import { Prompt } from 'src/entities/Prompt';
@@ -9,6 +9,7 @@ import { ModelProviderService } from 'src/model-provider/model-provider.service'
 import { ModelService } from 'src/model/model.service';
 import { Model } from 'src/entities/Model';
 import { ChatTitleGeneratorService } from './chat-title-generator.service';
+import { FileStorageService } from 'src/file-storage/file-storage.service';
 
 @Injectable()
 export class ChatService {
@@ -18,6 +19,8 @@ export class ChatService {
   private readonly modelService: ModelService;
   @Inject(ChatTitleGeneratorService)
   private readonly chatTitleGeneratorService: ChatTitleGeneratorService;
+  @Inject(FileStorageService)
+  private readonly fileStorageService: FileStorageService;
 
   @InjectRepository(Chat)
   private readonly chatRepository: Repository<Chat>;
@@ -60,6 +63,43 @@ export class ChatService {
   public async sendStreamPrompt(chat: Chat, model: Model, input: string) {
     if (!chat.title) {
       await this.chatTitleGeneratorService.createChatTitle(chat, input);
+    }
+
+    if (model.for_image) {
+      const stream = await this.modelProviderService.generateImageResponse(
+        model,
+        input,
+        chat.external_chat_id,
+      );
+
+      return stream.pipe(
+        map((chunk) => ({
+          type: chunk.index === -1 ? 'complete' : 'delta',
+          data: chunk,
+        })),
+        mergeMap(async (streamChunk) => {
+          const {
+            identifiers: [{ id }],
+          } = await this.promptRepository.insert({
+            input,
+            chat,
+            response: '[Image response]',
+            is_image: true,
+          });
+
+          await this.fileStorageService.saveGeneratedImage(
+            id,
+            chat.id,
+            streamChunk.data.imageB64,
+          );
+
+          streamChunk.data.promptId = id;
+          streamChunk.data.imageB64 = null;
+          streamChunk.data.content = `[Image response]`;
+
+          return streamChunk;
+        }),
+      );
     }
 
     const stream = await this.modelProviderService.generateStreamResponse(
