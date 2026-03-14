@@ -66,9 +66,9 @@ jobs:
       - name: echo env file to remote server
         uses: appleboy/ssh-action@v1.0.0
         with:
-          host: ${{ secrets.SSH_HOST }}
-          username: ${{ secrets.SSH_USERNAME }}
-          key: ${{ secrets.SSH_KEY }}
+          host: ${{ secrets.YC_HOST }}
+          username: ${{ secrets.YC_USERNAME }}
+          key: ${{ secrets.ID_RSA }}
           script: |
             echo "${{ secrets.ENV }}" > ~/frontend/configs/yc/backend.env
 
