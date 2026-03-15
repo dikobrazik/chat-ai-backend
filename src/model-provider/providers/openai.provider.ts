@@ -30,7 +30,7 @@ export class OpenAIProviderService implements IModelProvider {
   }
 
   async generateImageResponse(
-    conversationId: string,
+    _conversationId: string,
     model: string,
     input: string,
   ): Promise<Observable<UnifiedAIStreamChunk>> {
