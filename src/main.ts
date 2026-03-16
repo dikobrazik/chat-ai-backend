@@ -16,7 +16,7 @@ async function bootstrap() {
   app.enableCors({
     origin: isDev
       ? ['http://localhost', 'http://localhost:3000']
-      : ['https://tridva.store'],
+      : ['https://jonu.ru'],
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
     credentials: true,
     // allowedHeaders: ['Authorization', 'Content-Type', 'Accept', 'Cookie'],
