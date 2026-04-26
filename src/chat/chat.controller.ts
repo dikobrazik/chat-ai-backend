@@ -6,6 +6,7 @@ import {
   Get,
   Inject,
   Param,
+  Patch,
   Post,
   Query,
   Sse,
@@ -24,6 +25,7 @@ import { Chat as ChatEntity } from 'src/entities/Chat';
 import { ChatModel } from 'src/decorators/chat-model.decorator';
 import { Model } from 'src/entities/Model';
 import { FileStorageService } from 'src/file-storage/file-storage.service';
+import { PublicChatGuard } from './guards/public-chat.guard';
 
 const USER_STATUS_LIMITS = {
   [UserStatus.ACTIVE]: 15,
@@ -48,7 +50,7 @@ export class ChatController {
   }
 
   @Get(':id')
-  @UseGuards(ChatGuard)
+  @UseGuards(PublicChatGuard)
   async getChat(
     @Param('id') id: string,
     @Chat() chat: ChatEntity,
@@ -136,5 +138,11 @@ export class ChatController {
     );
 
     return stream;
+  }
+
+  @Patch(':id/public')
+  @UseGuards(ChatGuard)
+  async makeChatPublic(@Chat() chat: ChatEntity) {
+    await this.chatService.makeChatPublic(chat);
   }
 }

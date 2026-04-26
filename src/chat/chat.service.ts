@@ -167,4 +167,9 @@ export class ChatService {
       ])
       .flat();
   }
+
+  public async makeChatPublic(chat: Chat) {
+    chat.is_public = true;
+    await this.chatRepository.save(chat);
+  }
 }

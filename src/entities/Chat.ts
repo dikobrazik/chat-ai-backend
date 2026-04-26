@@ -21,6 +21,9 @@ export class Chat {
   @Column()
   external_chat_id: string;
 
+  @Column({ default: false })
+  is_public: boolean;
+
   @ManyToOne(() => User, (user) => user.id, { lazy: true })
   @JoinColumn({ name: 'user_id' })
   user: User;
