@@ -172,4 +172,8 @@ export class ChatService {
     chat.is_public = true;
     await this.chatRepository.save(chat);
   }
+
+  public async deleteChat(chat: Chat) {
+    await this.chatRepository.remove(chat);
+  }
 }

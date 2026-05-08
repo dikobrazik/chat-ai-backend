@@ -2,6 +2,7 @@ import {
   BadRequestException,
   Body,
   Controller,
+  Delete,
   ExecutionContext,
   Get,
   Inject,
@@ -144,5 +145,11 @@ export class ChatController {
   @UseGuards(ChatGuard)
   async makeChatPublic(@Chat() chat: ChatEntity) {
     await this.chatService.makeChatPublic(chat);
+  }
+
+  @Delete(':id')
+  @UseGuards(ChatGuard)
+  async deleteChat(@Chat() chat: ChatEntity) {
+    await this.chatService.deleteChat(chat);
   }
 }

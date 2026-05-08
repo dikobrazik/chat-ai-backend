@@ -13,7 +13,7 @@ export class Prompt {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @ManyToOne(() => Chat, (chat) => chat.id)
+  @ManyToOne(() => Chat, (chat) => chat.id, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'chat_id' })
   chat: Chat;
 
