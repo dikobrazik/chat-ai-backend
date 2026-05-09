@@ -19,6 +19,10 @@ export class PublicChatGuard implements CanActivate {
 
     const chat = await this.chatService.getChatById(request.params.id);
 
+    if (!chat) {
+      return false;
+    }
+
     await chat.model;
 
     request.chat = chat;
