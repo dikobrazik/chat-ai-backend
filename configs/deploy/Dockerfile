@@ -42,6 +42,7 @@ WORKDIR /usr/app
 ENV NODE_ENV=production
 COPY --from=dependencies --chown=node:node /usr/app/node_modules ./node_modules
 COPY --from=builder --chown=node:node /usr/app/dist ./dist
+COPY --from=builder --chown=node:node /usr/app/db.pem ./db.pem
 USER node:1001
 
 EXPOSE 80
