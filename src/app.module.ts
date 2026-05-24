@@ -30,6 +30,7 @@ import { UserAgentMiddleware } from './middlewares/user-agent.middleware';
 import { OauthAccount } from './entities/OauthAccount';
 import { SessionModule } from './session/session.module';
 import { FileStorageModule } from './file-storage/file-storage.module';
+import { FileEntity } from './entities/File';
 
 @Module({
   imports: [
@@ -68,6 +69,7 @@ import { FileStorageModule } from './file-storage/file-storage.module';
           OauthAccount,
           Payment,
           Subscription,
+          FileEntity,
         ],
         subscribers: [],
         migrations: [],

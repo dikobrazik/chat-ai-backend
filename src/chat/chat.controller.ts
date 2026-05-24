@@ -14,18 +14,18 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { Throttle, days } from '@nestjs/throttler';
+import { ChatModel } from 'src/decorators/chat-model.decorator';
+import { Chat } from 'src/decorators/chat.decorator';
 import { User } from 'src/decorators/user.decorator';
+import { Chat as ChatEntity } from 'src/entities/Chat';
+import { Model } from 'src/entities/Model';
 import { User as UserEntity, UserStatus } from 'src/entities/User';
+import { FileStorageService } from 'src/file-storage/file-storage.service';
 import { ModelService } from 'src/model/model.service';
 import { ChatService } from './chat.service';
 import { CreateChatDTO, PromptDTO, PromptParamsDTO } from './dto';
 import { ChatGuard } from './guards/chat.guard';
 import { ModelGuard } from './guards/model.guard';
-import { Chat } from 'src/decorators/chat.decorator';
-import { Chat as ChatEntity } from 'src/entities/Chat';
-import { ChatModel } from 'src/decorators/chat-model.decorator';
-import { Model } from 'src/entities/Model';
-import { FileStorageService } from 'src/file-storage/file-storage.service';
 import { PublicChatGuard } from './guards/public-chat.guard';
 
 const USER_STATUS_LIMITS = {
@@ -132,11 +132,7 @@ export class ChatController {
     @Chat() chat: ChatEntity,
     @ChatModel() model: Model,
   ) {
-    const stream = await this.chatService.sendStreamPrompt(
-      chat,
-      model,
-      body.input,
-    );
+    const stream = await this.chatService.sendStreamPrompt(chat, model, body);
 
     return stream;
   }

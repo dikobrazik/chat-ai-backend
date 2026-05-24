@@ -6,6 +6,7 @@ import {
   UnifiedAIStreamChunk,
 } from 'src/model-provider/model-provider.interface';
 import { Observable, catchError, throwError } from 'rxjs';
+import { EasyInputMessage } from 'openai/resources/responses/responses';
 
 @Injectable()
 export class OpenAIProviderService implements IModelProvider {
@@ -86,7 +87,21 @@ export class OpenAIProviderService implements IModelProvider {
     const stream = await this.providerInstance.responses.create({
       conversation: conversationId,
       model,
-      input,
+      input: [
+        {
+          content: [
+            { type: 'input_text', text: input },
+            { type: 'input_file', file_id: 'file-12345', filename: '' },
+          ],
+          role: 'user',
+          type: 'message',
+        },
+        // {
+        //   content: [{ type: 'input_file', file_id: 'file-12345' }],
+        //   role: 'user',
+        //   type: 'message',
+        // },
+      ] as EasyInputMessage[],
       stream: true,
     });
 

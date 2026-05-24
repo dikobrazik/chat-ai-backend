@@ -10,6 +10,7 @@ import { ModelService } from 'src/model/model.service';
 import { Model } from 'src/entities/Model';
 import { ChatTitleGeneratorService } from './chat-title-generator.service';
 import { FileStorageService } from 'src/file-storage/file-storage.service';
+import { PromptDTO } from './dto';
 
 @Injectable()
 export class ChatService {
@@ -60,51 +61,18 @@ export class ChatService {
     return response;
   }
 
-  public async sendStreamPrompt(chat: Chat, model: Model, input: string) {
+  public async sendStreamPrompt(chat: Chat, model: Model, params: PromptDTO) {
     if (!chat.title) {
-      await this.chatTitleGeneratorService.createChatTitle(chat, input);
+      await this.chatTitleGeneratorService.createChatTitle(chat, params.input);
     }
 
     if (model.for_image) {
-      const stream = await this.modelProviderService.generateImageResponse(
-        model,
-        input,
-        chat.external_chat_id,
-      );
-
-      return stream.pipe(
-        map((chunk) => ({
-          type: chunk.index === -1 ? 'complete' : 'delta',
-          data: chunk,
-        })),
-        mergeMap(async (streamChunk) => {
-          const {
-            identifiers: [{ id }],
-          } = await this.promptRepository.insert({
-            input,
-            chat,
-            response: '[Image response]',
-            is_image: true,
-          });
-
-          await this.fileStorageService.saveGeneratedImage(
-            id,
-            chat.id,
-            streamChunk.data.imageB64,
-          );
-
-          streamChunk.data.promptId = id;
-          streamChunk.data.imageB64 = null;
-          streamChunk.data.content = `[Image response]`;
-
-          return streamChunk;
-        }),
-      );
+      return this.sendImagePrompt(chat, model, params.input);
     }
 
     const stream = await this.modelProviderService.generateStreamResponse(
       model,
-      input,
+      params.input,
       chat.external_chat_id,
     );
 
@@ -116,7 +84,7 @@ export class ChatService {
       tap(async (streamChunk) => {
         if (streamChunk.data.isComplete) {
           await this.promptRepository.insert({
-            input,
+            input: params.input,
             chat,
             response: streamChunk.data.content,
           });
@@ -125,6 +93,43 @@ export class ChatService {
     );
 
     return pipedStream;
+  }
+
+  private async sendImagePrompt(chat: Chat, model: Model, input: string) {
+    const stream = await this.modelProviderService.generateImageResponse(
+      model,
+      input,
+      chat.external_chat_id,
+    );
+
+    return stream.pipe(
+      map((chunk) => ({
+        type: chunk.index === -1 ? 'complete' : 'delta',
+        data: chunk,
+      })),
+      mergeMap(async (streamChunk) => {
+        const {
+          identifiers: [{ id }],
+        } = await this.promptRepository.insert({
+          input,
+          chat,
+          response: '[Image response]',
+          is_image: true,
+        });
+
+        await this.fileStorageService.saveGeneratedImage(
+          id,
+          chat.id,
+          streamChunk.data.imageB64,
+        );
+
+        streamChunk.data.promptId = id;
+        streamChunk.data.imageB64 = null;
+        streamChunk.data.content = `[Image response]`;
+
+        return streamChunk;
+      }),
+    );
   }
 
   public async getUserChats(user: User) {

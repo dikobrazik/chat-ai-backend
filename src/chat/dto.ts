@@ -9,6 +9,9 @@ export class PromptParamsDTO {
 export class PromptDTO {
   @IsNotEmpty()
   input: string;
+
+  // @IsUUID('4', { each: true })
+  files_ids: string[];
 }
 
 export class CreateChatDTO {
