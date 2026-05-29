@@ -21,7 +21,16 @@ export class UserService {
       where: { email },
     });
 
-    if (user) return user;
+    if (user) {
+      await this.userRepository.save({
+        id: user.id,
+        email,
+        name,
+        photo,
+      });
+
+      return user;
+    }
 
     return this.userRepository.save({
       email,
