@@ -171,7 +171,7 @@ export class ChatService {
       await this.promptRepository.find({
         where: { chat: { id } },
         order: { created_at: 'DESC' },
-        // relations: { files: { file: true } },
+        relations: { files: { file: true } },
       })
     )
       .map((prompt) => [
@@ -180,7 +180,7 @@ export class ChatService {
           id: `user-${prompt.id}`,
           text: prompt.input,
           role: 'user',
-          file: prompt.files?.map((promptFile) => ({
+          files: prompt.files?.map((promptFile) => ({
             id: promptFile.file.id,
             name: promptFile.file.name,
             size: promptFile.file.size,

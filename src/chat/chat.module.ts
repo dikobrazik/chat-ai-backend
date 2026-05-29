@@ -10,13 +10,14 @@ import { ChatGuard } from './guards/chat.guard';
 import { ChatTitleGeneratorService } from './chat-title-generator.service';
 import { FileStorageModule } from 'src/file-storage/file-storage.module';
 import { PromptFile } from 'src/entities/PromptFile';
+import { FileEntity } from 'src/entities/File';
 
 @Module({
   providers: [ChatTitleGeneratorService, ChatService, ChatGuard],
   imports: [
     ChatModule,
     FileStorageModule,
-    TypeOrmModule.forFeature([Chat, Prompt, PromptFile]),
+    TypeOrmModule.forFeature([Chat, Prompt, PromptFile, FileEntity]),
     ModelModule,
     ModelProviderModule,
   ],

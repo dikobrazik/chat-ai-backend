@@ -14,14 +14,14 @@ export class PromptFile {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @OneToOne(() => FileEntity, (file) => file.id, { cascade: true })
+  @OneToOne(() => FileEntity, { cascade: true })
   @JoinColumn({ name: 'file_id' })
   file: FileEntity;
 
   @Column()
   file_id: string;
 
-  @ManyToOne(() => Prompt, (prompt) => prompt.id)
+  @ManyToOne(() => Prompt, (prompt) => prompt.files)
   @JoinColumn({ name: 'prompt_id' })
   prompt?: Prompt | null;
 

@@ -15,14 +15,14 @@ export class Prompt {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @ManyToOne(() => Chat, (chat) => chat.id, { onDelete: 'CASCADE' })
+  @ManyToOne(() => Chat, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'chat_id' })
   chat: Chat;
 
   @Column()
   chat_id: string;
 
-  @OneToMany(() => PromptFile, (promptFile) => promptFile.prompt_id)
+  @OneToMany(() => PromptFile, (promptFile) => promptFile.prompt)
   files: PromptFile[];
 
   @Column()
