@@ -20,7 +20,7 @@ export class FileStorageController {
   async uploadFiles(
     @User() user: UserEntity,
     @UploadedFiles() files: Express.Multer.File[],
-  ) {
+  ): Promise<string[]> {
     return this.fileStorageService.uploadFiles(user.id, files);
   }
 }

@@ -4,9 +4,11 @@ import {
   Entity,
   JoinColumn,
   ManyToOne,
+  OneToMany,
   PrimaryGeneratedColumn,
 } from 'typeorm';
 import { Chat } from './Chat';
+import { PromptFile } from './PromptFile';
 
 @Entity()
 export class Prompt {
@@ -19,6 +21,9 @@ export class Prompt {
 
   @Column()
   chat_id: string;
+
+  @OneToMany(() => PromptFile, (promptFile) => promptFile.prompt_id)
+  files: PromptFile[];
 
   @Column()
   input: string;

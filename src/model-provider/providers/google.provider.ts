@@ -1,9 +1,11 @@
-import { GoogleGenAI } from '@google/genai';
+import { GoogleGenAI, Part } from '@google/genai';
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { randomUUID } from 'crypto';
 import { Observable, catchError, throwError } from 'rxjs';
 import {
   IModelProvider,
+  InputFile,
   UnifiedAIStreamChunk,
 } from 'src/model-provider/model-provider.interface';
 
@@ -87,10 +89,31 @@ export class GoogleProviderService implements IModelProvider {
     conversationId: string,
     model: string,
     input: string,
+    files: InputFile[],
   ): Promise<Observable<UnifiedAIStreamChunk>> {
+    const uploadedFiles: Part[] = await Promise.all(
+      files.map((file) =>
+        this.providerInstance.files
+          .upload({
+            file: file.blob,
+            config: {
+              mimeType: file.mimeType,
+              displayName: file.name,
+              name: randomUUID(),
+            },
+          })
+          .then((uploadedFile) => ({
+            fileData: {
+              fileUri: uploadedFile.uri,
+              mimeType: uploadedFile.mimeType,
+            },
+          })),
+      ),
+    );
+
     const stream = await this.providerInstance.models.generateContentStream({
       model,
-      contents: input,
+      contents: [...uploadedFiles, input],
     });
 
     return new Observable<UnifiedAIStreamChunk>((subscriber) => {

@@ -8,7 +8,8 @@ import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { FileEntity } from 'src/entities/File';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
+import { loadEsm } from 'load-esm';
 
 @Injectable()
 export class FileStorageService {
@@ -57,14 +58,14 @@ export class FileStorageService {
       });
   }
 
-  async uploadFiles(chatId: string, files: Express.Multer.File[]) {
+  async uploadFiles(userId: string, files: Express.Multer.File[]) {
     const uploadedFiles = await Promise.all(
       files.map(async (file) => {
-        const objectKey = `${chatId}/${file.originalname}`;
+        const objectKey = `${userId}/${file.originalname}`;
 
         await this.s3Client.send(
           new PutObjectCommand({
-            Bucket: this.configService.get<string>('CHAT_FILES_BUCKET_NAME'),
+            Bucket: this.configService.get<string>('USER_FILES_BUCKET_NAME'),
             Key: objectKey,
             Body: file.buffer,
           }),
@@ -74,8 +75,9 @@ export class FileStorageService {
           name: file.originalname,
           size: file.size,
           type: file.mimetype,
-          bucket: this.configService.get<string>('CHAT_FILES_BUCKET_NAME'),
+          bucket: this.configService.get<string>('USER_FILES_BUCKET_NAME'),
           bucket_key: objectKey,
+          owner_id: userId,
         });
       }),
     );
@@ -83,9 +85,46 @@ export class FileStorageService {
     if (uploadedFiles) {
       const saveResult = await this.filesRepository.save(uploadedFiles);
 
-      return saveResult.map((file) => [file.id]);
+      return saveResult.map((file) => file.id);
     }
 
     return [];
+  }
+
+  checkIsFileOwner(fileId: string, userId: string) {
+    return this.filesRepository.exists({
+      where: { id: fileId, owner_id: userId },
+    });
+  }
+
+  async getFilesByIds(filesIds: string[]) {
+    if (!filesIds.length) return [];
+
+    const { fileTypeFromBlob } = await loadEsm('file-type');
+
+    const files = await this.filesRepository.find({
+      where: { id: In(filesIds) },
+    });
+
+    return Promise.all(
+      files.map(async (file) => {
+        const fileObject = await this.s3Client.send(
+          new GetObjectCommand({
+            Bucket: file.bucket,
+            Key: file.bucket_key,
+          }),
+        );
+
+        const bytesArray = await fileObject.Body.transformToByteArray();
+        const blob = new Blob([bytesArray]);
+
+        return {
+          id: file.id,
+          blob,
+          name: file.name,
+          mimeType: await fileTypeFromBlob(blob).then((r) => r.mime),
+        };
+      }),
+    );
   }
 }

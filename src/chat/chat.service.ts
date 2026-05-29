@@ -10,7 +10,7 @@ import { ModelService } from 'src/model/model.service';
 import { Model } from 'src/entities/Model';
 import { ChatTitleGeneratorService } from './chat-title-generator.service';
 import { FileStorageService } from 'src/file-storage/file-storage.service';
-import { PromptDTO } from './dto';
+import { PromptFile } from 'src/entities/PromptFile';
 
 @Injectable()
 export class ChatService {
@@ -27,6 +27,8 @@ export class ChatService {
   private readonly chatRepository: Repository<Chat>;
   @InjectRepository(Prompt)
   private readonly promptRepository: Repository<Prompt>;
+  @InjectRepository(PromptFile)
+  private readonly promptFileRepository: Repository<PromptFile>;
 
   public async createChat(user: User, model_id: number) {
     const model = await this.modelService.getModel(model_id);
@@ -44,36 +46,28 @@ export class ChatService {
     return chat;
   }
 
-  public async sendPrompt(chat: Chat, model: Model, input: string) {
-    const response = await this.modelProviderService.generateResponse(
-      model.provider_id,
-      model.name,
-      input,
-      chat.external_chat_id,
-    );
+  public async sendStreamPrompt(
+    chat: Chat,
+    model: Model,
+    input: string,
+    filesIds: string[],
+  ) {
+    // todo: добавить проверку прав
+    const files = await this.fileStorageService.getFilesByIds(filesIds);
 
-    await this.promptRepository.insert({
-      input,
-      chat,
-      response: response.text,
-    });
-
-    return response;
-  }
-
-  public async sendStreamPrompt(chat: Chat, model: Model, params: PromptDTO) {
     if (!chat.title) {
-      await this.chatTitleGeneratorService.createChatTitle(chat, params.input);
+      await this.chatTitleGeneratorService.createChatTitle(chat, input);
     }
 
     if (model.for_image) {
-      return this.sendImagePrompt(chat, model, params.input);
+      return this.sendImagePrompt(chat, model, input);
     }
 
     const stream = await this.modelProviderService.generateStreamResponse(
       model,
-      params.input,
+      input,
       chat.external_chat_id,
+      files,
     );
 
     const pipedStream = stream.pipe(
@@ -83,11 +77,24 @@ export class ChatService {
       })),
       tap(async (streamChunk) => {
         if (streamChunk.data.isComplete) {
-          await this.promptRepository.insert({
-            input: params.input,
+          const {
+            identifiers: [{ id: promptId }],
+          } = await this.promptRepository.insert({
+            input: input,
             chat,
             response: streamChunk.data.content,
           });
+
+          if (filesIds) {
+            for (const fileId of filesIds) {
+              this.promptFileRepository.save([
+                {
+                  file_id: fileId,
+                  prompt_id: promptId,
+                },
+              ]);
+            }
+          }
         }
       }),
     );
@@ -164,11 +171,22 @@ export class ChatService {
       await this.promptRepository.find({
         where: { chat: { id } },
         order: { created_at: 'DESC' },
+        // relations: { files: { file: true } },
       })
     )
       .map((prompt) => [
         { id: prompt.id, text: prompt.response, role: 'model' },
-        { id: `user-${prompt.id}`, text: prompt.input, role: 'user' },
+        {
+          id: `user-${prompt.id}`,
+          text: prompt.input,
+          role: 'user',
+          file: prompt.files?.map((promptFile) => ({
+            id: promptFile.file.id,
+            name: promptFile.file.name,
+            size: promptFile.file.size,
+            type: promptFile.file.type,
+          })),
+        },
       ])
       .flat();
   }

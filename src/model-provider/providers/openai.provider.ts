@@ -1,12 +1,17 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import OpenAI from 'openai';
+import OpenAI, { toFile } from 'openai';
+import {
+  EasyInputMessage,
+  ResponseInputContent,
+} from 'openai/resources/responses/responses';
+import { Observable, catchError, throwError } from 'rxjs';
 import {
   IModelProvider,
+  InputFile,
   UnifiedAIStreamChunk,
 } from 'src/model-provider/model-provider.interface';
-import { Observable, catchError, throwError } from 'rxjs';
-import { EasyInputMessage } from 'openai/resources/responses/responses';
+import { blobToDataUrl } from 'src/utils/blobToDataUrl';
 
 @Injectable()
 export class OpenAIProviderService implements IModelProvider {
@@ -83,24 +88,37 @@ export class OpenAIProviderService implements IModelProvider {
     conversationId: string,
     model: string,
     input: string,
+    files: InputFile[],
   ): Promise<Observable<UnifiedAIStreamChunk>> {
+    const uploadedFiles: ResponseInputContent[] = await Promise.all(
+      files.map(async (file) =>
+        file.mimeType.startsWith('image')
+          ? {
+              type: 'input_image',
+              detail: 'auto',
+              image_url: await blobToDataUrl(file.blob, file.mimeType),
+            }
+          : {
+              type: 'input_file',
+              file_id: await this.providerInstance.files
+                .create({
+                  file: await toFile(file.blob, file.name),
+                  purpose: 'user_data',
+                })
+                .then((uploadedFile) => uploadedFile.id),
+            },
+      ),
+    );
+
     const stream = await this.providerInstance.responses.create({
       conversation: conversationId,
       model,
       input: [
         {
-          content: [
-            { type: 'input_text', text: input },
-            { type: 'input_file', file_id: 'file-12345', filename: '' },
-          ],
+          content: [{ type: 'input_text', text: input }, ...uploadedFiles],
           role: 'user',
           type: 'message',
         },
-        // {
-        //   content: [{ type: 'input_file', file_id: 'file-12345' }],
-        //   role: 'user',
-        //   type: 'message',
-        // },
       ] as EasyInputMessage[],
       stream: true,
     });

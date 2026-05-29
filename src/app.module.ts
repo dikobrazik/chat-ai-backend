@@ -31,6 +31,7 @@ import { OauthAccount } from './entities/OauthAccount';
 import { SessionModule } from './session/session.module';
 import { FileStorageModule } from './file-storage/file-storage.module';
 import { FileEntity } from './entities/File';
+import { PromptFile } from './entities/PromptFile';
 
 @Module({
   imports: [
@@ -62,6 +63,7 @@ import { FileEntity } from './entities/File';
         entities: [
           Chat,
           Prompt,
+          PromptFile,
           User,
           Session,
           ModelProvider,
@@ -94,7 +96,7 @@ import { FileEntity } from './entities/File';
         skipIf: (context) => {
           return (
             context.getHandler().name !==
-            ChatController.prototype.createPrompt.name
+            ChatController.prototype.createPromptStream.name
           );
         },
       },

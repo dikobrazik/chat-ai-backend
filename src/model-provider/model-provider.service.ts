@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import {
   IModelProvider,
+  InputFile,
   UnifiedAIStreamChunk,
 } from './model-provider.interface';
 import { OpenAIProviderService } from './providers/openai.provider';
@@ -47,6 +48,7 @@ export class ModelProviderService {
     model: Model,
     prompt: string,
     conversationId?: string,
+    files?: InputFile[],
   ): Promise<Observable<UnifiedAIStreamChunk>> {
     const { provider_id: providerId, name: modelName } = model;
     // Логика выбора Стратегии: ищем провайдера, который может обработать модель
@@ -58,7 +60,12 @@ export class ModelProviderService {
     }
 
     // Делегирование выполнения выбранной Стратегии
-    return provider.generateStreamResponse(conversationId, modelName, prompt);
+    return provider.generateStreamResponse(
+      conversationId,
+      modelName,
+      prompt,
+      files,
+    );
   }
 
   public async generateImageResponse(

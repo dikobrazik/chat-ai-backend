@@ -23,17 +23,18 @@ import { User as UserEntity, UserStatus } from 'src/entities/User';
 import { FileStorageService } from 'src/file-storage/file-storage.service';
 import { ModelService } from 'src/model/model.service';
 import { ChatService } from './chat.service';
-import { CreateChatDTO, PromptDTO, PromptParamsDTO } from './dto';
+import { CreateChatDTO, PromptDTO } from './dto';
 import { ChatGuard } from './guards/chat.guard';
 import { ModelGuard } from './guards/model.guard';
 import { PublicChatGuard } from './guards/public-chat.guard';
+import { PromptGuard } from './guards/prompt.guard';
 
 const USER_STATUS_LIMITS = {
   [UserStatus.ACTIVE]: 15,
   [UserStatus.GUEST]: 5,
-  [UserStatus.SUBSCRIPTION_BASE]: 0,
-  [UserStatus.SUBSCRIPTION_PLUS]: 0,
-  [UserStatus.SUBSCRIPTION_PRO]: 0,
+  [UserStatus.SUBSCRIPTION_BASE]: 100000,
+  [UserStatus.SUBSCRIPTION_PLUS]: 100000,
+  [UserStatus.SUBSCRIPTION_PRO]: 100000,
 };
 
 @Controller('chat')
@@ -97,42 +98,19 @@ export class ChatController {
       },
     },
   })
-  @Post(':id/prompt')
-  @UseGuards(ChatGuard)
-  async createPrompt(
-    @Param() params: PromptParamsDTO,
-    @Body() body: PromptDTO,
-    @Chat() chat: ChatEntity,
-    @ChatModel() model: Model,
-  ) {
-    const chatId = params.id;
-
-    const response = await this.chatService.sendPrompt(chat, model, body.input);
-
-    return {
-      response: { id: response.id, text: response.text, role: 'model' },
-      chatId,
-    };
-  }
-
-  @Throttle({
-    prompt: {
-      ttl: days(1),
-      limit: (context: ExecutionContext) => {
-        const user = context.switchToHttp().getRequest().user as UserEntity;
-
-        return USER_STATUS_LIMITS[user.status];
-      },
-    },
-  })
   @Sse(':id/prompt-stream')
-  @UseGuards(ChatGuard)
+  @UseGuards(ChatGuard, PromptGuard)
   async createPromptStream(
     @Query() body: PromptDTO,
     @Chat() chat: ChatEntity,
     @ChatModel() model: Model,
   ) {
-    const stream = await this.chatService.sendStreamPrompt(chat, model, body);
+    const stream = await this.chatService.sendStreamPrompt(
+      chat,
+      model,
+      body.input,
+      body.files_ids,
+    );
 
     return stream;
   }

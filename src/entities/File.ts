@@ -32,6 +32,9 @@ export class FileEntity {
   @JoinColumn({ name: 'owner_id' })
   owner: User;
 
+  @Column()
+  owner_id: string;
+
   @CreateDateColumn()
   uploaded_at: Date;
 }

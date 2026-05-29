@@ -13,6 +13,7 @@ export interface IModelProvider {
     conversationId: string,
     model: string,
     input: string,
+    files?: InputFile[],
   ): Promise<Observable<UnifiedAIStreamChunk>>;
   generateImageResponse(
     conversationId: string,
@@ -30,3 +31,10 @@ export interface UnifiedAIStreamChunk {
   promptId: string;
   error?: string;
 }
+
+export type InputFile = {
+  id: string;
+  blob: Blob;
+  name: string;
+  mimeType: string;
+};
