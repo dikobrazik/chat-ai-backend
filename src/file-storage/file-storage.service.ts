@@ -98,7 +98,7 @@ export class FileStorageService {
   }
 
   async getFilesByIds(filesIds: string[]) {
-    if (!filesIds.length) return [];
+    if (!filesIds?.length) return [];
 
     const { fileTypeFromBlob } = await loadEsm('file-type');
 

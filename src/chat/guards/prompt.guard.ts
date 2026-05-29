@@ -20,9 +20,9 @@ export class PromptGuard implements CanActivate {
     const user = request.user as User;
 
     return Promise.all(
-      files_ids.map((fileId) =>
+      files_ids?.map((fileId) =>
         this.fileStorageService.checkIsFileOwner(fileId, user.id),
-      ),
+      ) || [],
     ).then((result) => result.every(Boolean));
   }
 }
