@@ -40,8 +40,8 @@ export class TinkoffKassaService {
       // PayType: 'O',
       // Language: 'ru',
       NotificationURL: `${this.baseApiUrl}/subscription/notify`,
-      SuccessURL: `${this.baseAppUrl}/subscription/success`,
-      FailURL: `${this.baseAppUrl}/subscription/fail`,
+      SuccessURL: `${this.baseAppUrl}/payment/success`,
+      FailURL: `${this.baseAppUrl}/payment/fail`,
       // RedirectDueDate: new Date(Date.now() + 30 * 60_000).toJSON(),
       DATA: {
         connection_type: 'Widget',

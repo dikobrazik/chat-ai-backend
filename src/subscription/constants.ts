@@ -22,7 +22,7 @@ export const PLANS = [
   {
     id: SubscriptionPlan.PLUS,
     name: 'Плюс',
-    price: 0,
+    price: 199,
     oldPrice: 199,
     sixMonthsPrice: 169,
     isPopular: true,
