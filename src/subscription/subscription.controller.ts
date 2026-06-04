@@ -35,7 +35,7 @@ export class SubscriptionController {
     @User() user: UserEntity,
   ) {
     return this.subscriptionService
-      .initPayment(body.plan, user.id)
+      .initPayment(body.plan, user.id, user.email)
       .then((r) => ({ PaymentURL: r.PaymentURL }));
   }
 

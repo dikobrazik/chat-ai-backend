@@ -20,7 +20,11 @@ export class SubscriptionService {
   @Inject(TinkoffKassaService)
   private readonly tinkoffKassaService: TinkoffKassaService;
 
-  public async initPayment(plan: SubscriptionPlan, userId: string) {
+  public async initPayment(
+    plan: SubscriptionPlan,
+    userId: string,
+    userEmail: string,
+  ) {
     const amount = PLAN_PRICE[plan] * 100;
 
     const {
@@ -43,6 +47,7 @@ export class SubscriptionService {
       orderId,
       amount,
       userId,
+      userEmail,
     );
 
     await this.paymentRepository.update(orderId, {

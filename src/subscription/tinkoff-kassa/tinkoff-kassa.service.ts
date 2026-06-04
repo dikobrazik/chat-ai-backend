@@ -29,6 +29,7 @@ export class TinkoffKassaService {
     orderId: string | number,
     amount: number,
     customerKey: string,
+    customerEmail: string,
   ): Promise<InitResponse> {
     const body: Record<string, any> = this.prepareBody({
       TerminalKey: this.terminalKey,
@@ -43,9 +44,22 @@ export class TinkoffKassaService {
       SuccessURL: `${this.baseAppUrl}/payment/success`,
       FailURL: `${this.baseAppUrl}/payment/fail`,
       // RedirectDueDate: new Date(Date.now() + 30 * 60_000).toJSON(),
+      Receipt: {
+        Items: [
+          {
+            Name: 'Подписка на сервис',
+            Price: amount,
+            Quantity: 1,
+            Amount: amount,
+          },
+        ],
+        Tax: 'none',
+      },
+      Email: customerEmail,
       DATA: {
         connection_type: 'Widget',
         OperationInitiatorType: 'R',
+        Email: customerEmail,
         // QR: true,
       },
     });
@@ -63,13 +77,17 @@ export class TinkoffKassaService {
     return response;
   }
 
-  public async charge(paymentId: string, rebillId: number) {
+  public async charge(
+    paymentId: string,
+    rebillId: number,
+    customerEmail: string,
+  ) {
     const body = this.prepareBody({
       TerminalKey: this.terminalKey,
       PaymentId: paymentId,
       RebillId: rebillId,
-      // SendEmail: true,
-      // InfoEmail: 'customer@test.com',
+      SendEmail: true,
+      InfoEmail: customerEmail,
     });
 
     const response = await this.client

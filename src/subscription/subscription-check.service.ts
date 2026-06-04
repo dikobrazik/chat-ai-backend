@@ -27,6 +27,7 @@ export class SubscriptionCheckService {
         current_period_end: LessThanOrEqual(new Date()),
         status: SubscriptionStatus.ACTIVE,
       },
+      relations: ['user'],
     });
 
     await Promise.all(
@@ -47,11 +48,13 @@ export class SubscriptionCheckService {
             orderId,
             amount,
             subscription.user_id,
+            subscription.user.email,
           );
 
           await this.kassaService.charge(
             paymentResponse.PaymentId,
             subscription.rebill_id,
+            subscription.user.email,
           );
         } else {
           await this.subscriptionRepository.update(subscription.id, {
