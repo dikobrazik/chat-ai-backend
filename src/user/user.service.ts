@@ -16,7 +16,10 @@ export class UserService {
     email,
     name,
     photo,
-  }: Pick<User, 'email' | 'name' | 'photo'>) {
+    passwordHash,
+    emailVerified,
+  }: Pick<User, 'email'> &
+    Partial<Pick<User, 'name' | 'photo' | 'passwordHash' | 'emailVerified'>>) {
     const user = await this.userRepository.findOne({
       where: { email },
     });
@@ -36,11 +39,17 @@ export class UserService {
       email,
       name,
       photo,
+      passwordHash,
+      emailVerified,
       status: UserStatus.ACTIVE,
     });
   }
 
   public findById(userId: string) {
     return this.userRepository.findOne({ where: { id: userId } });
+  }
+
+  public findByEmail(email: string) {
+    return this.userRepository.findOne({ where: { email } });
   }
 }

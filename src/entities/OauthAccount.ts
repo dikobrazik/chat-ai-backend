@@ -8,6 +8,7 @@ import {
 import { User } from './User';
 
 export enum OauthProvider {
+  LOCAL = 'local',
   YANDEX = 'yandex',
   GOOGLE = 'google',
 }

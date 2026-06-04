@@ -32,6 +32,8 @@ import { SessionModule } from './session/session.module';
 import { FileStorageModule } from './file-storage/file-storage.module';
 import { FileEntity } from './entities/File';
 import { PromptFile } from './entities/PromptFile';
+import { MailerModule } from './mailer/mailer.module';
+import { MailerModule as NestMailerModule } from '@nestjs-modules/mailer';
 
 @Module({
   imports: [
@@ -101,11 +103,30 @@ import { PromptFile } from './entities/PromptFile';
         },
       },
     ]),
+    NestMailerModule.forRootAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (configService: ConfigService) => ({
+        transport: {
+          host: 'smtp.yandex.ru',
+          port: 465,
+          secure: true,
+          auth: {
+            user: configService.getOrThrow('YA_EMAIL'),
+            pass: configService.getOrThrow('YA_EMAIL_PASSWORD'),
+          },
+        },
+        defaults: {
+          from: `"No Reply" <${configService.getOrThrow('YA_EMAIL')}>`,
+        },
+      }),
+    }),
     ModelModule,
     ModelProviderModule,
     SubscriptionModule,
     SessionModule,
     FileStorageModule,
+    MailerModule,
   ],
   controllers: [AppController],
   providers: [

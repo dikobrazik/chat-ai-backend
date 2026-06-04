@@ -27,6 +27,12 @@ export class User {
   name: string;
 
   @Column({ nullable: true })
+  passwordHash: string;
+
+  @Column({ default: false })
+  emailVerified: boolean;
+
+  @Column({ nullable: true })
   photo: string;
 
   @Column({

@@ -10,6 +10,9 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { OauthAccount } from 'src/entities/OauthAccount';
 import { SessionModule } from 'src/session/session.module';
+import { EmailAuthController } from './email-auth.controller';
+import { MailerService } from 'src/mailer/mailer.service';
+import { EmailAuthService } from './email-auth.service';
 
 @Module({
   imports: [
@@ -19,7 +22,14 @@ import { SessionModule } from 'src/session/session.module';
     UserModule,
     TypeOrmModule.forFeature([OauthAccount]),
   ],
-  providers: [AuthService, YandexStrategy, GoogleStrategy, JwtStrategy],
-  controllers: [AuthController],
+  providers: [
+    AuthService,
+    YandexStrategy,
+    GoogleStrategy,
+    JwtStrategy,
+    MailerService,
+    EmailAuthService,
+  ],
+  controllers: [AuthController, EmailAuthController],
 })
 export class AuthModule {}

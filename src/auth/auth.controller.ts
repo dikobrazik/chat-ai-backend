@@ -14,13 +14,7 @@ import { Public } from './decorators/public.decorator';
 import { Request, Response } from 'express';
 import { SessionService } from 'src/session/session.service';
 import { UserService } from 'src/user/user.service';
-
-const SECURE_COOKIE_OPTIONS = {
-  httpOnly: true,
-  secure: true,
-  sameSite: 'strict',
-  // path: '/api/auth',
-} as const;
+import { SECURE_COOKIE_OPTIONS } from './constants';
 
 @Public()
 @Controller('auth')
