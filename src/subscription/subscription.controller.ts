@@ -5,17 +5,17 @@ import {
   HttpStatus,
   Inject,
   Post,
+  Query,
   Res,
 } from '@nestjs/common';
-import { PLANS } from './constants';
-import { SubscriptionService } from './subscription.service';
-import { InitSubscriptionDto } from './dto';
+import { Response } from 'express';
+import { Public } from 'src/auth/decorators/public.decorator';
 import { User } from 'src/decorators/user.decorator';
 import { User as UserEntity } from 'src/entities/User';
-import { KassaNotification } from './tinkoff-kassa/types';
-import { Response } from 'express';
+import { InitSubscriptionDto } from './dto';
 import { SubscriptionPaymentNotificationService } from './subscription-payment-notification.service';
-import { Public } from 'src/auth/decorators/public.decorator';
+import { SubscriptionService } from './subscription.service';
+import { KassaNotification } from './tinkoff-kassa/types';
 
 @Controller('subscription')
 export class SubscriptionController {
@@ -25,8 +25,11 @@ export class SubscriptionController {
   private readonly subscriptionPaymentNotificationService: SubscriptionPaymentNotificationService;
 
   @Get('plans')
-  public getPlans() {
-    return PLANS;
+  public async getPlans(
+    @User() user: UserEntity,
+    @Query('sixMonths') sixMonths: string,
+  ) {
+    return this.subscriptionService.getUserPlans(user.id, sixMonths === 'true');
   }
 
   @Post('init')
@@ -35,7 +38,7 @@ export class SubscriptionController {
     @User() user: UserEntity,
   ) {
     return this.subscriptionService
-      .initPayment(body.plan, user.id, user.email)
+      .initPayment(body.plan, body.sixMonths, user.id, user.email)
       .then((r) => ({ PaymentURL: r.PaymentURL }));
   }
 

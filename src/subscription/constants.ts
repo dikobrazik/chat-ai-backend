@@ -5,7 +5,6 @@ export const PLANS = [
     id: SubscriptionPlan.BASE,
     name: 'Бесплатный',
     price: 0,
-    sixMonthsPrice: 0,
     description: 'Для простых задач и знакомства',
     isCurrentPlan: true,
     features: [
@@ -23,8 +22,8 @@ export const PLANS = [
     id: SubscriptionPlan.PLUS,
     name: 'Плюс',
     price: 199,
-    oldPrice: 199,
-    sixMonthsPrice: 169,
+    freeDays: 0,
+    discount: 0,
     isPopular: true,
     description: 'Для регулярных задач',
     features: [
@@ -43,7 +42,6 @@ export const PLANS = [
     id: SubscriptionPlan.PRO,
     name: 'Профессиональный',
     price: 3000,
-    sixMonthsPrice: 1699,
     description: 'Для профессионалов и команд',
     features: [
       'Максимальные возможности:',
@@ -61,7 +59,3 @@ export const PLANS = [
     ],
   },
 ];
-
-export const PLAN_PRICE = Object.fromEntries(
-  PLANS.map((plan) => [plan.id, plan.price]),
-);

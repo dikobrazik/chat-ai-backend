@@ -46,11 +46,6 @@ export class SubscriptionPaymentNotificationService {
       }
       if (notification.Success) {
         if (notification.Status === 'CONFIRMED') {
-          const currentPeriodEnd = new Date();
-          // для тестов
-          currentPeriodEnd.setHours(new Date().getHours() + 1);
-          // currentPeriodEnd.setMonth(new Date().getMonth() + 1);
-
           await Promise.all([
             this.paymentRepository.update(orderId, {
               status: PaymentStatus.CONFIRMED,
@@ -58,8 +53,6 @@ export class SubscriptionPaymentNotificationService {
             }),
             this.subscriptionRepository.update(payment.subscription_id, {
               status: SubscriptionStatus.ACTIVE,
-              current_period_start: new Date(),
-              current_period_end: currentPeriodEnd, // next month same day
               rebill_id: notification.RebillId,
             }),
             this.userRepository.update(payment.user_id, {

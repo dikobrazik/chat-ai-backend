@@ -8,9 +8,13 @@ import { Payment } from 'src/entities/Payment';
 import { SubscriptionPaymentNotificationService } from './subscription-payment-notification.service';
 import { User } from 'src/entities/User';
 import { SubscriptionCheckService } from './subscription-check.service';
+import { PromotionModule } from 'src/promotion/promotion.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Subscription, Payment, User])],
+  imports: [
+    PromotionModule,
+    TypeOrmModule.forFeature([Subscription, Payment, User]),
+  ],
   providers: [
     SubscriptionService,
     SubscriptionPaymentNotificationService,

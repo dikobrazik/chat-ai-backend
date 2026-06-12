@@ -1,14 +1,16 @@
 import { Inject, Injectable } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Payment, PaymentStatus } from 'src/entities/Payment';
 import {
   Subscription,
   SubscriptionPlan,
   SubscriptionStatus,
 } from 'src/entities/Subscription';
-import { TinkoffKassaService } from './tinkoff-kassa/tinkoff-kassa.service';
-import { InjectRepository } from '@nestjs/typeorm';
+import { PromotionService } from 'src/promotion/promotion.service';
 import { Repository } from 'typeorm';
-import { Payment, PaymentStatus } from 'src/entities/Payment';
-import { PLAN_PRICE } from './constants';
+import { PLANS } from './constants';
+import { TinkoffKassaService } from './tinkoff-kassa/tinkoff-kassa.service';
+import { addDays, addMonths } from 'date-fns';
 
 @Injectable()
 export class SubscriptionService {
@@ -16,23 +18,41 @@ export class SubscriptionService {
   private readonly subscriptionRepository: Repository<Subscription>;
   @InjectRepository(Payment)
   private readonly paymentRepository: Repository<Payment>;
+  @Inject(PromotionService)
+  private readonly promotionService: PromotionService;
 
   @Inject(TinkoffKassaService)
   private readonly tinkoffKassaService: TinkoffKassaService;
 
   public async initPayment(
-    plan: SubscriptionPlan,
+    planId: SubscriptionPlan,
+    sixMonths: boolean,
     userId: string,
     userEmail: string,
   ) {
-    const amount = PLAN_PRICE[plan] * 100;
+    const amount = await this.getPlanPrice(userId, planId, sixMonths);
+    const plan = (await this.getUserPlans(userId)).find((p) => p.id === planId);
+
+    let currentPeriodEnd = new Date();
+
+    if (sixMonths) {
+      currentPeriodEnd = addMonths(currentPeriodEnd, 6);
+    } else {
+      if (plan.freeDays) {
+        currentPeriodEnd = addDays(currentPeriodEnd, plan.freeDays ?? 0);
+      } else {
+        currentPeriodEnd = addMonths(currentPeriodEnd, 1);
+      }
+    }
 
     const {
       identifiers: [{ id: subscriptionId }],
     } = await this.subscriptionRepository.insert({
       user_id: userId,
       status: SubscriptionStatus.PENDING,
-      plan,
+      plan: planId,
+      current_period_start: new Date(),
+      current_period_end: currentPeriodEnd,
     });
     const {
       identifiers: [{ id: orderId }],
@@ -81,5 +101,43 @@ export class SubscriptionService {
         status: SubscriptionStatus.CANCELED,
       },
     );
+  }
+
+  public async getUserPlans(userId: string, sixMonths: boolean = false) {
+    const plans = structuredClone(PLANS);
+
+    const firstSubscriptionPromotion =
+      await this.promotionService.getFirstSubscriptionPromotion(userId);
+
+    const sixMonthPromotion =
+      await this.promotionService.getSixMonthsSubscriptionPromotion();
+
+    if (firstSubscriptionPromotion && !sixMonths) {
+      plans[1].freeDays = firstSubscriptionPromotion.freeDays;
+    }
+
+    if (sixMonthPromotion) {
+      plans[1].discount = sixMonthPromotion.discount;
+      plans[2].discount = sixMonthPromotion.discount;
+    }
+
+    return plans;
+  }
+
+  public async getPlanPrice(
+    userId: string,
+    planId: SubscriptionPlan,
+    sixMonths: boolean,
+  ) {
+    const plans = await this.getUserPlans(userId, sixMonths);
+
+    const plan = plans.find((plan) => plan.id === planId);
+
+    const price = plan.freeDays ? 1 : plan.price;
+
+    const discountPrice =
+      plan.discount && price !== 1 ? (price * plan.discount) / 100 : 0;
+
+    return (price - discountPrice) * 100 * (sixMonths ? 6 : 1);
   }
 }

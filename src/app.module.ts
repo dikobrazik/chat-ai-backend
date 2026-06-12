@@ -34,6 +34,9 @@ import { FileEntity } from './entities/File';
 import { PromptFile } from './entities/PromptFile';
 import { MailerModule } from './mailer/mailer.module';
 import { MailerModule as NestMailerModule } from '@nestjs-modules/mailer';
+import { PromotionModule } from './promotion/promotion.module';
+import { Promotion } from './entities/Promotion';
+import { UserPromotion } from './entities/UserPromotion';
 
 @Module({
   imports: [
@@ -74,6 +77,8 @@ import { MailerModule as NestMailerModule } from '@nestjs-modules/mailer';
           Payment,
           Subscription,
           FileEntity,
+          Promotion,
+          UserPromotion,
         ],
         subscribers: [],
         migrations: [],
@@ -127,6 +132,7 @@ import { MailerModule as NestMailerModule } from '@nestjs-modules/mailer';
     SessionModule,
     FileStorageModule,
     MailerModule,
+    PromotionModule,
   ],
   controllers: [AppController],
   providers: [
