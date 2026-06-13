@@ -13,7 +13,8 @@ import {
   Sse,
   UseGuards,
 } from '@nestjs/common';
-import { Throttle, days } from '@nestjs/throttler';
+import { Throttle, hours } from '@nestjs/throttler';
+import { Request } from 'express';
 import { ChatModel } from 'src/decorators/chat-model.decorator';
 import { Chat } from 'src/decorators/chat.decorator';
 import { User } from 'src/decorators/user.decorator';
@@ -26,8 +27,8 @@ import { ChatService } from './chat.service';
 import { CreateChatDTO, PromptDTO } from './dto';
 import { ChatGuard } from './guards/chat.guard';
 import { ModelGuard } from './guards/model.guard';
-import { PublicChatGuard } from './guards/public-chat.guard';
 import { PromptGuard } from './guards/prompt.guard';
+import { PublicChatGuard } from './guards/public-chat.guard';
 
 const USER_STATUS_LIMITS = {
   [UserStatus.ACTIVE]: 15,
@@ -90,11 +91,15 @@ export class ChatController {
 
   @Throttle({
     prompt: {
-      ttl: days(1),
+      ttl: hours(12),
       limit: (context: ExecutionContext) => {
         const user = context.switchToHttp().getRequest().user as UserEntity;
 
         return USER_STATUS_LIMITS[user.status];
+      },
+      getTracker: (req: Request) => {
+        console.log(req.ip);
+        return `${req.user?.id}-${req.params.id}`;
       },
     },
   })
