@@ -6,7 +6,6 @@ export const PLANS = [
     name: 'Бесплатный',
     price: 0,
     description: 'Для простых задач и знакомства',
-    isCurrentPlan: true,
     features: [
       'Базовый доступ:',
       'Сообщения — ∞',

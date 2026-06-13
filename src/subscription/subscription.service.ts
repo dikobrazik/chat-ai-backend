@@ -78,17 +78,11 @@ export class SubscriptionService {
   }
 
   public getSubscription(subscriptionId: string) {
-    return Promise.all([
-      this.subscriptionRepository.findOne({
+    return this.subscriptionRepository
+      .findOne({
         where: { id: subscriptionId },
-      }),
-      this.paymentRepository.find({
-        where: {
-          subscription_id: subscriptionId,
-          status: PaymentStatus.CONFIRMED,
-        },
-      }),
-    ]).then(([subscription, payments]) => ({ subscription, payments }));
+      })
+      .then(({ rebill_id, ...subscription }) => ({ subscription }));
   }
 
   public cancelSubscription(userId: string) {

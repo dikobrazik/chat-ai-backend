@@ -22,7 +22,7 @@ export class SubscriptionCheckService {
   @InjectRepository(User)
   private readonly userRepository: Repository<User>;
 
-  @Cron(CronExpression.EVERY_MINUTE) // Каждый день в обед
+  @Cron(CronExpression.EVERY_DAY_AT_NOON) // Каждый день в обед
   async handleSubscriptionCheck() {
     const expiredSubscriptions = await this.subscriptionRepository.find({
       where: {
