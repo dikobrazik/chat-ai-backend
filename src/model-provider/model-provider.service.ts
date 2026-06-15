@@ -8,6 +8,8 @@ import { OpenAIProviderService } from './providers/openai.provider';
 import { GoogleProviderService } from './providers/google.provider';
 import { Model } from 'src/entities/Model';
 import { Observable } from 'rxjs';
+import { GrokProviderService } from './providers/grok.provider';
+import { DeepSeekProviderService } from './providers/deepseek.provider';
 
 @Injectable()
 export class ModelProviderService {
@@ -16,8 +18,15 @@ export class ModelProviderService {
   constructor(
     private readonly openAIProviderService: OpenAIProviderService,
     private readonly googleProviderService: GoogleProviderService,
+    private readonly grokProviderService: GrokProviderService,
+    private readonly deepSeekProviderService: DeepSeekProviderService,
   ) {
-    this.providers = [this.openAIProviderService, this.googleProviderService];
+    this.providers = [
+      this.openAIProviderService,
+      this.googleProviderService,
+      this.grokProviderService,
+      this.deepSeekProviderService,
+    ];
   }
 
   public async createConversation(providerId: number): Promise<string> {
