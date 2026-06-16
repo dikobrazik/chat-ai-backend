@@ -25,7 +25,7 @@ export class DeepSeekProviderService implements IModelProvider {
     const proxyIpAddress = this.configService.get<string>('NGINX_PROXY_IP');
 
     this.providerInstance = new OpenAI({
-      baseURL: `http://${proxyIpAddress}/deepseek`,
+      baseURL: `http://${proxyIpAddress}/deepseek/beta`,
       apiKey: deepSeekApiKey,
     });
   }
@@ -91,36 +91,29 @@ export class DeepSeekProviderService implements IModelProvider {
     input: string,
     files: InputFile[],
   ): Promise<Observable<UnifiedAIStreamChunk>> {
-    const uploadedFiles: ResponseInputContent[] = await Promise.all(
-      files.map(async (file) =>
-        file.mimeType.startsWith('image')
-          ? {
-              type: 'input_image',
-              detail: 'auto',
-              image_url: await blobToDataUrl(file.blob, file.mimeType),
-            }
-          : {
-              type: 'input_file',
-              file_id: await this.providerInstance.files
-                .create({
-                  file: await toFile(file.blob, file.name),
-                  purpose: 'user_data',
-                })
-                .then((uploadedFile) => uploadedFile.id),
-            },
-      ),
-    );
+    // const uploadedFiles: ResponseInputContent[] = await Promise.all(
+    //   files.map(async (file) =>
+    //     file.mimeType.startsWith('image')
+    //       ? {
+    //           type: 'input_image',
+    //           detail: 'auto',
+    //           image_url: await blobToDataUrl(file.blob, file.mimeType),
+    //         }
+    //       : {
+    //           type: 'input_file',
+    //           file_id: await this.providerInstance.files
+    //             .create({
+    //               file: await toFile(file.blob, file.name),
+    //               purpose: 'user_data',
+    //             })
+    //             .then((uploadedFile) => uploadedFile.id),
+    //         },
+    //   ),
+    // );
 
-    const stream = await this.providerInstance.responses.create({
-      conversation: conversationId,
+    const stream = await this.providerInstance.completions.create({
       model,
-      input: [
-        {
-          content: [{ type: 'input_text', text: input }, ...uploadedFiles],
-          role: 'user',
-          type: 'message',
-        },
-      ] as EasyInputMessage[],
+      prompt: input,
       stream: true,
     });
 
@@ -131,21 +124,23 @@ export class DeepSeekProviderService implements IModelProvider {
       const processStream = async () => {
         try {
           for await (const chunk of stream) {
-            if (chunk.type === 'response.created') {
-              responseId = chunk.response.id;
+            console.log(chunk);
+            const response = chunk.choices[0];
+            if (response) {
+              responseId = chunk.id;
             }
-            if (chunk.type === 'response.output_text.delta') {
-              fullContent += chunk.delta;
+            if (response.finish_reason === null) {
+              fullContent += response.text;
 
               subscriber.next({
                 promptId: responseId,
-                content: chunk.delta,
+                content: response.text,
                 isComplete: false,
                 timestamp: new Date(),
-                index: chunk.sequence_number,
+                index: response.index,
               });
             }
-            if (chunk.type === 'response.completed') {
+            if (response.finish_reason !== null) {
               subscriber.next({
                 index: -1,
                 promptId: responseId,
@@ -155,13 +150,13 @@ export class DeepSeekProviderService implements IModelProvider {
               });
               subscriber.complete();
             }
-            if (chunk.type === 'error') {
-              subscriber.error({
-                isComplete: true,
-                timestamp: new Date(),
-                error: chunk.message,
-              });
-            }
+            // if (chunk.type === 'error') {
+            //   subscriber.error({
+            //     isComplete: true,
+            //     timestamp: new Date(),
+            //     error: chunk.message,
+            //   });
+            // }
           }
         } catch (error) {
           console.log(error);
