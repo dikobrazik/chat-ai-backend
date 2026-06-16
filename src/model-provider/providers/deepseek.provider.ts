@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import OpenAI, { toFile } from 'openai';
+import { CompletionCreateParamsStreaming } from 'openai/resources/completions';
 import {
   EasyInputMessage,
   ResponseInputContent,
@@ -25,7 +26,7 @@ export class DeepSeekProviderService implements IModelProvider {
     const proxyIpAddress = this.configService.get<string>('NGINX_PROXY_IP');
 
     this.providerInstance = new OpenAI({
-      baseURL: `http://${proxyIpAddress}/deepseek/beta`,
+      baseURL: `http://${proxyIpAddress}/deepseek/chat`,
       apiKey: deepSeekApiKey,
     });
   }
@@ -113,9 +114,14 @@ export class DeepSeekProviderService implements IModelProvider {
 
     const stream = await this.providerInstance.completions.create({
       model,
-      prompt: input,
+      messages: [
+        {
+          role: 'user',
+          content: input,
+        },
+      ],
       stream: true,
-    });
+    } as unknown as CompletionCreateParamsStreaming);
 
     return new Observable<UnifiedAIStreamChunk>((subscriber) => {
       let fullContent = '',
@@ -124,17 +130,18 @@ export class DeepSeekProviderService implements IModelProvider {
       const processStream = async () => {
         try {
           for await (const chunk of stream) {
-            console.log(chunk);
-            const response = chunk.choices[0];
+            const response = chunk.choices[0] as any;
+            const deltaContent = response.delta.content;
+
             if (response) {
               responseId = chunk.id;
             }
-            if (response.finish_reason === null) {
-              fullContent += response.text;
+            if (deltaContent !== null && response.finish_reason === null) {
+              fullContent += response.delta.content;
 
               subscriber.next({
                 promptId: responseId,
-                content: response.text,
+                content: response.delta.content,
                 isComplete: false,
                 timestamp: new Date(),
                 index: response.index,
