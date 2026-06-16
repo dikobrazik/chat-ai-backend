@@ -63,10 +63,24 @@ export class ChatService {
       return this.sendImagePrompt(chat, model, input);
     }
 
+    let conversationId = chat.external_chat_id;
+
+    // если провайдер grok - передаем id последнего промпта
+    if (model.provider_id === 3) {
+      const lastPrompt = await this.promptRepository.findOne({
+        where: { chat_id: chat.id },
+        order: { created_at: 'desc' },
+      });
+
+      if (lastPrompt) {
+        conversationId = lastPrompt.response_id;
+      }
+    }
+
     const stream = await this.modelProviderService.generateStreamResponse(
       model,
       input,
-      chat.external_chat_id,
+      conversationId,
       files,
     );
 
@@ -82,6 +96,7 @@ export class ChatService {
           } = await this.promptRepository.insert({
             input: input,
             chat,
+            response_id: streamChunk.data.promptId,
             response: streamChunk.data.content,
           });
 

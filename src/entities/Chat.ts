@@ -18,7 +18,7 @@ export class Chat {
   @Column({ default: '' })
   title: string;
 
-  @Column()
+  @Column({ nullable: true })
   external_chat_id: string;
 
   @Column({ default: false })

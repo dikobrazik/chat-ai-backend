@@ -28,6 +28,9 @@ export class Prompt {
   @Column()
   input: string;
 
+  @Column({ nullable: true })
+  response_id: string | null;
+
   @Column()
   response: string;
 

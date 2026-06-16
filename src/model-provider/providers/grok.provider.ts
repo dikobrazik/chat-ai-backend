@@ -31,9 +31,7 @@ export class GrokProviderService implements IModelProvider {
   }
 
   async createConversation(): Promise<string> {
-    // const response = await this.providerInstance.conversations.create();
-    // return response.id;
-    return Promise.resolve('grok-conversation-id');
+    return Promise.resolve(undefined);
   }
 
   async generateImageResponse(
@@ -86,7 +84,7 @@ export class GrokProviderService implements IModelProvider {
   }
 
   async generateStreamResponse(
-    conversationId: string,
+    previousResponseId: string,
     model: string,
     input: string,
     files: InputFile[],
@@ -112,7 +110,6 @@ export class GrokProviderService implements IModelProvider {
     );
 
     const stream = await this.providerInstance.responses.create({
-      conversation: conversationId,
       model,
       input: [
         {
@@ -122,6 +119,7 @@ export class GrokProviderService implements IModelProvider {
         },
       ] as EasyInputMessage[],
       stream: true,
+      previous_response_id: previousResponseId,
     });
 
     return new Observable<UnifiedAIStreamChunk>((subscriber) => {
