@@ -4,6 +4,7 @@ import { GoogleProviderService } from './providers/google.provider';
 import { OpenAIProviderService } from './providers/openai.provider';
 import { GrokProviderService } from './providers/grok.provider';
 import { DeepSeekProviderService } from './providers/deepseek.provider';
+import { ClaudeProviderService } from './providers/claude.provider';
 
 @Module({
   providers: [
@@ -12,6 +13,7 @@ import { DeepSeekProviderService } from './providers/deepseek.provider';
     GoogleProviderService,
     GrokProviderService,
     DeepSeekProviderService,
+    ClaudeProviderService,
   ],
   exports: [ModelProviderService],
 })

@@ -10,6 +10,7 @@ import { Model } from 'src/entities/Model';
 import { Observable } from 'rxjs';
 import { GrokProviderService } from './providers/grok.provider';
 import { DeepSeekProviderService } from './providers/deepseek.provider';
+import { ClaudeProviderService } from './providers/claude.provider';
 
 @Injectable()
 export class ModelProviderService {
@@ -20,12 +21,14 @@ export class ModelProviderService {
     private readonly googleProviderService: GoogleProviderService,
     private readonly grokProviderService: GrokProviderService,
     private readonly deepSeekProviderService: DeepSeekProviderService,
+    private readonly claudeProviderService: ClaudeProviderService,
   ) {
     this.providers = [
       this.openAIProviderService,
       this.googleProviderService,
       this.grokProviderService,
       this.deepSeekProviderService,
+      this.claudeProviderService,
     ];
   }
 
