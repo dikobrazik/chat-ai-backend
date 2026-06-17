@@ -85,3 +85,12 @@ jobs:
             docker compose -f configs/yc/docker-compose.yaml pull backend && 
             docker compose -f configs/yc/docker-compose.yaml up -d backend &&
             docker system prune -f
+  notify:
+    uses: dikobrazik/chat-ai/.github/workflows/telegram-notify.yaml@main
+    needs: [update-yc]
+      if: always()
+    with:
+        status: ${{ needs.update-yc.result }}
+    secrets:
+      TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+      TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
