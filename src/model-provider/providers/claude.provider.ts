@@ -1,40 +1,40 @@
 import { Anthropic } from '@anthropic-ai/sdk';
-import { CompletionCreateParamsStreaming } from '@anthropic-ai/sdk/resources';
+import {
+  Base64ImageSource,
+  ContentBlockParam,
+  Message,
+} from '@anthropic-ai/sdk/resources';
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import OpenAI, { toFile } from 'openai';
-import {
-  EasyInputMessage,
-  ResponseInputContent,
-} from 'openai/resources/responses/responses';
 import { Observable, catchError, throwError } from 'rxjs';
 import {
   IModelProvider,
   InputFile,
   UnifiedAIStreamChunk,
 } from 'src/model-provider/model-provider.interface';
-import { blobToDataUrl } from 'src/utils/blobToDataUrl';
+import { BaseProvider } from './base.provider';
+import { blobToBase64 } from 'src/utils/blobToBase64';
 
 @Injectable()
-export class ClaudeProviderService implements IModelProvider {
+export class ClaudeProviderService
+  extends BaseProvider
+  implements IModelProvider
+{
   public readonly id = 5;
   public readonly name = 'claude';
 
-  private providerInstance: OpenAI;
+  private providerInstance: Anthropic;
 
   constructor(private configService: ConfigService) {
+    super();
+
     const claudeApiKey = this.configService.get<string>('CLAUDE_API_KEY');
     const proxyIpAddress = this.configService.get<string>('NGINX_PROXY_IP');
 
-    this.providerInstance = new OpenAI({
-      baseURL: `http://${proxyIpAddress}/claude/v1`,
+    this.providerInstance = new Anthropic({
+      baseURL: `http://${proxyIpAddress}/claude`,
       apiKey: claudeApiKey,
     });
-
-    // const client = new Anthropic({
-    //   baseURL: `http://${proxyIpAddress}/claude/v1`,
-    //   apiKey: claudeApiKey,
-    // })
   }
 
   async createConversation(): Promise<string> {
@@ -42,91 +42,55 @@ export class ClaudeProviderService implements IModelProvider {
   }
 
   async generateImageResponse(
-    _conversationId: string,
-    model: string,
-    input: string,
-  ): Promise<Observable<UnifiedAIStreamChunk>> {
-    const response = await this.providerInstance.images.generate({
-      model,
-      prompt: input,
-    });
-
-    return new Observable<UnifiedAIStreamChunk>((subscriber) => {
-      const imageOutput = response;
-
-      if (!imageOutput) {
-        subscriber.error({
-          isComplete: true,
-          timestamp: new Date(),
-          error: 'No image data received from Grok',
-        });
-        return;
-      }
-
-      subscriber.next({
-        promptId: response._request_id,
-        imageB64: imageOutput.data[0].b64_json,
-        isComplete: true,
-        timestamp: new Date(),
-        index: -1,
-      });
-    });
-  }
-
-  generateResponse(
     conversationId: string,
     model: string,
     input: string,
+  ): Promise<Observable<UnifiedAIStreamChunk>> {
+    return Promise.resolve(undefined);
+  }
+
+  async generateResponse(
+    chatId: string,
+    model: string,
+    input: string,
   ): Promise<{ id: string; text: string }> {
-    return this.providerInstance.responses
+    const previousMessages = await this.getPreviousMessages(chatId);
+
+    return this.providerInstance.messages
       .create({
-        conversation: conversationId,
         model,
-        input,
+        messages: previousMessages.concat({
+          role: 'user',
+          content: input,
+        }),
+        max_tokens: 1024,
       })
-      .then((response) => ({
-        id: response.id,
-        text: response.output_text,
+      .then((message) => ({
+        id: message.id,
+        text: this.getMessageText(message),
       }));
   }
 
   async generateStreamResponse(
-    previousResponseId: string,
+    chatId: string,
     model: string,
     input: string,
     files: InputFile[],
   ): Promise<Observable<UnifiedAIStreamChunk>> {
-    // const uploadedFiles: ResponseInputContent[] = await Promise.all(
-    //   files.map(async (file) =>
-    //     file.mimeType.startsWith('image')
-    //       ? {
-    //           type: 'input_image',
-    //           detail: 'auto',
-    //           image_url: await blobToDataUrl(file.blob, file.mimeType),
-    //         }
-    //       : {
-    //           type: 'input_file',
-    //           file_id: await this.providerInstance.files
-    //             .create({
-    //               file: await toFile(file.blob, file.name),
-    //               purpose: 'user_data',
-    //             })
-    //             .then((uploadedFile) => uploadedFile.id),
-    //         },
-    //   ),
-    // );
+    const uploadedFiles: ContentBlockParam[] = await this.prepareFiles(files);
 
-    const stream = await this.providerInstance.chat.completions.create({
+    const previousMessages = await this.getPreviousMessages(chatId);
+
+    const stream = await this.providerInstance.messages.create({
       model,
-      messages: [
+      messages: previousMessages.concat([
         {
-          content: input,
+          content: [{ type: 'text', text: input }, ...uploadedFiles],
           role: 'user',
-          // type: 'message',
         },
-      ],
+      ]),
       stream: true,
-      // previous_response_id: previousResponseId,
+      max_tokens: 1024,
     });
 
     return new Observable<UnifiedAIStreamChunk>((subscriber) => {
@@ -136,66 +100,27 @@ export class ClaudeProviderService implements IModelProvider {
       const processStream = async () => {
         try {
           for await (const chunk of stream) {
-            const response = chunk.choices[0] as any;
-            const deltaContent = response.delta.content;
-            console.log(chunk, deltaContent);
+            console.log(chunk);
 
-            if (response) {
-              responseId = chunk.id;
+            if (chunk.type === 'message_start') {
+              responseId = chunk.message.id;
             }
-            if (Boolean(deltaContent) && !response.finish_reason) {
-              fullContent += response.delta.content;
 
-              subscriber.next({
-                promptId: responseId,
-                content: response.delta.content,
-                isComplete: false,
-                timestamp: new Date(),
-                index: response.index,
-              });
+            if (chunk.type === 'content_block_delta') {
+              const deltaContent =
+                chunk.delta.type === 'text_delta' ? chunk.delta.text : '';
+
+              fullContent += deltaContent;
+
+              subscriber.next(
+                this.getDeltaPayload(responseId, deltaContent, chunk.index),
+              );
             }
-            if (Boolean(response.finish_reason)) {
-              subscriber.next({
-                index: -1,
-                promptId: responseId,
-                content: fullContent,
-                isComplete: true,
-                timestamp: new Date(),
-              });
+
+            if (chunk.type === 'message_stop') {
+              subscriber.next(this.getCompletePayload(responseId, fullContent));
               subscriber.complete();
             }
-
-            // if (chunk.type === 'response.created') {
-            //   responseId = chunk.response.id;
-            // }
-            // if (chunk.type === 'response.output_text.delta') {
-            //   fullContent += chunk.delta;
-
-            //   subscriber.next({
-            //     promptId: responseId,
-            //     content: chunk.delta,
-            //     isComplete: false,
-            //     timestamp: new Date(),
-            //     index: chunk.sequence_number,
-            //   });
-            // }
-            // if (chunk.type === 'response.completed') {
-            //   subscriber.next({
-            //     index: -1,
-            //     promptId: responseId,
-            //     content: fullContent,
-            //     isComplete: true,
-            //     timestamp: new Date(),
-            //   });
-            //   subscriber.complete();
-            // }
-            // if (chunk.type === 'error') {
-            //   subscriber.error({
-            //     isComplete: true,
-            //     timestamp: new Date(),
-            //     error: chunk.message,
-            //   });
-            // }
           }
         } catch (error) {
           console.log(error);
@@ -217,5 +142,43 @@ export class ClaudeProviderService implements IModelProvider {
         }));
       }),
     );
+  }
+
+  private prepareFiles(
+    files: InputFile[],
+  ): Promise<Anthropic.Messages.ContentBlockParam[]> {
+    return Promise.all(
+      files.map(async (file) =>
+        file.mimeType.startsWith('image')
+          ? ({
+              type: 'image',
+              source: {
+                type: 'base64',
+                data: await blobToBase64(file.blob),
+                media_type: file.mimeType as Base64ImageSource['media_type'],
+              },
+            } as ContentBlockParam)
+          : ({
+              type: 'document',
+              source: {
+                type: 'base64',
+                media_type: 'application/pdf',
+                data: await blobToBase64(file.blob),
+              },
+            } as ContentBlockParam),
+      ),
+    );
+  }
+
+  private getMessageText(message: Message) {
+    const textContent = message.content.find(
+      (contentBlock) => contentBlock.type === 'text',
+    );
+
+    if (textContent.type === 'text') {
+      return textContent.text;
+    }
+
+    return '';
   }
 }

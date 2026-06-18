@@ -75,6 +75,8 @@ export class ChatService {
       if (lastPrompt) {
         conversationId = lastPrompt.response_id;
       }
+    } else if (model.provider_id === 4 || model.provider_id === 5) {
+      conversationId = chat.id;
     }
 
     const stream = await this.modelProviderService.generateStreamResponse(

@@ -5,8 +5,11 @@ import { OpenAIProviderService } from './providers/openai.provider';
 import { GrokProviderService } from './providers/grok.provider';
 import { DeepSeekProviderService } from './providers/deepseek.provider';
 import { ClaudeProviderService } from './providers/claude.provider';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { Prompt } from 'src/entities/Prompt';
 
 @Module({
+  imports: [TypeOrmModule.forFeature([Prompt])],
   providers: [
     ModelProviderService,
     OpenAIProviderService,

@@ -1,27 +1,26 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import OpenAI, { toFile } from 'openai';
+import OpenAI from 'openai';
 import { CompletionCreateParamsStreaming } from 'openai/resources/completions';
-import {
-  EasyInputMessage,
-  ResponseInputContent,
-} from 'openai/resources/responses/responses';
 import { Observable, catchError, throwError } from 'rxjs';
 import {
   IModelProvider,
-  InputFile,
   UnifiedAIStreamChunk,
 } from 'src/model-provider/model-provider.interface';
-import { blobToDataUrl } from 'src/utils/blobToDataUrl';
+import { BaseProvider } from './base.provider';
 
 @Injectable()
-export class DeepSeekProviderService implements IModelProvider {
+export class DeepSeekProviderService
+  extends BaseProvider
+  implements IModelProvider
+{
   public readonly id = 4;
   public readonly name = 'deepseek';
 
   private providerInstance: OpenAI;
 
   constructor(private configService: ConfigService) {
+    super();
     const deepSeekApiKey = this.configService.get<string>('DEEPSEEK_API_KEY');
     const proxyIpAddress = this.configService.get<string>('NGINX_PROXY_IP');
 
@@ -32,8 +31,6 @@ export class DeepSeekProviderService implements IModelProvider {
   }
 
   async createConversation(): Promise<string> {
-    // const response = await this.providerInstance.conversations.create();
-    // return response.id;
     return Promise.resolve('deep-seek-conversation-id');
   }
 
@@ -87,39 +84,18 @@ export class DeepSeekProviderService implements IModelProvider {
   }
 
   async generateStreamResponse(
-    conversationId: string,
+    chatId: string,
     model: string,
     input: string,
-    files: InputFile[],
   ): Promise<Observable<UnifiedAIStreamChunk>> {
-    // const uploadedFiles: ResponseInputContent[] = await Promise.all(
-    //   files.map(async (file) =>
-    //     file.mimeType.startsWith('image')
-    //       ? {
-    //           type: 'input_image',
-    //           detail: 'auto',
-    //           image_url: await blobToDataUrl(file.blob, file.mimeType),
-    //         }
-    //       : {
-    //           type: 'input_file',
-    //           file_id: await this.providerInstance.files
-    //             .create({
-    //               file: await toFile(file.blob, file.name),
-    //               purpose: 'user_data',
-    //             })
-    //             .then((uploadedFile) => uploadedFile.id),
-    //         },
-    //   ),
-    // );
+    const previousMessages = await this.getPreviousMessages(chatId);
 
     const stream = await this.providerInstance.completions.create({
       model,
-      messages: [
-        {
-          role: 'user',
-          content: input,
-        },
-      ],
+      messages: previousMessages.concat({
+        role: 'user',
+        content: input,
+      }),
       stream: true,
     } as unknown as CompletionCreateParamsStreaming);
 
@@ -139,31 +115,18 @@ export class DeepSeekProviderService implements IModelProvider {
             if (deltaContent !== null && response.finish_reason === null) {
               fullContent += response.delta.content;
 
-              subscriber.next({
-                promptId: responseId,
-                content: response.delta.content,
-                isComplete: false,
-                timestamp: new Date(),
-                index: response.index,
-              });
+              subscriber.next(
+                this.getDeltaPayload(
+                  responseId,
+                  response.delta.content,
+                  response.index,
+                ),
+              );
             }
             if (response.finish_reason !== null) {
-              subscriber.next({
-                index: -1,
-                promptId: responseId,
-                content: fullContent,
-                isComplete: true,
-                timestamp: new Date(),
-              });
+              subscriber.next(this.getCompletePayload(responseId, fullContent));
               subscriber.complete();
             }
-            // if (chunk.type === 'error') {
-            //   subscriber.error({
-            //     isComplete: true,
-            //     timestamp: new Date(),
-            //     error: chunk.message,
-            //   });
-            // }
           }
         } catch (error) {
           console.log(error);
