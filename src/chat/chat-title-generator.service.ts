@@ -4,6 +4,7 @@ import { IsNull, Not, Repository } from 'typeorm';
 import { Chat } from 'src/entities/Chat';
 import { Prompt } from 'src/entities/Prompt';
 import { ModelProviderService } from 'src/model-provider/model-provider.service';
+import { sanitizeTitle } from './utils/sanitize-title';
 
 @Injectable()
 export class ChatTitleGeneratorService {
@@ -33,6 +34,8 @@ export class ChatTitleGeneratorService {
       '',
     );
 
-    await this.chatRepository.update(chat.id, { title: response.text });
+    await this.chatRepository.update(chat.id, {
+      title: sanitizeTitle(response.text),
+    });
   }
 }
