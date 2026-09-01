@@ -33,13 +33,32 @@ export class SubscriptionController {
   }
 
   @Post('init')
-  public initSubscription(
+  public async initSubscription(
     @Body() body: InitSubscriptionDto,
     @User() user: UserEntity,
   ) {
     return this.subscriptionService
       .initPayment(body.plan, body.sixMonths, user.id, user.email)
-      .then((r) => ({ PaymentURL: r.PaymentURL }));
+      .then((r) => ({ paymentId: r.PaymentId, paymentURL: r.PaymentURL }));
+  }
+
+  @Post('t-pay-link')
+  public async createTPayLink(
+    @Body() body: InitSubscriptionDto,
+    @User() user: UserEntity,
+  ) {
+    const { Params } = await this.subscriptionService.checkTPayLink();
+
+    const { PaymentId } = await this.subscriptionService.initPayment(
+      body.plan,
+      body.sixMonths,
+      user.id,
+      user.email,
+    );
+
+    return this.subscriptionService
+      .getTPayLink(PaymentId, Params.Version)
+      .then((response) => response.Params);
   }
 
   @Post('cancel')

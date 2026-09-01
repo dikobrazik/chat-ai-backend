@@ -77,6 +77,14 @@ export class SubscriptionService {
     return paymentResponse;
   }
 
+  public getTPayLink(paymentId: string, version?: string) {
+    return this.tinkoffKassaService.getTPayLink(paymentId, version);
+  }
+
+  public checkTPayLink() {
+    return this.tinkoffKassaService.checkTPayLink();
+  }
+
   public getSubscription(subscriptionId: string) {
     return this.subscriptionRepository
       .findOne({

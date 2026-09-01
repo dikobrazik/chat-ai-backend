@@ -43,6 +43,7 @@ ENV NODE_ENV=production
 COPY --from=dependencies --chown=node:node /usr/app/node_modules ./node_modules
 COPY --from=builder --chown=node:node /usr/app/dist ./dist
 COPY --from=builder --chown=node:node /usr/app/db.pem ./db.pem
+COPY --from=builder --chown=node:node /usr/app/russian_trusted_root_ca_pem.pem ./russian_trusted_root_ca_pem.pem
 USER node:1001
 
 EXPOSE 80

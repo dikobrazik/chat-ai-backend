@@ -2,7 +2,15 @@ import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import axios, { AxiosInstance } from 'axios';
 import { generateTokenFromBody } from './utils';
-import { InitResponse, RebillResponse } from './types';
+import {
+  GetLinkResponse,
+  GetLinkStatusResponse,
+  InitResponse,
+  RebillResponse,
+} from './types';
+import { readFileSync } from 'fs';
+import { join } from 'path';
+import { Agent } from 'https';
 
 @Injectable()
 export class TinkoffKassaService {
@@ -21,7 +29,12 @@ export class TinkoffKassaService {
     this.terminalKey = this.configService.getOrThrow('KASSA_TERMINAL_KEY');
     this.password = this.configService.getOrThrow('KASSA_PASSWORD');
 
-    this.client = axios.create({ baseURL: this.baseUrl });
+    const caCert = readFileSync(join('./russian_trusted_root_ca_pem.crt'));
+    const agent = new Agent({
+      ca: caCert,
+    });
+
+    this.client = axios.create({ baseURL: this.baseUrl, httpsAgent: agent });
   }
 
   // https://www.tbank.ru/kassa/dev/payments/#tag/Standartnyj-platezh/operation/Init
@@ -58,10 +71,12 @@ export class TinkoffKassaService {
         Email: customerEmail,
       },
       DATA: {
-        connection_type: 'Widget',
+        TinkoffPayWeb: true,
+        Device: 'Desktop',
+        DeviceOs: 'iOS',
+        DeviceWebView: true,
         OperationInitiatorType: 'R',
         Email: customerEmail,
-        // QR: true,
       },
     });
 
@@ -70,6 +85,43 @@ export class TinkoffKassaService {
       .then((r) => r.data);
 
     console.warn('Init response', body, response);
+
+    if (!response.Success) {
+      throw new InternalServerErrorException();
+    }
+
+    return response;
+  }
+
+  // https://developer.tbank.ru/eacq/api/status
+  public async checkTPayLink(): Promise<GetLinkStatusResponse> {
+    const response = await this.client
+      .get<GetLinkStatusResponse>(
+        `TinkoffPay/terminals/${this.terminalKey}/status`,
+      )
+      .then((r) => r.data);
+
+    console.warn('GetTPayStatus', response);
+
+    if (!response.Success) {
+      throw new InternalServerErrorException();
+    }
+
+    return response;
+  }
+
+  // https://developer.tbank.ru/eacq/api/link
+  public async getTPayLink(
+    paymentId: string,
+    version: string = '2.0',
+  ): Promise<GetLinkResponse> {
+    const response = await this.client
+      .get<GetLinkResponse>(
+        `/TinkoffPay/transactions/${paymentId}/versions/${version}/link`,
+      )
+      .then((r) => r.data);
+
+    console.warn('GetTPayLink', response);
 
     if (!response.Success) {
       throw new InternalServerErrorException();

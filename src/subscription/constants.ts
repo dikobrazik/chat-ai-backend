@@ -20,7 +20,7 @@ export const PLANS = [
   {
     id: SubscriptionPlan.PLUS,
     name: 'Плюс',
-    price: 199,
+    price: 10,
     freeDays: 0,
     discount: 0,
     isPopular: true,
@@ -40,7 +40,7 @@ export const PLANS = [
   {
     id: SubscriptionPlan.PRO,
     name: 'Профессиональный',
-    price: 3000,
+    price: 20,
     description: 'Для профессионалов и команд',
     features: [
       'Максимальные возможности:',

@@ -9,6 +9,25 @@ export type InitResponse = {
   PaymentURL: string;
 };
 
+export type GetLinkStatusResponse = {
+  Success: boolean;
+  ErrorCode: string;
+  Params: { Allowed: boolean; Version: string };
+};
+
+export type GetLinkResponse = {
+  Params: GetLinkResponseParams;
+  Success: boolean;
+  ErrorCode: string;
+  Message: string;
+  Details: string;
+};
+
+export type GetLinkResponseParams = {
+  RedirectUrl: string;
+  WebQR: string;
+};
+
 export type GetQrResponse = {
   TerminalKey: string;
   OrderId: string;
