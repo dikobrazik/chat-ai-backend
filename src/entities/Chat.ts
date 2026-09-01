@@ -39,15 +39,10 @@ export class Chat {
   model_id: number;
 
   @VirtualColumn({
-    query: (alias) => `
-      (SELECT p.input
-       FROM prompt p
-       WHERE p.chat_id = ${alias}.id
-       ORDER BY p.created_at ASC
-       LIMIT 1)
-    `,
+    query: (alias) =>
+      `SELECT EXISTS (SELECT 1 FROM prompt p WHERE p.chat_id = ${alias}.id) as has_prompt`,
   })
-  last_prompt: string;
+  has_prompt: boolean;
 
   @CreateDateColumn()
   created_at: Date;

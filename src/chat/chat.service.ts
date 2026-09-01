@@ -159,7 +159,7 @@ export class ChatService {
 
   public async getUserChats(user: User) {
     return await this.chatRepository.find({
-      where: { user_id: user.id, last_prompt: Not(IsNull()) },
+      where: { user_id: user.id, has_prompt: true, title: Not('') },
       order: { created_at: 'DESC' },
       relations: ['model'],
     });
