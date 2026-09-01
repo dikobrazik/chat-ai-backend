@@ -4,19 +4,25 @@ import { ConfigService } from '@nestjs/config';
 import { randomUUID } from 'crypto';
 import { Observable, catchError, throwError } from 'rxjs';
 import {
+  GenerateStreamResponseOptions,
   IModelProvider,
-  InputFile,
   UnifiedAIStreamChunk,
 } from 'src/model-provider/model-provider.interface';
+import { BaseProvider } from './base.provider';
 
 @Injectable()
-export class GoogleProviderService implements IModelProvider {
+export class GoogleProviderService
+  extends BaseProvider
+  implements IModelProvider
+{
   public readonly id = 2;
   public readonly name = 'google';
 
   private providerInstance: GoogleGenAI;
 
   constructor(private configService: ConfigService) {
+    super();
+
     const googleApiKey = configService.get<string>('GOOGLE_API_KEY');
     const proxyIpAddress = configService.get<string>('NGINX_PROXY_IP');
 
@@ -35,22 +41,6 @@ export class GoogleProviderService implements IModelProvider {
     return Promise.resolve('google-conversation-id');
   }
 
-  generateResponse(
-    conversationId: string,
-    model: string,
-    input: string,
-  ): Promise<{ id: string; text: string }> {
-    return this.providerInstance.models
-      .generateContent({
-        model,
-        contents: input,
-      })
-      .then((response) => ({
-        id: response.responseId,
-        text: response.text,
-      }));
-  }
-
   async generateImageResponse(
     conversationId: string,
     model: string,
@@ -67,21 +57,15 @@ export class GoogleProviderService implements IModelProvider {
     return new Observable<UnifiedAIStreamChunk>((subscriber) => {
       const image = response.generatedImages[0];
       if (!image) {
-        subscriber.error({
-          isComplete: true,
-          timestamp: new Date(),
-          error: 'No image data received from Google GenAI',
-        });
+        subscriber.error(
+          this.getErrorPayload('No image data received from Google GenAI'),
+        );
         return;
       }
 
-      subscriber.next({
-        promptId: image.image.gcsUri,
-        imageB64: image.image.imageBytes,
-        isComplete: true,
-        timestamp: new Date(),
-        index: -1,
-      });
+      subscriber.next(
+        this.getImagePayload(image.image.gcsUri, image.image.imageBytes),
+      );
     });
   }
 
@@ -89,8 +73,10 @@ export class GoogleProviderService implements IModelProvider {
     conversationId: string,
     model: string,
     input: string,
-    files: InputFile[],
+    options: GenerateStreamResponseOptions = {},
   ): Promise<Observable<UnifiedAIStreamChunk>> {
+    const { files, withThinking } = options;
+
     const uploadedFiles: Part[] = await Promise.all(
       files.map((file) =>
         this.providerInstance.files
@@ -114,6 +100,13 @@ export class GoogleProviderService implements IModelProvider {
     const stream = await this.providerInstance.models.generateContentStream({
       model,
       contents: [...uploadedFiles, input],
+      config: {
+        thinkingConfig: withThinking
+          ? {
+              includeThoughts: true,
+            }
+          : undefined,
+      },
     });
 
     return new Observable<UnifiedAIStreamChunk>((subscriber) => {
@@ -124,46 +117,57 @@ export class GoogleProviderService implements IModelProvider {
         try {
           for await (const chunk of stream) {
             const content = chunk.candidates[0].content.parts[0].text;
+            const isThought = chunk.candidates[0].content.parts[0].thought;
+
             if (content) {
-              fullContent += content;
               responseId = chunk.responseId;
 
-              subscriber.next({
-                promptId: chunk.responseId,
-                index: index++,
-                content: content,
-                isComplete: false,
-                timestamp: new Date(),
-              });
+              if (isThought) {
+                subscriber.next(
+                  this.getThinkingPayload(responseId, content, index++),
+                );
+              } else {
+                fullContent += content;
+                subscriber.next(
+                  this.getDeltaPayload(responseId, content, index++),
+                );
+              }
             }
           }
-          subscriber.next({
-            promptId: responseId,
-            index: -1,
-            content: fullContent,
-            isComplete: true,
-            timestamp: new Date(),
-          });
+          subscriber.next(this.getCompletePayload(responseId, fullContent));
           subscriber.complete();
         } catch (error) {
-          subscriber.error({
-            content: '',
-            isComplete: true,
-            timestamp: new Date(),
-            error: error.message,
-          });
+          subscriber.error(this.getErrorPayload(error.message));
         }
       };
       processStream();
     }).pipe(
       catchError((error) => {
-        return throwError(() => ({
-          content: '',
-          isComplete: true,
-          timestamp: new Date(),
-          error: error.message,
-        }));
+        return throwError(() => this.getErrorPayload(error.message));
       }),
     );
+  }
+
+  /**
+   * @deprecated This method is deprecated and will be removed in future versions. Use generateStreamResponse instead.
+   * @param conversationId
+   * @param model
+   * @param input
+   * @returns
+   */
+  generateResponse(
+    conversationId: string,
+    model: string,
+    input: string,
+  ): Promise<{ id: string; text: string }> {
+    return this.providerInstance.models
+      .generateContent({
+        model,
+        contents: input,
+      })
+      .then((response) => ({
+        id: response.responseId,
+        text: response.text,
+      }));
   }
 }

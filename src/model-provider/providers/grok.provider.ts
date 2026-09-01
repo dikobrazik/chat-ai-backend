@@ -7,20 +7,26 @@ import {
 } from 'openai/resources/responses/responses';
 import { Observable, catchError, throwError } from 'rxjs';
 import {
+  GenerateStreamResponseOptions,
   IModelProvider,
-  InputFile,
   UnifiedAIStreamChunk,
 } from 'src/model-provider/model-provider.interface';
 import { blobToDataUrl } from 'src/utils/blobToDataUrl';
+import { BaseProvider } from './base.provider';
 
 @Injectable()
-export class GrokProviderService implements IModelProvider {
+export class GrokProviderService
+  extends BaseProvider
+  implements IModelProvider
+{
   public readonly id = 3;
   public readonly name = 'grok';
 
   private providerInstance: OpenAI;
 
   constructor(private configService: ConfigService) {
+    super();
+
     const grokApiKey = this.configService.get<string>('GROK_API_KEY');
     const proxyIpAddress = this.configService.get<string>('NGINX_PROXY_IP');
 
@@ -48,21 +54,18 @@ export class GrokProviderService implements IModelProvider {
       const imageOutput = response;
 
       if (!imageOutput) {
-        subscriber.error({
-          isComplete: true,
-          timestamp: new Date(),
-          error: 'No image data received from Grok',
-        });
+        subscriber.error(
+          this.getErrorPayload('No image data received from Grok'),
+        );
         return;
       }
 
-      subscriber.next({
-        promptId: response._request_id,
-        imageB64: imageOutput.data[0].b64_json,
-        isComplete: true,
-        timestamp: new Date(),
-        index: -1,
-      });
+      subscriber.next(
+        this.getImagePayload(
+          response._request_id,
+          imageOutput.data[0].b64_json,
+        ),
+      );
     });
   }
 
@@ -87,8 +90,10 @@ export class GrokProviderService implements IModelProvider {
     previousResponseId: string,
     model: string,
     input: string,
-    files: InputFile[],
+    options: GenerateStreamResponseOptions = {},
   ): Promise<Observable<UnifiedAIStreamChunk>> {
+    const { files } = options;
+
     const uploadedFiles: ResponseInputContent[] = await Promise.all(
       files.map(async (file) =>
         file.mimeType.startsWith('image')
@@ -135,50 +140,31 @@ export class GrokProviderService implements IModelProvider {
             if (chunk.type === 'response.output_text.delta') {
               fullContent += chunk.delta;
 
-              subscriber.next({
-                promptId: responseId,
-                content: chunk.delta,
-                isComplete: false,
-                timestamp: new Date(),
-                index: chunk.sequence_number,
-              });
+              subscriber.next(
+                this.getDeltaPayload(
+                  responseId,
+                  chunk.delta,
+                  chunk.sequence_number,
+                ),
+              );
             }
             if (chunk.type === 'response.completed') {
-              subscriber.next({
-                index: -1,
-                promptId: responseId,
-                content: fullContent,
-                isComplete: true,
-                timestamp: new Date(),
-              });
+              subscriber.next(this.getCompletePayload(fullContent, responseId));
               subscriber.complete();
             }
             if (chunk.type === 'error') {
-              subscriber.error({
-                isComplete: true,
-                timestamp: new Date(),
-                error: chunk.message,
-              });
+              subscriber.error(this.getErrorPayload(chunk.message));
             }
           }
         } catch (error) {
-          console.log(error);
-          subscriber.error({
-            isComplete: true,
-            timestamp: new Date(),
-            error: error.message,
-          });
+          subscriber.error(this.getErrorPayload(error.message));
         }
       };
 
       processStream();
     }).pipe(
       catchError((error) => {
-        return throwError(() => ({
-          isComplete: true,
-          timestamp: new Date(),
-          error: error.message,
-        }));
+        return throwError(() => this.getErrorPayload(error.message));
       }),
     );
   }

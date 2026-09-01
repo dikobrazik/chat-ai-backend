@@ -13,7 +13,7 @@ export interface IModelProvider {
     conversationId: string,
     model: string,
     input: string,
-    files?: InputFile[],
+    options?: GenerateStreamResponseOptions,
   ): Promise<Observable<UnifiedAIStreamChunk>>;
   generateImageResponse(
     conversationId: string,
@@ -21,6 +21,11 @@ export interface IModelProvider {
     input: string,
   ): Promise<Observable<UnifiedAIStreamChunk>>;
 }
+
+export type GenerateStreamResponseOptions = {
+  files?: InputFile[];
+  withThinking?: boolean;
+};
 
 export interface UnifiedAIStreamChunk {
   index: number;

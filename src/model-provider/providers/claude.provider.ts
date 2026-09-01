@@ -8,12 +8,13 @@ import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Observable, catchError, throwError } from 'rxjs';
 import {
+  GenerateStreamResponseOptions,
   IModelProvider,
   InputFile,
   UnifiedAIStreamChunk,
 } from 'src/model-provider/model-provider.interface';
-import { BaseProvider } from './base.provider';
 import { blobToBase64 } from 'src/utils/blobToBase64';
+import { BaseProvider } from './base.provider';
 
 @Injectable()
 export class ClaudeProviderService
@@ -41,42 +42,18 @@ export class ClaudeProviderService
     return Promise.resolve(undefined);
   }
 
-  async generateImageResponse(
-    conversationId: string,
-    model: string,
-    input: string,
-  ): Promise<Observable<UnifiedAIStreamChunk>> {
+  async generateImageResponse(): Promise<Observable<UnifiedAIStreamChunk>> {
     return Promise.resolve(undefined);
-  }
-
-  async generateResponse(
-    chatId: string,
-    model: string,
-    input: string,
-  ): Promise<{ id: string; text: string }> {
-    const previousMessages = await this.getPreviousMessages(chatId);
-
-    return this.providerInstance.messages
-      .create({
-        model,
-        messages: previousMessages.concat({
-          role: 'user',
-          content: input,
-        }),
-        max_tokens: 1024,
-      })
-      .then((message) => ({
-        id: message.id,
-        text: this.getMessageText(message),
-      }));
   }
 
   async generateStreamResponse(
     chatId: string,
     model: string,
     input: string,
-    files: InputFile[],
+    options: GenerateStreamResponseOptions = {},
   ): Promise<Observable<UnifiedAIStreamChunk>> {
+    const { files, withThinking } = options;
+
     const uploadedFiles: ContentBlockParam[] = await this.prepareFiles(files);
 
     const previousMessages = await this.getPreviousMessages(chatId);
@@ -90,7 +67,10 @@ export class ClaudeProviderService
         },
       ]),
       stream: true,
-      max_tokens: 1024,
+      max_tokens: 15_000,
+      thinking: withThinking
+        ? { budget_tokens: 1024, type: 'enabled' }
+        : undefined,
     });
 
     return new Observable<UnifiedAIStreamChunk>((subscriber) => {
@@ -107,14 +87,23 @@ export class ClaudeProviderService
             }
 
             if (chunk.type === 'content_block_delta') {
-              const deltaContent =
-                chunk.delta.type === 'text_delta' ? chunk.delta.text : '';
+              if (chunk.delta.type === 'text_delta') {
+                const deltaContent = chunk.delta.text;
 
-              fullContent += deltaContent;
+                fullContent += deltaContent;
 
-              subscriber.next(
-                this.getDeltaPayload(responseId, deltaContent, chunk.index),
-              );
+                subscriber.next(
+                  this.getDeltaPayload(responseId, deltaContent, chunk.index),
+                );
+              } else if (chunk.delta.type === 'thinking_delta') {
+                subscriber.next(
+                  this.getThinkingPayload(
+                    responseId,
+                    chunk.delta.thinking,
+                    chunk.index,
+                  ),
+                );
+              }
             }
 
             if (chunk.type === 'message_stop') {
@@ -123,23 +112,14 @@ export class ClaudeProviderService
             }
           }
         } catch (error) {
-          console.log(error);
-          subscriber.error({
-            isComplete: true,
-            timestamp: new Date(),
-            error: error.message,
-          });
+          subscriber.error(this.getErrorPayload(error.message));
         }
       };
 
       processStream();
     }).pipe(
       catchError((error) => {
-        return throwError(() => ({
-          isComplete: true,
-          timestamp: new Date(),
-          error: error.message,
-        }));
+        return throwError(() => this.getErrorPayload(error.message));
       }),
     );
   }
@@ -168,6 +148,35 @@ export class ClaudeProviderService
             } as ContentBlockParam),
       ),
     );
+  }
+
+  /**
+   * @deprecated This method is deprecated and will be removed in future versions. Use generateStreamResponse instead.
+   * @param conversationId
+   * @param model
+   * @param input
+   * @returns
+   */
+  async generateResponse(
+    chatId: string,
+    model: string,
+    input: string,
+  ): Promise<{ id: string; text: string }> {
+    const previousMessages = await this.getPreviousMessages(chatId);
+
+    return this.providerInstance.messages
+      .create({
+        model,
+        messages: previousMessages.concat({
+          role: 'user',
+          content: input,
+        }),
+        max_tokens: 1024,
+      })
+      .then((message) => ({
+        id: message.id,
+        text: this.getMessageText(message),
+      }));
   }
 
   private getMessageText(message: Message) {

@@ -44,6 +44,17 @@ export abstract class BaseProvider {
     };
   }
 
+  getThinkingPayload(responseId: string, content: string, index: number) {
+    return {
+      promptId: responseId,
+      content,
+      isComplete: false,
+      isThinking: true,
+      timestamp: new Date(),
+      index,
+    };
+  }
+
   getCompletePayload(responseId: string, content: string) {
     return {
       index: -1,
@@ -51,6 +62,25 @@ export abstract class BaseProvider {
       content,
       isComplete: true,
       timestamp: new Date(),
+    };
+  }
+
+  getImagePayload(responseId: string, imageB64: string) {
+    return {
+      promptId: responseId,
+      imageB64: imageB64,
+      isComplete: true,
+      timestamp: new Date(),
+      index: -1,
+    };
+  }
+
+  getErrorPayload(message: string) {
+    return {
+      content: '',
+      isComplete: true,
+      timestamp: new Date(),
+      error: message,
     };
   }
 }

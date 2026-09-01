@@ -48,39 +48,19 @@ export class DeepSeekProviderService
       const imageOutput = response;
 
       if (!imageOutput) {
-        subscriber.error({
-          isComplete: true,
-          timestamp: new Date(),
-          error: 'No image data received from Grok',
-        });
+        subscriber.error(
+          this.getErrorPayload('No image data received from DeepSeek'),
+        );
         return;
       }
 
-      subscriber.next({
-        promptId: response._request_id,
-        imageB64: imageOutput.data[0].b64_json,
-        isComplete: true,
-        timestamp: new Date(),
-        index: -1,
-      });
+      subscriber.next(
+        this.getImagePayload(
+          response._request_id,
+          imageOutput.data[0].b64_json,
+        ),
+      );
     });
-  }
-
-  generateResponse(
-    conversationId: string,
-    model: string,
-    input: string,
-  ): Promise<{ id: string; text: string }> {
-    return this.providerInstance.responses
-      .create({
-        conversation: conversationId,
-        model,
-        input,
-      })
-      .then((response) => ({
-        id: response.id,
-        text: response.output_text,
-      }));
   }
 
   async generateStreamResponse(
@@ -97,10 +77,12 @@ export class DeepSeekProviderService
         content: input,
       }),
       stream: true,
+      thinking: { type: 'enabled' },
     } as unknown as CompletionCreateParamsStreaming);
 
     return new Observable<UnifiedAIStreamChunk>((subscriber) => {
       let fullContent = '',
+        fullReasoningContent = '',
         responseId = '';
 
       const processStream = async () => {
@@ -108,9 +90,21 @@ export class DeepSeekProviderService
           for await (const chunk of stream) {
             const response = chunk.choices[0] as any;
             const deltaContent = response.delta.content;
+            const deltaReasoningContent = response.delta.reasoning_content;
 
             if (response) {
               responseId = chunk.id;
+            }
+
+            if (deltaReasoningContent !== null) {
+              fullReasoningContent += deltaReasoningContent;
+              subscriber.next(
+                this.getThinkingPayload(
+                  responseId,
+                  deltaReasoningContent,
+                  response.index,
+                ),
+              );
             }
             if (deltaContent !== null && response.finish_reason === null) {
               fullContent += response.delta.content;
@@ -128,25 +122,41 @@ export class DeepSeekProviderService
               subscriber.complete();
             }
           }
+          console.log(fullReasoningContent);
         } catch (error) {
-          console.log(error);
-          subscriber.error({
-            isComplete: true,
-            timestamp: new Date(),
-            error: error.message,
-          });
+          subscriber.error(this.getErrorPayload(error.message));
         }
       };
 
       processStream();
     }).pipe(
       catchError((error) => {
-        return throwError(() => ({
-          isComplete: true,
-          timestamp: new Date(),
-          error: error.message,
-        }));
+        return throwError(() => this.getErrorPayload(error.message));
       }),
     );
+  }
+
+  /**
+   * @deprecated This method is deprecated and will be removed in future versions. Use generateStreamResponse instead.
+   * @param conversationId
+   * @param model
+   * @param input
+   * @returns
+   */
+  generateResponse(
+    conversationId: string,
+    model: string,
+    input: string,
+  ): Promise<{ id: string; text: string }> {
+    return this.providerInstance.responses
+      .create({
+        conversation: conversationId,
+        model,
+        input,
+      })
+      .then((response) => ({
+        id: response.id,
+        text: response.output_text,
+      }));
   }
 }

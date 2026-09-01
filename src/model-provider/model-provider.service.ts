@@ -72,12 +72,10 @@ export class ModelProviderService {
     }
 
     // Делегирование выполнения выбранной Стратегии
-    return provider.generateStreamResponse(
-      conversationId,
-      modelName,
-      prompt,
+    return provider.generateStreamResponse(conversationId, modelName, prompt, {
       files,
-    );
+      withThinking: false,
+    });
   }
 
   public async generateImageResponse(

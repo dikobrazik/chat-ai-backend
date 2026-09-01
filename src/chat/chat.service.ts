@@ -68,6 +68,7 @@ export class ChatService {
     // если провайдер grok - передаем id последнего промпта
     if (model.provider_id === 3) {
       const lastPrompt = await this.promptRepository.findOne({
+        select: { response_id: true },
         where: { chat_id: chat.id },
         order: { created_at: 'desc' },
       });
@@ -88,7 +89,7 @@ export class ChatService {
 
     const pipedStream = stream.pipe(
       map((chunk) => ({
-        type: chunk.index === -1 ? 'complete' : 'delta',
+        type: chunk.isComplete ? 'complete' : 'delta',
         data: chunk,
       })),
       tap(async (streamChunk) => {
