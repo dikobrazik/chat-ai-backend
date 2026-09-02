@@ -28,6 +28,21 @@ export type GetLinkResponseParams = {
   WebQR: string;
 };
 
+export interface BankListResponse {
+  Success: boolean;
+  ErrorCode: string;
+  Message: string;
+  BankList: Bank[];
+}
+
+export interface Bank {
+  BankId: string;
+  NspkBankId: string;
+  BankName: string;
+  BankLogo: string;
+  BankOrder: number;
+}
+
 export type GetQrResponse = {
   TerminalKey: string;
   OrderId: string;
@@ -78,3 +93,22 @@ export type RebillResponse = {
   PaymentId: string;
   ErrorCode: string;
 };
+
+export type Device = 'Desktop' | 'Mobile';
+export type DeviceOS = 'Windows' | 'Linux' | 'macOS' | 'iOS' | 'Android';
+
+export type AddAccountQrResponse = {
+  TerminalKey: string;
+  Description: string;
+  DataType: 'PAYLOAD' | 'SVG';
+  Data: Data;
+  RequestKey: string;
+  ErrorCode: string;
+  Success: boolean;
+  Message: string;
+};
+
+export interface Data {
+  Payload: string;
+  SVG: string;
+}

@@ -3,6 +3,10 @@ import { ConfigService } from '@nestjs/config';
 import axios, { AxiosInstance } from 'axios';
 import { generateTokenFromBody } from './utils';
 import {
+  AddAccountQrResponse,
+  BankListResponse,
+  Device,
+  DeviceOS,
   GetLinkResponse,
   GetLinkStatusResponse,
   InitResponse,
@@ -43,24 +47,23 @@ export class TinkoffKassaService {
     amount: number,
     customerKey: string,
     customerEmail: string,
+    device: 'Desktop' | 'Mobile' = 'Desktop',
+    deviceOs: 'Windows' | 'Linux' | 'macOS' | 'iOS' | 'Android' = 'Windows',
   ): Promise<InitResponse> {
     const body: Record<string, any> = this.prepareBody({
       TerminalKey: this.terminalKey,
       Amount: amount,
       OrderId: String(orderId),
-      Description: 'Подписка на сервис',
+      Description: 'Подписка на сервис Jonu',
       CustomerKey: customerKey,
       Recurrent: 'Y',
-      // PayType: 'O',
-      // Language: 'ru',
       NotificationURL: `${this.baseApiUrl}/subscription/notify`,
       SuccessURL: `${this.baseAppUrl}/payment/success`,
       FailURL: `${this.baseAppUrl}/payment/fail`,
-      // RedirectDueDate: new Date(Date.now() + 30 * 60_000).toJSON(),
       Receipt: {
         Items: [
           {
-            Name: 'Подписка на сервис',
+            Name: 'Подписка на сервис Jonu',
             Price: amount,
             Quantity: 1,
             Amount: amount,
@@ -72,8 +75,8 @@ export class TinkoffKassaService {
       },
       DATA: {
         TinkoffPayWeb: true,
-        Device: 'Desktop',
-        DeviceOs: 'iOS',
+        Device: device,
+        DeviceOs: deviceOs,
         DeviceWebView: true,
         OperationInitiatorType: 'R',
         Email: customerEmail,
@@ -122,6 +125,66 @@ export class TinkoffKassaService {
       .then((r) => r.data);
 
     console.warn('GetTPayLink', response);
+
+    if (!response.Success) {
+      throw new InternalServerErrorException();
+    }
+
+    return response;
+  }
+
+  // https://developer.tbank.ru/eacq/api/get-qr-bank-list
+  public async getSbpBanksList(
+    device: Device,
+    os: DeviceOS,
+  ): Promise<BankListResponse> {
+    const response = await this.client
+      .post<BankListResponse>(
+        `/GetQrBankList`,
+        this.prepareBody({
+          TerminalKey: this.terminalKey,
+          ScenarioType: 'sub',
+          Device: {
+            Type: device.toLowerCase(),
+            Os: os.toLowerCase(),
+          },
+        }),
+      )
+      .then((r) => r.data);
+
+    if (!response.Success) {
+      throw new InternalServerErrorException();
+    }
+
+    return response;
+  }
+
+  // https://developer.tbank.ru/eacq/api/add-account-qr
+  public async addSbpAccount(bankId: string): Promise<AddAccountQrResponse> {
+    const response = await this.client
+      .post<AddAccountQrResponse>(
+        `/AddAccountQr`,
+        this.prepareBody({
+          TerminalKey: this.terminalKey,
+          Description: 'Оплата подписки на сервис Jonu',
+          DataType: 'PAYLOAD',
+          BankId: bankId,
+          // RedirectDueDate: '2016-08-31T12:28:00+03:00',
+        }),
+      )
+      .then((r) => r.data);
+
+    console.warn(
+      'AddAccountQr',
+      this.prepareBody({
+        TerminalKey: this.terminalKey,
+        Description: 'Оплата подписки на сервис Jonu',
+        DataType: 'PAYLOAD',
+        BankId: bankId,
+        // RedirectDueDate: '2016-08-31T12:28:00+03:00',
+      }),
+      response,
+    );
 
     if (!response.Success) {
       throw new InternalServerErrorException();

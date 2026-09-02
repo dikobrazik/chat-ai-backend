@@ -11,6 +11,8 @@ import { Repository } from 'typeorm';
 import { PLANS } from './constants';
 import { TinkoffKassaService } from './tinkoff-kassa/tinkoff-kassa.service';
 import { addDays, addMonths } from 'date-fns';
+import { Request } from 'express';
+import { prepareDeviceInfo } from './tinkoff-kassa/utils';
 
 @Injectable()
 export class SubscriptionService {
@@ -29,6 +31,7 @@ export class SubscriptionService {
     sixMonths: boolean,
     userId: string,
     userEmail: string,
+    clientInfo: Request['clientInfo'],
   ) {
     const amount = await this.getPlanPrice(userId, planId, sixMonths);
     const plan = (await this.getUserPlans(userId)).find((p) => p.id === planId);
@@ -63,11 +66,18 @@ export class SubscriptionService {
       subscription_id: subscriptionId,
     });
 
+    const deviceInfo = prepareDeviceInfo({
+      type: clientInfo.device.type,
+      os: clientInfo.os.name,
+    });
+
     const paymentResponse = await this.tinkoffKassaService.initPayment(
       orderId,
       amount,
       userId,
       userEmail,
+      deviceInfo.deviceType,
+      deviceInfo.deviceOs,
     );
 
     await this.paymentRepository.update(orderId, {
@@ -75,14 +85,6 @@ export class SubscriptionService {
     });
 
     return paymentResponse;
-  }
-
-  public getTPayLink(paymentId: string, version?: string) {
-    return this.tinkoffKassaService.getTPayLink(paymentId, version);
-  }
-
-  public checkTPayLink() {
-    return this.tinkoffKassaService.checkTPayLink();
   }
 
   public getSubscription(subscriptionId: string) {

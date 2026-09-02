@@ -9,6 +9,7 @@ import { SubscriptionPaymentNotificationService } from './subscription-payment-n
 import { User } from 'src/entities/User';
 import { SubscriptionCheckService } from './subscription-check.service';
 import { PromotionModule } from 'src/promotion/promotion.module';
+import { SubscriptionSbpController } from './sbp.controller';
 
 @Module({
   imports: [
@@ -21,6 +22,6 @@ import { PromotionModule } from 'src/promotion/promotion.module';
     TinkoffKassaService,
     SubscriptionCheckService,
   ],
-  controllers: [SubscriptionController],
+  controllers: [SubscriptionController, SubscriptionSbpController],
 })
 export class SubscriptionModule {}

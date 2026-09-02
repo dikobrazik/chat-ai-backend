@@ -1,4 +1,4 @@
-import { IsBoolean, IsEnum } from 'class-validator';
+import { IsBoolean, IsEnum, IsUUID } from 'class-validator';
 import { SubscriptionPlan } from 'src/entities/Subscription';
 
 export class InitSubscriptionDto {
@@ -7,4 +7,9 @@ export class InitSubscriptionDto {
 
   @IsBoolean()
   sixMonths: boolean;
+}
+
+export class LinkSbpAccountDto {
+  @IsUUID()
+  bankId: string;
 }
