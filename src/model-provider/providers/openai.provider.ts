@@ -76,7 +76,7 @@ export class OpenAIProviderService
     input: string,
     options: GenerateStreamResponseOptions = {},
   ): Promise<Observable<UnifiedAIStreamChunk>> {
-    const { files, withThinking } = options;
+    const { files, withThinking, withSearch } = options;
 
     const uploadedFiles: ResponseInputContent[] = await Promise.all(
       files.map(async (file) =>
@@ -109,6 +109,8 @@ export class OpenAIProviderService
         },
       ] as EasyInputMessage[],
       stream: true,
+      tools: [{ type: 'web_search' }],
+      tool_choice: withSearch ? 'required' : 'auto',
       reasoning: withThinking
         ? { effort: 'high', summary: 'detailed' }
         : undefined,
@@ -121,10 +123,20 @@ export class OpenAIProviderService
       const processStream = async () => {
         try {
           for await (const chunk of stream) {
-            console.log(chunk);
             if (chunk.type === 'response.created') {
               responseId = chunk.response.id;
             }
+
+            if (chunk.type === 'response.reasoning_summary_text.delta') {
+              subscriber.next(
+                this.getThinkingPayload(
+                  responseId,
+                  chunk.delta,
+                  chunk.sequence_number,
+                ),
+              );
+            }
+
             if (chunk.type === 'response.output_text.delta') {
               fullContent += chunk.delta;
 
@@ -136,7 +148,17 @@ export class OpenAIProviderService
                 ),
               );
             }
+
             if (chunk.type === 'response.completed') {
+              const usage = chunk.response.usage;
+              subscriber.next(
+                this.getMetaPayload(
+                  responseId,
+                  usage.input_tokens,
+                  usage.output_tokens,
+                  usage.output_tokens_details.reasoning_tokens,
+                ),
+              );
               subscriber.next(this.getCompletePayload(responseId, fullContent));
               subscriber.complete();
             }

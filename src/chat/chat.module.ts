@@ -11,13 +11,20 @@ import { ChatTitleGeneratorService } from './chat-title-generator.service';
 import { FileStorageModule } from 'src/file-storage/file-storage.module';
 import { PromptFile } from 'src/entities/PromptFile';
 import { FileEntity } from 'src/entities/File';
+import { PromptMeta } from 'src/entities/PromptMeta';
 
 @Module({
   providers: [ChatTitleGeneratorService, ChatService, ChatGuard],
   imports: [
     ChatModule,
     FileStorageModule,
-    TypeOrmModule.forFeature([Chat, Prompt, PromptFile, FileEntity]),
+    TypeOrmModule.forFeature([
+      Chat,
+      Prompt,
+      PromptFile,
+      PromptMeta,
+      FileEntity,
+    ]),
     ModelModule,
     ModelProviderModule,
   ],

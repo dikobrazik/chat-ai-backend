@@ -2,6 +2,10 @@ import { MessageParam } from '@anthropic-ai/sdk/resources';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Prompt } from 'src/entities/Prompt';
 import { Repository } from 'typeorm';
+import {
+  UnifiedAIStreamChunkMain,
+  UnifiedAIStreamChunkMeta,
+} from '../model-provider.interface';
 
 export abstract class BaseProvider {
   @InjectRepository(Prompt)
@@ -24,9 +28,9 @@ export abstract class BaseProvider {
       .flat();
   }
 
-  getFilePayload(responseId: string, content: string, index: number) {
+  getFilePayload(promptId: string, content: string, index: number) {
     return {
-      promptId: responseId,
+      promptId,
       content,
       isComplete: false,
       timestamp: new Date(),
@@ -34,9 +38,29 @@ export abstract class BaseProvider {
     };
   }
 
-  getDeltaPayload(responseId: string, content: string, index: number) {
+  getMetaPayload(
+    promptId: string,
+    inputTokens: number,
+    outputTokens: number,
+    thinkingTokens: number,
+  ): UnifiedAIStreamChunkMeta {
     return {
-      promptId: responseId,
+      type: 'meta',
+      promptId,
+      inputTokens,
+      outputTokens,
+      thinkingTokens,
+    };
+  }
+
+  getDeltaPayload(
+    promptId: string,
+    content: string,
+    index: number,
+  ): UnifiedAIStreamChunkMain {
+    return {
+      type: 'delta',
+      promptId,
       content,
       isComplete: false,
       timestamp: new Date(),
@@ -44,9 +68,14 @@ export abstract class BaseProvider {
     };
   }
 
-  getThinkingPayload(responseId: string, content: string, index: number) {
+  getThinkingPayload(
+    promptId: string,
+    content: string,
+    index: number,
+  ): UnifiedAIStreamChunkMain {
     return {
-      promptId: responseId,
+      type: 'thinking',
+      promptId,
       content,
       isComplete: false,
       isThinking: true,
@@ -55,19 +84,27 @@ export abstract class BaseProvider {
     };
   }
 
-  getCompletePayload(responseId: string, content: string) {
+  getCompletePayload(
+    promptId: string,
+    content: string,
+  ): UnifiedAIStreamChunkMain {
     return {
+      type: 'complete',
       index: -1,
-      promptId: responseId,
+      promptId,
       content,
       isComplete: true,
       timestamp: new Date(),
     };
   }
 
-  getImagePayload(responseId: string, imageB64: string) {
+  getImagePayload(
+    promptId: string,
+    imageB64: string,
+  ): UnifiedAIStreamChunkMain {
     return {
-      promptId: responseId,
+      type: 'complete',
+      promptId,
       imageB64: imageB64,
       isComplete: true,
       timestamp: new Date(),
@@ -75,8 +112,11 @@ export abstract class BaseProvider {
     };
   }
 
-  getErrorPayload(message: string) {
+  getErrorPayload(message: string): UnifiedAIStreamChunkMain {
     return {
+      index: -1,
+      promptId: '',
+      type: 'error',
       content: '',
       isComplete: true,
       timestamp: new Date(),

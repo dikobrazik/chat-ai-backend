@@ -1,6 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { map, mergeMap, tap } from 'rxjs';
+import { filter, map, mergeMap, tap } from 'rxjs';
 import { IsNull, Not, Repository } from 'typeorm';
 import { Chat } from 'src/entities/Chat';
 import { Prompt } from 'src/entities/Prompt';
@@ -11,6 +11,12 @@ import { Model } from 'src/entities/Model';
 import { ChatTitleGeneratorService } from './chat-title-generator.service';
 import { FileStorageService } from 'src/file-storage/file-storage.service';
 import { PromptFile } from 'src/entities/PromptFile';
+import {
+  UnifiedAIStreamChunk,
+  UnifiedAIStreamChunkMain,
+} from 'src/model-provider/model-provider.interface';
+import { PromptDTO } from './dto';
+import { PromptMeta } from 'src/entities/PromptMeta';
 
 @Injectable()
 export class ChatService {
@@ -29,6 +35,8 @@ export class ChatService {
   private readonly promptRepository: Repository<Prompt>;
   @InjectRepository(PromptFile)
   private readonly promptFileRepository: Repository<PromptFile>;
+  @InjectRepository(PromptMeta)
+  private readonly promptMetaRepository: Repository<PromptMeta>;
 
   public async createChat(user: User, model_id: number) {
     const model = await this.modelService.getModel(model_id);
@@ -46,14 +54,16 @@ export class ChatService {
     return chat;
   }
 
-  public async sendStreamPrompt(
-    chat: Chat,
-    model: Model,
-    input: string,
-    filesIds: string[],
-  ) {
+  public async sendStreamPrompt(chat: Chat, model: Model, options: PromptDTO) {
+    const {
+      files_ids,
+      with_search = false,
+      with_thinking = false,
+      input,
+    } = options;
+
     // todo: добавить проверку прав
-    const files = await this.fileStorageService.getFilesByIds(filesIds);
+    const files = await this.fileStorageService.getFilesByIds(files_ids);
 
     if (!chat.title) {
       await this.chatTitleGeneratorService.createChatTitle(chat, input);
@@ -65,8 +75,8 @@ export class ChatService {
 
     let conversationId = chat.external_chat_id;
 
-    // если провайдер grok - передаем id последнего промпта
-    if (model.provider_id === 3) {
+    // если провайдер grok или google - передаем id последнего промпта
+    if (model.provider_id === 3 || model.provider_id === 2) {
       const lastPrompt = await this.promptRepository.findOne({
         select: { response_id: true },
         where: { chat_id: chat.id },
@@ -84,16 +94,29 @@ export class ChatService {
       model,
       input,
       conversationId,
-      files,
+      { files, withSearch: with_search, withThinking: with_thinking },
     );
 
     const pipedStream = stream.pipe(
+      tap(async (chunk) => {
+        if (chunk.type === 'meta') {
+          await this.promptMetaRepository.insert({
+            prompt_id: chunk.promptId,
+            input_tokens: chunk.inputTokens ?? 0,
+            output_tokens: chunk.outputTokens ?? 0,
+            thinking_tokens: chunk.thinkingTokens ?? 0,
+          });
+        }
+      }),
+      filter<UnifiedAIStreamChunk, UnifiedAIStreamChunkMain>(
+        (chunk): chunk is UnifiedAIStreamChunkMain => chunk.type !== 'meta',
+      ),
       map((chunk) => ({
-        type: chunk.isComplete ? 'complete' : 'delta',
+        type: chunk.type,
         data: chunk,
       })),
       tap(async (streamChunk) => {
-        if (streamChunk.data.isComplete) {
+        if (streamChunk.type === 'complete') {
           const {
             identifiers: [{ id: promptId }],
           } = await this.promptRepository.insert({
@@ -103,8 +126,8 @@ export class ChatService {
             response: streamChunk.data.content,
           });
 
-          if (filesIds) {
-            for (const fileId of filesIds) {
+          if (files_ids) {
+            for (const fileId of files_ids) {
               this.promptFileRepository.save([
                 {
                   file_id: fileId,
@@ -128,8 +151,11 @@ export class ChatService {
     );
 
     return stream.pipe(
+      filter<UnifiedAIStreamChunk, UnifiedAIStreamChunkMain>(
+        (chunk): chunk is UnifiedAIStreamChunkMain => chunk.type !== 'meta',
+      ),
       map((chunk) => ({
-        type: chunk.index === -1 ? 'complete' : 'delta',
+        type: chunk.type,
         data: chunk,
       })),
       mergeMap(async (streamChunk) => {

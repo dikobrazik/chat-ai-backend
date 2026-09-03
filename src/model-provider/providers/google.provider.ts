@@ -35,10 +35,7 @@ export class GoogleProviderService
   }
 
   createConversation(): Promise<string> {
-    // const chat = this.providerInstance.chats.create({
-    //   model: 'gemini-1.5-turbo',
-    // });
-    return Promise.resolve('google-conversation-id');
+    return Promise.resolve(undefined);
   }
 
   async generateImageResponse(
@@ -70,14 +67,14 @@ export class GoogleProviderService
   }
 
   async generateStreamResponse(
-    conversationId: string,
+    previousInteractionId: string,
     model: string,
     input: string,
     options: GenerateStreamResponseOptions = {},
   ): Promise<Observable<UnifiedAIStreamChunk>> {
-    const { files, withThinking } = options;
+    const { files, withThinking, withSearch } = options;
 
-    const uploadedFiles: Part[] = await Promise.all(
+    const uploadedFiles = await Promise.all(
       files.map((file) =>
         this.providerInstance.files
           .upload({
@@ -89,53 +86,75 @@ export class GoogleProviderService
             },
           })
           .then((uploadedFile) => ({
-            fileData: {
-              fileUri: uploadedFile.uri,
-              mimeType: uploadedFile.mimeType,
-            },
+            type: 'document' as const,
+            uri: uploadedFile.uri,
+            mime_type: uploadedFile.mimeType,
           })),
       ),
     );
 
-    const stream = await this.providerInstance.models.generateContentStream({
+    const stream = await this.providerInstance.interactions.create({
       model,
-      contents: [...uploadedFiles, input],
-      config: {
-        thinkingConfig: withThinking
-          ? {
-              includeThoughts: true,
-            }
-          : undefined,
+      input: [...uploadedFiles, { type: 'text', text: input }],
+      previous_interaction_id: previousInteractionId,
+      stream: true,
+      tools: [{ type: 'google_search', search_types: ['web_search'] }],
+      generation_config: {
+        max_output_tokens: 15_000,
+        thinking_level: withThinking ? 'high' : undefined,
       },
     });
 
     return new Observable<UnifiedAIStreamChunk>((subscriber) => {
       let fullContent = '',
         index = 0,
-        responseId = '';
+        responseId = '',
+        isOutputStarted = false;
       const processStream = async () => {
         try {
           for await (const chunk of stream) {
-            const content = chunk.candidates[0].content.parts[0].text;
-            const isThought = chunk.candidates[0].content.parts[0].thought;
+            if (chunk.event_type === 'interaction.created') {
+              responseId = chunk.interaction.id;
+            }
 
-            if (content) {
-              responseId = chunk.responseId;
+            if (
+              chunk.event_type === 'step.start' &&
+              chunk.step.type === 'model_output'
+            ) {
+              isOutputStarted = true;
+            }
 
-              if (isThought) {
+            if (isOutputStarted && chunk.event_type === 'step.delta') {
+              if (chunk.delta.type === 'text') {
+                fullContent += chunk.delta.text;
                 subscriber.next(
-                  this.getThinkingPayload(responseId, content, index++),
-                );
-              } else {
-                fullContent += content;
-                subscriber.next(
-                  this.getDeltaPayload(responseId, content, index++),
+                  this.getDeltaPayload(responseId, chunk.delta.text, index++),
                 );
               }
             }
+
+            if (isOutputStarted && chunk.event_type === 'step.stop') {
+              isOutputStarted = false;
+            }
+
+            if (chunk.event_type === 'interaction.completed') {
+              const usage = chunk.interaction.usage;
+              subscriber.next(
+                this.getMetaPayload(
+                  responseId,
+                  usage.total_input_tokens,
+                  usage.total_output_tokens,
+                  usage.total_thought_tokens,
+                ),
+              );
+              subscriber.next(this.getCompletePayload(responseId, fullContent));
+              subscriber.complete();
+            }
+
+            if (chunk.event_type === 'error') {
+              subscriber.error(this.getErrorPayload(chunk.error.message));
+            }
           }
-          subscriber.next(this.getCompletePayload(responseId, fullContent));
-          subscriber.complete();
         } catch (error) {
           subscriber.error(this.getErrorPayload(error.message));
         }

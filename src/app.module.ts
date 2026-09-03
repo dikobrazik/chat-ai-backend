@@ -37,6 +37,7 @@ import { MailerModule as NestMailerModule } from '@nestjs-modules/mailer';
 import { PromotionModule } from './promotion/promotion.module';
 import { Promotion } from './entities/Promotion';
 import { UserPromotion } from './entities/UserPromotion';
+import { PromptMeta } from './entities/PromptMeta';
 
 @Module({
   imports: [
@@ -79,6 +80,7 @@ import { UserPromotion } from './entities/UserPromotion';
           FileEntity,
           Promotion,
           UserPromotion,
+          PromptMeta,
         ],
         subscribers: [],
         migrations: [],

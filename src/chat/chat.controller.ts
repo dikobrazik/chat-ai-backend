@@ -98,7 +98,6 @@ export class ChatController {
         return USER_STATUS_LIMITS[user.status];
       },
       getTracker: (req: Request) => {
-        console.log(req.ip);
         return `${req.user?.id}-${req.params.id}`;
       },
     },
@@ -110,12 +109,7 @@ export class ChatController {
     @Chat() chat: ChatEntity,
     @ChatModel() model: Model,
   ) {
-    const stream = await this.chatService.sendStreamPrompt(
-      chat,
-      model,
-      body.input,
-      body.files_ids,
-    );
+    const stream = await this.chatService.sendStreamPrompt(chat, model, body);
 
     return stream;
   }

@@ -52,7 +52,7 @@ export class ClaudeProviderService
     input: string,
     options: GenerateStreamResponseOptions = {},
   ): Promise<Observable<UnifiedAIStreamChunk>> {
-    const { files, withThinking } = options;
+    const { files, withThinking, withSearch } = options;
 
     const uploadedFiles: ContentBlockParam[] = await this.prepareFiles(files);
 
@@ -68,6 +68,13 @@ export class ClaudeProviderService
       ]),
       stream: true,
       max_tokens: 15_000,
+      tool_choice: withSearch
+        ? { type: 'tool', name: 'web_search' }
+        : { type: 'auto' },
+      tools: [
+        { type: 'web_search_20250305', name: 'web_search' },
+        { type: 'web_search_20260209', name: 'web_search' },
+      ],
       thinking: withThinking
         ? { budget_tokens: 1024, type: 'enabled' }
         : undefined,
@@ -80,8 +87,6 @@ export class ClaudeProviderService
       const processStream = async () => {
         try {
           for await (const chunk of stream) {
-            console.log(chunk);
-
             if (chunk.type === 'message_start') {
               responseId = chunk.message.id;
             }
@@ -104,6 +109,17 @@ export class ClaudeProviderService
                   ),
                 );
               }
+            }
+
+            if (chunk.type === 'message_delta') {
+              subscriber.next(
+                this.getMetaPayload(
+                  responseId,
+                  chunk.usage.input_tokens,
+                  chunk.usage.output_tokens,
+                  chunk.usage.output_tokens_details.thinking_tokens,
+                ),
+              );
             }
 
             if (chunk.type === 'message_stop') {

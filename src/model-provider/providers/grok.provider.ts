@@ -92,7 +92,7 @@ export class GrokProviderService
     input: string,
     options: GenerateStreamResponseOptions = {},
   ): Promise<Observable<UnifiedAIStreamChunk>> {
-    const { files } = options;
+    const { files, withSearch, withThinking } = options;
 
     const uploadedFiles: ResponseInputContent[] = await Promise.all(
       files.map(async (file) =>
@@ -125,6 +125,13 @@ export class GrokProviderService
       ] as EasyInputMessage[],
       stream: true,
       previous_response_id: previousResponseId,
+      reasoning: withThinking
+        ? {
+            effort: 'high',
+          }
+        : undefined,
+      tools: [{ type: 'web_search' }],
+      tool_choice: withSearch ? 'required' : 'auto',
     });
 
     return new Observable<UnifiedAIStreamChunk>((subscriber) => {
@@ -137,6 +144,17 @@ export class GrokProviderService
             if (chunk.type === 'response.created') {
               responseId = chunk.response.id;
             }
+
+            if (chunk.type === 'response.reasoning_summary_text.delta') {
+              subscriber.next(
+                this.getThinkingPayload(
+                  responseId,
+                  chunk.delta,
+                  chunk.sequence_number,
+                ),
+              );
+            }
+
             if (chunk.type === 'response.output_text.delta') {
               fullContent += chunk.delta;
 
@@ -149,7 +167,16 @@ export class GrokProviderService
               );
             }
             if (chunk.type === 'response.completed') {
-              subscriber.next(this.getCompletePayload(fullContent, responseId));
+              const usage = chunk.response.usage;
+              subscriber.next(
+                this.getMetaPayload(
+                  responseId,
+                  usage.input_tokens,
+                  usage.output_tokens,
+                  usage.output_tokens_details.reasoning_tokens,
+                ),
+              );
+              subscriber.next(this.getCompletePayload(responseId, fullContent));
               subscriber.complete();
             }
             if (chunk.type === 'error') {

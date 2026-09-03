@@ -1,5 +1,13 @@
-import { Type } from 'class-transformer';
-import { IsNotEmpty, IsNumber, IsOptional, IsUUID, Min } from 'class-validator';
+import { Transform, Type } from 'class-transformer';
+import {
+  IsBoolean,
+  IsBooleanString,
+  IsNotEmpty,
+  IsNumber,
+  IsOptional,
+  IsUUID,
+  Min,
+} from 'class-validator';
 
 export class PromptDTO {
   @IsNotEmpty()
@@ -8,6 +16,16 @@ export class PromptDTO {
   @IsOptional()
   @IsUUID('4', { each: true })
   files_ids?: string[];
+
+  @IsOptional()
+  @IsBoolean()
+  @Transform(({ value }) => ['true', true].includes(value))
+  with_search?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  @Transform(({ value }) => ['true', true].includes(value))
+  with_thinking?: boolean;
 }
 
 export class CreateChatDTO {

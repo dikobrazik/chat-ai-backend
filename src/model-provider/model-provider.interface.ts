@@ -25,17 +25,38 @@ export interface IModelProvider {
 export type GenerateStreamResponseOptions = {
   files?: InputFile[];
   withThinking?: boolean;
+  withSearch?: boolean;
 };
 
-export interface UnifiedAIStreamChunk {
+export interface UnifiedAIStreamChunkMain {
   index: number;
   content?: string;
   imageB64?: string;
+  type: 'delta' | 'thinking' | 'complete' | 'error';
+  /**
+   * @deprecated Use `type` instead. This field is kept for backward compatibility.
+   */
   isComplete: boolean;
+  /**
+   * @deprecated Use `type` instead. This field is kept for backward compatibility.
+   */
+  isThinking?: boolean;
   timestamp: Date;
   promptId: string;
   error?: string;
 }
+
+export interface UnifiedAIStreamChunkMeta {
+  type: 'meta';
+  promptId: string;
+  inputTokens?: number;
+  outputTokens?: number;
+  thinkingTokens?: number;
+}
+
+export type UnifiedAIStreamChunk =
+  | UnifiedAIStreamChunkMain
+  | UnifiedAIStreamChunkMeta;
 
 export type InputFile = {
   id: string;

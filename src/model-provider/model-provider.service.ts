@@ -1,16 +1,16 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
+import { Observable } from 'rxjs';
+import { Model } from 'src/entities/Model';
 import {
+  GenerateStreamResponseOptions,
   IModelProvider,
-  InputFile,
   UnifiedAIStreamChunk,
 } from './model-provider.interface';
-import { OpenAIProviderService } from './providers/openai.provider';
-import { GoogleProviderService } from './providers/google.provider';
-import { Model } from 'src/entities/Model';
-import { Observable } from 'rxjs';
-import { GrokProviderService } from './providers/grok.provider';
-import { DeepSeekProviderService } from './providers/deepseek.provider';
 import { ClaudeProviderService } from './providers/claude.provider';
+import { DeepSeekProviderService } from './providers/deepseek.provider';
+import { GoogleProviderService } from './providers/google.provider';
+import { GrokProviderService } from './providers/grok.provider';
+import { OpenAIProviderService } from './providers/openai.provider';
 
 @Injectable()
 export class ModelProviderService {
@@ -60,7 +60,7 @@ export class ModelProviderService {
     model: Model,
     prompt: string,
     conversationId?: string,
-    files?: InputFile[],
+    options?: GenerateStreamResponseOptions,
   ): Promise<Observable<UnifiedAIStreamChunk>> {
     const { provider_id: providerId, name: modelName } = model;
     // Логика выбора Стратегии: ищем провайдера, который может обработать модель
@@ -72,10 +72,12 @@ export class ModelProviderService {
     }
 
     // Делегирование выполнения выбранной Стратегии
-    return provider.generateStreamResponse(conversationId, modelName, prompt, {
-      files,
-      withThinking: false,
-    });
+    return provider.generateStreamResponse(
+      conversationId,
+      modelName,
+      prompt,
+      options,
+    );
   }
 
   public async generateImageResponse(

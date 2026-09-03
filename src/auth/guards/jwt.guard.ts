@@ -14,15 +14,6 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
   }
 
   canActivate(context: ExecutionContext) {
-    // Add your custom authentication logic here
-    // for example, call super.logIn(request) to establish a session.
-    // console.log(
-    //   context.getArgs(),
-    //   context.getClass(),
-    //   context.getHandler(),
-    //   context.getType(),
-    // );
-    console.log('JWT Guard activated');
     const isPublic = this.reflector.getAllAndOverride<boolean>(IS_PUBLIC_KEY, [
       context.getHandler(),
       context.getClass(),
@@ -41,9 +32,6 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
     context: ExecutionContext,
     status?: any,
   ) {
-    console.log(err, user, info);
-    // console.log(err, user, info);
-    // You can throw an exception based on either "info" or "err" arguments
     if (err || !user) {
       if (info instanceof Error && info.name === 'TokenExpiredError') {
         throw new UnauthorizedException({

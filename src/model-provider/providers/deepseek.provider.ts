@@ -4,6 +4,7 @@ import OpenAI from 'openai';
 import { CompletionCreateParamsStreaming } from 'openai/resources/completions';
 import { Observable, catchError, throwError } from 'rxjs';
 import {
+  GenerateStreamResponseOptions,
   IModelProvider,
   UnifiedAIStreamChunk,
 } from 'src/model-provider/model-provider.interface';
@@ -67,7 +68,10 @@ export class DeepSeekProviderService
     chatId: string,
     model: string,
     input: string,
+    options: GenerateStreamResponseOptions = {},
   ): Promise<Observable<UnifiedAIStreamChunk>> {
+    const { withThinking } = options;
+
     const previousMessages = await this.getPreviousMessages(chatId);
 
     const stream = await this.providerInstance.completions.create({
@@ -77,12 +81,12 @@ export class DeepSeekProviderService
         content: input,
       }),
       stream: true,
-      thinking: { type: 'enabled' },
+      max_tokens: 15_000,
+      thinking: withThinking ? { type: 'enabled' } : undefined,
     } as unknown as CompletionCreateParamsStreaming);
 
     return new Observable<UnifiedAIStreamChunk>((subscriber) => {
       let fullContent = '',
-        fullReasoningContent = '',
         responseId = '';
 
       const processStream = async () => {
@@ -97,7 +101,6 @@ export class DeepSeekProviderService
             }
 
             if (deltaReasoningContent !== null) {
-              fullReasoningContent += deltaReasoningContent;
               subscriber.next(
                 this.getThinkingPayload(
                   responseId,
@@ -118,11 +121,18 @@ export class DeepSeekProviderService
               );
             }
             if (response.finish_reason !== null) {
+              subscriber.next(
+                this.getMetaPayload(
+                  responseId,
+                  chunk.usage.prompt_tokens,
+                  chunk.usage.completion_tokens,
+                  chunk.usage.completion_tokens_details.reasoning_tokens,
+                ),
+              );
               subscriber.next(this.getCompletePayload(responseId, fullContent));
               subscriber.complete();
             }
           }
-          console.log(fullReasoningContent);
         } catch (error) {
           subscriber.error(this.getErrorPayload(error.message));
         }
