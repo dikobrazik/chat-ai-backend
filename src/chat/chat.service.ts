@@ -45,13 +45,15 @@ export class ChatService {
       model.provider_id,
     );
 
-    const chat = await this.chatRepository.insert({
+    const {
+      identifiers: [{ id }],
+    } = await this.chatRepository.insert({
       model_id: model.id,
       external_chat_id: conversationId,
       user_id: user.id,
     });
 
-    return chat;
+    return id;
   }
 
   public async sendStreamPrompt(chat: Chat, model: Model, options: PromptDTO) {

@@ -1,5 +1,7 @@
-import { Injectable } from '@nestjs/common';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import { Inject, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
+import { Cache } from 'cache-manager';
 import { User, UserStatus } from 'src/entities/User';
 import { Repository } from 'typeorm';
 
@@ -7,6 +9,8 @@ import { Repository } from 'typeorm';
 export class UserService {
   @InjectRepository(User)
   private readonly userRepository: Repository<User>;
+  @Inject(CACHE_MANAGER)
+  private cacheManager: Cache;
 
   public createGuest() {
     return this.userRepository.save({});
@@ -46,7 +50,12 @@ export class UserService {
   }
 
   public findById(userId: string) {
-    return this.userRepository.findOne({ where: { id: userId } });
+    // тут надо быть осторожным, так как может съесть всю память
+    return this.cacheManager.wrap(
+      `user:${userId}`,
+      () => this.userRepository.findOne({ where: { id: userId } }),
+      { ttl: 10_000 },
+    );
   }
 
   public findByEmail(email: string) {

@@ -85,8 +85,7 @@ export class ChatController {
       throw new BadRequestException('Model not found');
     }
 
-    return (await this.chatService.createChat(user, body.model_id))
-      .identifiers[0].id;
+    return this.chatService.createChat(user, body.model_id);
   }
 
   @Throttle({

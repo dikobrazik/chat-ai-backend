@@ -38,6 +38,7 @@ import { PromotionModule } from './promotion/promotion.module';
 import { Promotion } from './entities/Promotion';
 import { UserPromotion } from './entities/UserPromotion';
 import { PromptMeta } from './entities/PromptMeta';
+import { CacheModule } from '@nestjs/cache-manager';
 
 @Module({
   imports: [
@@ -135,6 +136,7 @@ import { PromptMeta } from './entities/PromptMeta';
     FileStorageModule,
     MailerModule,
     PromotionModule,
+    CacheModule.register({ isGlobal: true }),
   ],
   controllers: [AppController],
   providers: [
