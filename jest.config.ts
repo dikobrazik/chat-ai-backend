@@ -6,8 +6,17 @@ const config: Config = {
   rootDir: 'src',
   testRegex: '.*\\.spec\\.ts$',
   transform: {
-    '^.+\\.(t|j)s$': 'ts-jest',
+    '^.+\\.(t|j)s$': [
+      'ts-jest',
+      {
+        tsconfig: {
+          allowJs: true,
+          module: 'commonjs',
+        },
+      },
+    ],
   },
+  transformIgnorePatterns: ['/node_modules/(?!@nestjs/cache-manager/)'],
   collectCoverageFrom: ['**/*.(t|j)s'],
   coverageDirectory: '../coverage',
   testEnvironment: 'node',
