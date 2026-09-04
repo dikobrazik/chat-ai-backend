@@ -31,9 +31,9 @@ import { PromptGuard } from './guards/prompt.guard';
 import { PublicChatGuard } from './guards/public-chat.guard';
 
 const USER_STATUS_LIMITS = {
-  [UserStatus.ACTIVE]: 15,
   [UserStatus.GUEST]: 5,
-  [UserStatus.SUBSCRIPTION_BASE]: 100000,
+  [UserStatus.ACTIVE]: 5,
+  [UserStatus.VERIFIED]: 15,
   [UserStatus.SUBSCRIPTION_PLUS]: 100000,
   [UserStatus.SUBSCRIPTION_PRO]: 100000,
 };

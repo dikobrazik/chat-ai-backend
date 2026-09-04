@@ -7,9 +7,10 @@ import { Profile as YandexProfile } from 'passport-yandex';
 import { Profile as GoogleProfile } from 'passport-google-oauth20';
 import { OauthAccount, OauthProvider } from 'src/entities/OauthAccount';
 import { User } from 'src/entities/User';
-import { Request } from 'express';
+import { Request, Response } from 'express';
 import { randomUUID } from 'crypto';
 import { SessionService } from 'src/session/session.service';
+import { SECURE_COOKIE_OPTIONS } from './constants';
 
 export const ACCESS_TOKEN_EXPIRES_IN = '1day';
 export const REFRESH_TOKEN_EXPIRES_IN = '60days';
@@ -36,6 +37,7 @@ export class AuthService {
       email: profile.emails[0].value,
       name: profile.displayName,
       photo: profile.photos?.[0]?.value,
+      emailVerified: true,
     });
 
     await this.oauthAccountRepository.upsert(
@@ -119,5 +121,24 @@ export class AuthService {
     }
 
     return { userId: session.user_id };
+  }
+
+  public async getAccessToken(
+    user: User,
+    request: Request,
+    response: Response,
+  ) {
+    const requestDeviceId = request.cookies['deviceId'];
+
+    const { deviceId, accessToken, refreshToken } = await this.createSession(
+      user,
+      request.clientInfo,
+      requestDeviceId,
+    );
+
+    response.cookie('refreshToken', refreshToken, SECURE_COOKIE_OPTIONS);
+    response.cookie('deviceId', deviceId, SECURE_COOKIE_OPTIONS);
+
+    return accessToken;
   }
 }

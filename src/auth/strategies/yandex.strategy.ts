@@ -34,17 +34,10 @@ export class YandexStrategy extends PassportStrategy(Strategy, 'yandex', true) {
       providerAccessToken,
       providerRefreshToken,
     );
-    const requestDeviceId = request.cookies['deviceId'];
 
-    const { deviceId, accessToken, refreshToken } =
-      await this.authService.createSession(
-        user,
-        request.clientInfo,
-        requestDeviceId,
-      );
     if (!profile) {
       throw new UnauthorizedException();
     }
-    return [user, { deviceId, accessToken, refreshToken }];
+    return [user];
   }
 }

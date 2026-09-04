@@ -9,6 +9,7 @@ import {
   PasswordResetDto,
   EmailVerifyDto,
   PasswordResetVerifyDto,
+  CheckEmailDto,
 } from './dtos';
 import { EmailAuthService } from './email-auth.service';
 import { PasswordResetService } from './password-reset.service';
@@ -26,10 +27,31 @@ export class EmailAuthController {
   private readonly passwordResetService: PasswordResetService;
 
   @Post('sign-in')
-  async signIn(@Body() body: EmailAuthDto) {
-    await this.emailAuthService.createUser(body);
+  async signIn(
+    @Body() body: EmailAuthDto,
+    @Req() request: Request,
+    @Res({ passthrough: true }) response: Response,
+  ) {
+    const user = await this.emailAuthService.createUser(body);
 
-    await this.emailAuthService.sendAuthCode(body.email);
+    // если пользователь уже зарегистрирован и email подтвержден, возвращаем accessToken
+    if (user.emailVerified) {
+      const accessToken = await this.authService.getAccessToken(
+        user,
+        request,
+        response,
+      );
+
+      return { accessToken, authCodeSent: false };
+    } else {
+      await this.emailAuthService.sendAuthCode(body.email);
+      return { accessToken: undefined, authCodeSent: true };
+    }
+  }
+
+  @Post('check-email')
+  checkEmail(@Body() body: CheckEmailDto) {
+    return this.emailAuthService.isRegisteredEmail(body.email);
   }
 
   @Post('verify')
@@ -40,24 +62,15 @@ export class EmailAuthController {
   ) {
     await this.emailAuthService.verifyAuthCode(body.email, body.code);
 
-    const user = await this.userService.saveUser({
-      email: body.email,
-      emailVerified: true,
-    });
+    const user = await this.userService.findByEmail(body.email);
 
-    const requestDeviceId = request.cookies['deviceId'];
+    const accessToken = await this.authService.getAccessToken(
+      user,
+      request,
+      response,
+    );
 
-    const { deviceId, accessToken, refreshToken } =
-      await this.authService.createSession(
-        user,
-        request.clientInfo,
-        requestDeviceId,
-      );
-
-    response.cookie('refreshToken', refreshToken, SECURE_COOKIE_OPTIONS);
-    response.cookie('deviceId', deviceId, SECURE_COOKIE_OPTIONS);
-
-    return accessToken;
+    return { accessToken };
   }
 
   @Post('reset')

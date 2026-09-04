@@ -35,17 +35,10 @@ export class GoogleStrategy extends PassportStrategy(Strategy) {
       providerAccessToken,
       providerRefreshToken,
     );
-    const requestDeviceId = request.cookies['deviceId'];
 
-    const { deviceId, accessToken, refreshToken } =
-      await this.authService.createSession(
-        user,
-        request.clientInfo,
-        requestDeviceId,
-      );
     if (!profile) {
       throw new UnauthorizedException();
     }
-    return [user, { deviceId, accessToken, refreshToken }];
+    return [user];
   }
 }

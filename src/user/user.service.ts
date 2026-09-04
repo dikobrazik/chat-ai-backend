@@ -22,8 +22,11 @@ export class UserService {
     photo,
     passwordHash,
     emailVerified,
+    status,
   }: Pick<User, 'email'> &
-    Partial<Pick<User, 'name' | 'photo' | 'passwordHash' | 'emailVerified'>>) {
+    Partial<
+      Pick<User, 'name' | 'photo' | 'passwordHash' | 'emailVerified' | 'status'>
+    >) {
     const user = await this.userRepository.findOne({
       where: { email },
     });
@@ -34,6 +37,9 @@ export class UserService {
         email,
         name,
         photo,
+        passwordHash,
+        emailVerified,
+        status,
       });
 
       return user;

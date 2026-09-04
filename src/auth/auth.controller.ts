@@ -35,19 +35,8 @@ export class AuthController {
     @Req() request: Request,
   ) {
     const user = await this.userService.createGuest();
-    const requestDeviceId = request.cookies['deviceId'];
 
-    const { deviceId, accessToken, refreshToken } =
-      await this.authService.createSession(
-        user,
-        request.clientInfo,
-        requestDeviceId,
-      );
-
-    response.cookie('refreshToken', refreshToken, SECURE_COOKIE_OPTIONS);
-    response.cookie('deviceId', deviceId, SECURE_COOKIE_OPTIONS);
-
-    return accessToken;
+    return this.authService.getAccessToken(user, request, response);
   }
 
   @UseGuards(AuthGuard('google'))
@@ -67,19 +56,19 @@ export class AuthController {
   @Get('g')
   @UseGuards(AuthGuard('google'))
   async authGoogleRedirect(@Req() request: Request, @Res() response: Response) {
-    this.commonRedirect(request, response);
+    await this.commonRedirect(request, response);
   }
 
-  private commonRedirect(request: Request, response: Response) {
-    const user = request.user;
-    const { deviceId, accessToken, refreshToken } = request.authInfo;
-
-    response.cookie('refreshToken', refreshToken, SECURE_COOKIE_OPTIONS);
-    response.cookie('deviceId', deviceId, SECURE_COOKIE_OPTIONS);
+  private async commonRedirect(request: Request, response: Response) {
+    const accessToken = await this.authService.getAccessToken(
+      request.user,
+      request,
+      response,
+    );
 
     response.redirect(
       this.configService.get('BASE_APP_AUTH_REDIRECT_URL') +
-        `?token=${accessToken}&email=${user.email}&id=${user.id}`,
+        `?token=${accessToken}&email=${request.user.email}&id=${request.user.id}`,
     );
   }
 

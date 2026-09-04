@@ -13,7 +13,6 @@ import { ModelService } from 'src/model/model.service';
 const USER_STATUS_LIST = [
   UserStatus.GUEST,
   UserStatus.ACTIVE,
-  UserStatus.SUBSCRIPTION_BASE,
   UserStatus.SUBSCRIPTION_PLUS,
   UserStatus.SUBSCRIPTION_PRO,
 ];

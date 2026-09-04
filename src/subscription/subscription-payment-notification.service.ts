@@ -13,7 +13,6 @@ import {
 import { User, UserStatus } from 'src/entities/User';
 
 const SUBSCRIPTION_PLAN_USER_STATUS_MAP = {
-  [SubscriptionPlan.BASE]: UserStatus.SUBSCRIPTION_BASE,
   [SubscriptionPlan.PLUS]: UserStatus.SUBSCRIPTION_PLUS,
   [SubscriptionPlan.PRO]: UserStatus.SUBSCRIPTION_PRO,
 };

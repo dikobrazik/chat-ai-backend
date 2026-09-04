@@ -1,11 +1,12 @@
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { BadRequestException, Inject, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import * as bcrypt from 'bcrypt';
 import { Cache } from 'cache-manager';
 import { MailerService } from 'src/mailer/mailer.service';
 import { UserService } from 'src/user/user.service';
+import { generatePasswordHash } from 'src/utils/generatePasswordHash';
 import { EmailAuthDto } from './dtos';
+import { UserStatus } from 'src/entities/User';
 
 @Injectable()
 export class EmailAuthService {
@@ -22,12 +23,12 @@ export class EmailAuthService {
   public async createUser(body: EmailAuthDto) {
     const user = await this.userService.findByEmail(body.email);
 
-    const hasUser = !!user;
-    const hasPassword = hasUser && !!user.passwordHash;
+    const hasPassword = Boolean(user?.passwordHash);
 
-    if (user) {
+    // если есть пользователь с паролем, проверяем пароль
+    if (hasPassword) {
       const isPasswordValid =
-        hasPassword && (await bcrypt.compare(body.password, user.passwordHash));
+        (await generatePasswordHash(body.password)) === user.passwordHash;
 
       if (!isPasswordValid) {
         throw new BadRequestException({
@@ -36,13 +37,21 @@ export class EmailAuthService {
           status: 400,
         });
       }
-    } else {
-      await this.userService.saveUser({
-        email: body.email,
-        passwordHash: await bcrypt.hash(body.password, 10),
-        emailVerified: false,
-      });
+
+      return user;
     }
+
+    return this.userService.saveUser({
+      email: body.email,
+      passwordHash: await generatePasswordHash(body.password),
+      status: UserStatus.ACTIVE,
+    });
+  }
+
+  public async isRegisteredEmail(email: string) {
+    const user = await this.userService.findByEmail(email);
+
+    return { isRegistered: Boolean(user && user.passwordHash) };
   }
 
   public async sendAuthCode(email: string) {
@@ -77,6 +86,12 @@ export class EmailAuthService {
         status: 400,
       };
     }
+
+    await this.userService.saveUser({
+      email,
+      status: UserStatus.VERIFIED,
+      emailVerified: true,
+    });
 
     this.cacheManager.del(this.getAuthCodeCacheKey(email));
 

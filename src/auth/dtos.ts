@@ -1,5 +1,10 @@
 import { IsEmail, IsString, Length, MinLength } from 'class-validator';
 
+export class CheckEmailDto {
+  @IsEmail()
+  email: string;
+}
+
 export class EmailAuthDto {
   @IsEmail()
   email: string;
@@ -7,6 +12,7 @@ export class EmailAuthDto {
   @MinLength(6)
   password: string;
 }
+
 export class EmailVerifyDto {
   @IsEmail()
   email: string;

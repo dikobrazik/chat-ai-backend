@@ -7,9 +7,10 @@ import {
 import { SubscriptionPlan } from './Subscription';
 
 export enum UserStatus {
-  // с привязаной почтой
-  ACTIVE = 'active',
   GUEST = 'guest',
+  ACTIVE = 'active',
+  // с привязаной почтой
+  VERIFIED = 'verified',
   SUBSCRIPTION_BASE = `subscription_${SubscriptionPlan.BASE}`,
   SUBSCRIPTION_PLUS = `subscription_${SubscriptionPlan.PLUS}`,
   SUBSCRIPTION_PRO = `subscription_${SubscriptionPlan.PRO}`,

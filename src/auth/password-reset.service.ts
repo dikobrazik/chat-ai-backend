@@ -1,11 +1,11 @@
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Inject, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import * as bcrypt from 'bcrypt';
 import { Cache } from 'cache-manager';
-import { randomBytes } from 'crypto';
 import { MailerService } from 'src/mailer/mailer.service';
 import { UserService } from 'src/user/user.service';
+import { generatePasswordHash } from 'src/utils/generatePasswordHash';
+import { generateRandomString } from 'src/utils/generateRandomString';
 import { PasswordResetVerifyDto } from './dtos';
 
 @Injectable()
@@ -25,7 +25,7 @@ export class PasswordResetService {
       return;
     }
 
-    const resetCode = randomBytes(32).toString('hex');
+    const resetCode = generateRandomString(32);
 
     await this.cacheManager.set(
       this.getResetCodeCacheKey(resetCode),
@@ -59,7 +59,7 @@ export class PasswordResetService {
       this.cacheManager.del(this.getResetCodeCacheKey(email)),
       this.userService.saveUser({
         email,
-        passwordHash: await bcrypt.hash(password, 10),
+        passwordHash: await generatePasswordHash(password),
         emailVerified: true,
       }),
     ]);
