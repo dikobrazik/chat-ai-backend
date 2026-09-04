@@ -23,10 +23,7 @@ export class EmailAuthService {
   public async createUser(body: EmailAuthDto) {
     const user = await this.userService.findByEmail(body.email);
 
-    const hasPassword = Boolean(user?.passwordHash);
-
-    // если есть пользователь с паролем, проверяем пароль
-    if (hasPassword) {
+    if (user) {
       const isPasswordValid =
         (await generatePasswordHash(body.password)) === user.passwordHash;
 
