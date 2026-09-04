@@ -13,6 +13,7 @@ import { SessionModule } from 'src/session/session.module';
 import { EmailAuthController } from './email-auth.controller';
 import { MailerService } from 'src/mailer/mailer.service';
 import { EmailAuthService } from './email-auth.service';
+import { PasswordResetService } from './password-reset.service';
 
 @Module({
   imports: [
@@ -29,6 +30,7 @@ import { EmailAuthService } from './email-auth.service';
     JwtStrategy,
     MailerService,
     EmailAuthService,
+    PasswordResetService,
   ],
   controllers: [AuthController, EmailAuthController],
 })

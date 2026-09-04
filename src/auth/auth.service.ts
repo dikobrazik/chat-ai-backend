@@ -32,7 +32,7 @@ export class AuthService {
     accessToken: string,
     refreshToken: string,
   ) {
-    const user = await this.usersService.createUser({
+    const user = await this.usersService.saveUser({
       email: profile.emails[0].value,
       name: profile.displayName,
       photo: profile.photos?.[0]?.value,

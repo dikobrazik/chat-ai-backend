@@ -16,7 +16,7 @@ export class UserService {
     return this.userRepository.save({});
   }
 
-  public async createUser({
+  public async saveUser({
     email,
     name,
     photo,

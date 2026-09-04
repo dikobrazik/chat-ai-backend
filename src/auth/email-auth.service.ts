@@ -1,6 +1,8 @@
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { BadRequestException, Inject, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcrypt';
+import { Cache } from 'cache-manager';
 import { MailerService } from 'src/mailer/mailer.service';
 import { UserService } from 'src/user/user.service';
 import { EmailAuthDto } from './dtos';
@@ -14,7 +16,8 @@ export class EmailAuthService {
   @Inject(MailerService)
   private readonly mailerService: MailerService;
 
-  private readonly authCodes = new Map<string, string>();
+  @Inject(CACHE_MANAGER)
+  private readonly cacheManager: Cache;
 
   public async createUser(body: EmailAuthDto) {
     const user = await this.userService.findByEmail(body.email);
@@ -34,7 +37,7 @@ export class EmailAuthService {
         });
       }
     } else {
-      await this.userService.createUser({
+      await this.userService.saveUser({
         email: body.email,
         passwordHash: await bcrypt.hash(body.password, 10),
         emailVerified: false,
@@ -49,7 +52,11 @@ export class EmailAuthService {
 
     const authCode = Math.floor(100000 + Math.random() * 900000).toString();
 
-    this.authCodes.set(email, authCode);
+    await this.cacheManager.set(
+      this.getAuthCodeCacheKey(email),
+      authCode,
+      5 * 60 * 1000,
+    );
 
     await this.mailerService.sendAuthCode(email, authCode);
   }
@@ -59,7 +66,9 @@ export class EmailAuthService {
       return true;
     }
 
-    const authCode = this.authCodes.get(email);
+    const authCode = await this.cacheManager.get<string>(
+      this.getAuthCodeCacheKey(email),
+    );
 
     if (!authCode || authCode !== code) {
       throw {
@@ -69,9 +78,13 @@ export class EmailAuthService {
       };
     }
 
-    this.authCodes.delete(email);
+    this.cacheManager.del(this.getAuthCodeCacheKey(email));
 
     return true;
+  }
+
+  private getAuthCodeCacheKey(email: string): string {
+    return `auth-code-${email}`;
   }
 
   private isDebugEmail(email: string): boolean {

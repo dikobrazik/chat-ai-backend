@@ -4,8 +4,14 @@ import { UserService } from 'src/user/user.service';
 import { AuthService } from './auth.service';
 import { SECURE_COOKIE_OPTIONS } from './constants';
 import { Public } from './decorators/public.decorator';
-import { EmailAuthDto, EmailVerifyDto } from './dtos';
+import {
+  EmailAuthDto,
+  PasswordResetDto,
+  EmailVerifyDto,
+  PasswordResetVerifyDto,
+} from './dtos';
 import { EmailAuthService } from './email-auth.service';
+import { PasswordResetService } from './password-reset.service';
 
 @Public()
 @Controller('auth/email')
@@ -16,6 +22,8 @@ export class EmailAuthController {
   private readonly authService: AuthService;
   @Inject(EmailAuthService)
   private readonly emailAuthService: EmailAuthService;
+  @Inject(PasswordResetService)
+  private readonly passwordResetService: PasswordResetService;
 
   @Post('sign-in')
   async signIn(@Body() body: EmailAuthDto) {
@@ -32,7 +40,7 @@ export class EmailAuthController {
   ) {
     await this.emailAuthService.verifyAuthCode(body.email, body.code);
 
-    const user = await this.userService.createUser({
+    const user = await this.userService.saveUser({
       email: body.email,
       emailVerified: true,
     });
@@ -50,5 +58,15 @@ export class EmailAuthController {
     response.cookie('deviceId', deviceId, SECURE_COOKIE_OPTIONS);
 
     return accessToken;
+  }
+
+  @Post('reset')
+  async reset(@Body() body: PasswordResetDto) {
+    await this.passwordResetService.sendResetPasswordCode(body.email);
+  }
+
+  @Post('reset-verify')
+  async resetVerify(@Body() body: PasswordResetVerifyDto) {
+    await this.passwordResetService.verifyResetPasswordCode(body);
   }
 }

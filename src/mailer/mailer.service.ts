@@ -14,4 +14,15 @@ export class MailerService {
       text: `Your authentication code is: ${code}`,
     });
   }
+
+  async sendResetPassword(to: string, code: string) {
+    await this.mailerService.sendMail({
+      to: to,
+      from: process.env.YA_EMAIL,
+      subject: 'Password reset',
+      html: `<p>To reset your password, please follow the link below:</p>
+      <p><a href="${process.env.BASE_APP_URL}/auth/new-password?code=${code}">Reset Password</a></p>
+      `,
+    });
+  }
 }
