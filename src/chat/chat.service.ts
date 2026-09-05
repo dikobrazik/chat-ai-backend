@@ -24,6 +24,7 @@ export class ChatService {
 
   public getUserChats(user: User) {
     return this.chatRepository.find({
+      select: ['id', 'title', 'is_pinned', 'model_id'],
       where: { user_id: user.id, has_prompt: true, title: Not('') },
       order: { is_pinned: 'DESC', created_at: 'DESC' },
       relations: ['model'],

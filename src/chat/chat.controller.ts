@@ -47,19 +47,12 @@ export class ChatController {
     return this.chatService.getUserChats(user);
   }
 
-  // TODO: разнести на 2 метода
   @Get(':id')
   @UseGuards(PublicChatGuard)
-  async getChat(
-    @Param('id') id: string,
-    @Chat() chat: ChatEntity,
-    @ChatModel() model: Model,
-  ) {
+  async getChat(@Param('id') id: string, @Chat() chat: ChatEntity) {
     return {
       id,
-      model,
       title: chat.title,
-      is_public: chat.is_public,
       is_pinned: chat.is_pinned,
       model_id: chat.model_id,
     };
