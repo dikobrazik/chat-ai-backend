@@ -20,6 +20,7 @@ import { PromptDTO } from './dto';
 import { ChatGuard } from './guards/chat.guard';
 import { PromptGuard } from './guards/prompt.guard';
 import { PromptService } from './prompt.service';
+import { PublicChatGuard } from './guards/public-chat.guard';
 
 const USER_STATUS_LIMITS = {
   [UserStatus.GUEST]: 5,
@@ -72,5 +73,11 @@ export class PromptController {
       promptId,
     );
     return promptImageURL;
+  }
+
+  @Get(':id/prompt')
+  @UseGuards(PublicChatGuard)
+  async getChatPrompts(@Param('id') id: string) {
+    return this.promptService.getChatPrompts(id);
   }
 }

@@ -166,4 +166,31 @@ export class PromptService {
       }),
     );
   }
+
+  public async getChatPrompts(
+    chatId: string,
+  ): Promise<{ id: string; text: string; role: string }[]> {
+    return (
+      await this.promptRepository.find({
+        where: { chat: { id: chatId } },
+        order: { created_at: 'DESC' },
+        relations: { files: { file: true } },
+      })
+    )
+      .map((prompt) => [
+        { id: prompt.id, text: prompt.response, role: 'model' },
+        {
+          id: `user-${prompt.id}`,
+          text: prompt.input,
+          role: 'user',
+          files: prompt.files?.map((promptFile) => ({
+            id: promptFile.file.id,
+            name: promptFile.file.name,
+            size: promptFile.file.size,
+            type: promptFile.file.type,
+          })),
+        },
+      ])
+      .flat();
+  }
 }

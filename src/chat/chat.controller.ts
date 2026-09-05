@@ -55,8 +55,14 @@ export class ChatController {
     @Chat() chat: ChatEntity,
     @ChatModel() model: Model,
   ) {
-    const prompts = await this.chatService.getChatPrompts(id);
-    return { chat: { id: chat.id, model, title: chat.title }, prompts };
+    return {
+      id,
+      model,
+      title: chat.title,
+      is_public: chat.is_public,
+      is_pinned: chat.is_pinned,
+      model_id: chat.model_id,
+    };
   }
 
   @Patch(':id')
