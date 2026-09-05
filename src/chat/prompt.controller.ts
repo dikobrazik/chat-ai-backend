@@ -96,6 +96,6 @@ export class PromptController {
       promptId,
     );
 
-    return prompt;
+    return { id: prompt.id, text: prompt.response, role: 'model' };
   }
 }
