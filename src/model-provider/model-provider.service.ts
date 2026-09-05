@@ -32,12 +32,6 @@ export class ModelProviderService {
     ];
   }
 
-  public async createConversation(providerId: number): Promise<string> {
-    const provider = this.getProviderById(providerId);
-
-    return provider.createConversation();
-  }
-
   public async generateResponse(
     providerId: number,
     modelName: string,
@@ -47,12 +41,6 @@ export class ModelProviderService {
     // Логика выбора Стратегии: ищем провайдера, который может обработать модель
     const provider = this.getProviderById(providerId);
 
-    if (!conversationId) {
-      console.warn('Не передан conversationId, создаем новый...');
-      conversationId = await this.createConversation(providerId);
-    }
-
-    // Делегирование выполнения выбранной Стратегии
     return provider.generateResponse(conversationId, modelName, prompt);
   }
 
@@ -66,12 +54,6 @@ export class ModelProviderService {
     // Логика выбора Стратегии: ищем провайдера, который может обработать модель
     const provider = this.getProviderById(providerId);
 
-    if (!conversationId) {
-      console.warn('Не передан conversationId, создаем новый...');
-      conversationId = await this.createConversation(providerId);
-    }
-
-    // Делегирование выполнения выбранной Стратегии
     return provider.generateStreamResponse(
       conversationId,
       modelName,
@@ -93,12 +75,6 @@ export class ModelProviderService {
       console.warn('Модель не предназначена для генерации изображений.');
       return;
     }
-    if (!conversationId) {
-      console.warn('Не передан conversationId, создаем новый...');
-      conversationId = await this.createConversation(providerId);
-    }
-
-    // Делегирование выполнения выбранной Стратегии
 
     return provider.generateImageResponse(conversationId, modelName, prompt);
   }

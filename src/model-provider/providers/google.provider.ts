@@ -1,4 +1,4 @@
-import { GoogleGenAI, Part } from '@google/genai';
+import { GoogleGenAI } from '@google/genai';
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { randomUUID } from 'crypto';
@@ -32,10 +32,6 @@ export class GoogleProviderService
       },
       apiKey: googleApiKey,
     });
-  }
-
-  createConversation(): Promise<string> {
-    return Promise.resolve(undefined);
   }
 
   async generateImageResponse(
@@ -72,7 +68,7 @@ export class GoogleProviderService
     input: string,
     options: GenerateStreamResponseOptions = {},
   ): Promise<Observable<UnifiedAIStreamChunk>> {
-    const { files, withThinking, withSearch } = options;
+    const { files, withThinking } = options;
 
     const uploadedFiles = await Promise.all(
       files.map((file) =>

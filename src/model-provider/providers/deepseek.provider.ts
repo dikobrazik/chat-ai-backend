@@ -31,10 +31,6 @@ export class DeepSeekProviderService
     });
   }
 
-  async createConversation(): Promise<string> {
-    return Promise.resolve('deep-seek-conversation-id');
-  }
-
   async generateImageResponse(
     _conversationId: string,
     model: string,

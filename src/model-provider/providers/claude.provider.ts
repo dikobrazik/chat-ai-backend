@@ -38,10 +38,6 @@ export class ClaudeProviderService
     });
   }
 
-  async createConversation(): Promise<string> {
-    return Promise.resolve(undefined);
-  }
-
   async generateImageResponse(): Promise<Observable<UnifiedAIStreamChunk>> {
     return Promise.resolve(undefined);
   }

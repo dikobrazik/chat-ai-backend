@@ -43,7 +43,9 @@ export class PromptService {
     const files = await this.fileStorageService.getFilesByIds(files_ids);
 
     if (!chat.title) {
-      await this.chatTitleGeneratorService.createChatTitle(chat, input);
+      this.chatTitleGeneratorService
+        .createChatTitle(chat, input)
+        .catch(() => {});
     }
 
     if (model.for_image) {
@@ -53,7 +55,11 @@ export class PromptService {
     let conversationId = chat.external_chat_id;
 
     // если провайдер grok или google - передаем id последнего промпта
-    if (model.provider_id === 3 || model.provider_id === 2) {
+    if (
+      model.provider_id === 3 ||
+      model.provider_id === 2 ||
+      model.provider_id === 1
+    ) {
       const lastPrompt = await this.promptRepository.findOne({
         select: { response_id: true },
         where: { chat_id: chat.id },

@@ -17,15 +17,11 @@ export class ChatService {
   private readonly promptRepository: Repository<Prompt>;
 
   public async createChat(user: User, model: Model) {
-    const conversationId = await this.modelProviderService.createConversation(
-      model.provider_id,
-    );
-
     const {
       identifiers: [{ id }],
     } = await this.chatRepository.insert({
       model_id: model.id,
-      external_chat_id: conversationId,
+      external_chat_id: undefined,
       user_id: user.id,
     });
 

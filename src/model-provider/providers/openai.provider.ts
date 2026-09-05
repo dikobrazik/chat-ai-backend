@@ -36,11 +36,6 @@ export class OpenAIProviderService
     });
   }
 
-  async createConversation(): Promise<string> {
-    const response = await this.providerInstance.conversations.create();
-    return response.id;
-  }
-
   async generateImageResponse(
     _conversationId: string,
     model: string,
@@ -71,7 +66,7 @@ export class OpenAIProviderService
   }
 
   async generateStreamResponse(
-    conversationId: string,
+    lastPromptId: string,
     model: string,
     input: string,
     options: GenerateStreamResponseOptions = {},
@@ -99,7 +94,6 @@ export class OpenAIProviderService
     );
 
     const stream = await this.providerInstance.responses.create({
-      conversation: conversationId,
       model,
       input: [
         {
@@ -111,6 +105,7 @@ export class OpenAIProviderService
       stream: true,
       tools: [{ type: 'web_search' }],
       tool_choice: withSearch ? 'required' : 'auto',
+      previous_response_id: lastPromptId || undefined,
       reasoning: withThinking
         ? { effort: 'high', summary: 'detailed' }
         : undefined,
@@ -180,13 +175,12 @@ export class OpenAIProviderService
   }
 
   generateResponse(
-    conversationId: string,
+    _conversationId: string,
     model: string,
     input: string,
   ): Promise<{ id: string; text: string }> {
     return this.providerInstance.responses
       .create({
-        conversation: conversationId,
         model,
         input,
       })
