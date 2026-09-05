@@ -7,6 +7,7 @@ import { UserService } from 'src/user/user.service';
 import { generatePasswordHash } from 'src/utils/generatePasswordHash';
 import { EmailAuthDto } from './dtos';
 import { UserStatus } from 'src/entities/User';
+import * as bcrypt from 'bcrypt';
 
 @Injectable()
 export class EmailAuthService {
@@ -20,12 +21,14 @@ export class EmailAuthService {
   @Inject(CACHE_MANAGER)
   private readonly cacheManager: Cache;
 
-  public async createUser(body: EmailAuthDto) {
+  public async validateCredentials(body: EmailAuthDto) {
     const user = await this.userService.findByEmail(body.email);
 
     if (user) {
-      const isPasswordValid =
-        (await generatePasswordHash(body.password)) === user.passwordHash;
+      const isPasswordValid = await bcrypt.compare(
+        body.password,
+        user.passwordHash,
+      );
 
       if (!isPasswordValid) {
         throw new BadRequestException({
@@ -48,7 +51,10 @@ export class EmailAuthService {
   public async isRegisteredEmail(email: string) {
     const user = await this.userService.findByEmail(email);
 
-    return { isRegistered: Boolean(user && user.passwordHash) };
+    return {
+      isRegistered: Boolean(user),
+      hasPassword: Boolean(user && user.passwordHash),
+    };
   }
 
   public async sendAuthCode(email: string) {
@@ -90,7 +96,7 @@ export class EmailAuthService {
       emailVerified: true,
     });
 
-    this.cacheManager.del(this.getAuthCodeCacheKey(email));
+    await this.cacheManager.del(this.getAuthCodeCacheKey(email));
 
     return true;
   }

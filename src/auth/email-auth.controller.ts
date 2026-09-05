@@ -32,7 +32,7 @@ export class EmailAuthController {
     @Req() request: Request,
     @Res({ passthrough: true }) response: Response,
   ) {
-    const user = await this.emailAuthService.createUser(body);
+    const user = await this.emailAuthService.validateCredentials(body);
 
     // если пользователь уже зарегистрирован и email подтвержден, возвращаем accessToken
     if (user.emailVerified) {

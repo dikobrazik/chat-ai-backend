@@ -1,0 +1,17 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`EmailAuthService verifyAuthCode Если email не является debug email Должен вызвать ошибку, если код не совпадает 1`] = `
+{
+  "code": "INVALID_AUTH_CODE",
+  "message": "Invalid auth code",
+  "status": 400,
+}
+`;
+
+exports[`EmailAuthService verifyAuthCode Если email не является debug email Должен вызвать ошибку, если кода нет в кэше 1`] = `
+{
+  "code": "INVALID_AUTH_CODE",
+  "message": "Invalid auth code",
+  "status": 400,
+}
+`;

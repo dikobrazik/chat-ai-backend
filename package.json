@@ -59,9 +59,13 @@
     "ua-parser-js": "2.0.6"
   },
   "devDependencies": {
+    "@automock/jest": "^2.1.2",
     "@nestjs/cli": "10.0.0",
     "@nestjs/schematics": "10.0.0",
     "@nestjs/testing": "10.0.0",
+    "@suites/di.nestjs": "^3.1.0",
+    "@suites/doubles.jest": "^3.1.0",
+    "@suites/unit": "^3.1.1",
     "@types/bcrypt": "^6.0.0",
     "@types/cookie-parser": "1.4.9",
     "@types/express": "4.17.17",
