@@ -24,6 +24,9 @@ export class Chat {
   @Column({ default: false })
   is_public: boolean;
 
+  @Column({ default: false, nullable: true })
+  is_pinned: boolean;
+
   @ManyToOne(() => User, (user) => user.id, { lazy: true })
   @JoinColumn({ name: 'user_id' })
   user: User;

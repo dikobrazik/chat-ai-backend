@@ -18,9 +18,15 @@ export class CreateChatDTO {
 }
 
 export class PatchChatDto {
+  @IsOptional()
   @IsString()
   @MinLength(3)
   title: string;
+
+  @IsOptional()
+  @IsBoolean()
+  @Transform(({ value }) => ['true', true].includes(value))
+  is_pinned: boolean;
 }
 
 export class PromptDTO {
