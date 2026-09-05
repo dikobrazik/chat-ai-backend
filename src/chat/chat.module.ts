@@ -12,9 +12,11 @@ import { FileStorageModule } from 'src/file-storage/file-storage.module';
 import { PromptFile } from 'src/entities/PromptFile';
 import { FileEntity } from 'src/entities/File';
 import { PromptMeta } from 'src/entities/PromptMeta';
+import { PromptController } from './prompt.controller';
+import { PromptService } from './prompt.service';
 
 @Module({
-  providers: [ChatTitleGeneratorService, ChatService, ChatGuard],
+  providers: [ChatTitleGeneratorService, ChatService, ChatGuard, PromptService],
   imports: [
     ChatModule,
     FileStorageModule,
@@ -28,7 +30,7 @@ import { PromptMeta } from 'src/entities/PromptMeta';
     ModelModule,
     ModelProviderModule,
   ],
-  exports: [ChatService],
-  controllers: [ChatController],
+  exports: [ChatService, PromptService],
+  controllers: [ChatController, PromptController],
 })
 export class ChatModule {}

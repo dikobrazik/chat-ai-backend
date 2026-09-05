@@ -3,52 +3,47 @@ import {
   Body,
   Controller,
   Delete,
-  ExecutionContext,
   Get,
   Inject,
   Param,
   Patch,
   Post,
-  Query,
-  Sse,
   UseGuards,
 } from '@nestjs/common';
-import { Throttle, hours } from '@nestjs/throttler';
-import { Request } from 'express';
 import { ChatModel } from 'src/decorators/chat-model.decorator';
 import { Chat } from 'src/decorators/chat.decorator';
 import { User } from 'src/decorators/user.decorator';
 import { Chat as ChatEntity } from 'src/entities/Chat';
 import { Model } from 'src/entities/Model';
-import { User as UserEntity, UserStatus } from 'src/entities/User';
-import { FileStorageService } from 'src/file-storage/file-storage.service';
+import { User as UserEntity } from 'src/entities/User';
 import { ModelService } from 'src/model/model.service';
 import { ChatService } from './chat.service';
-import { CreateChatDTO, PromptDTO } from './dto';
+import { CreateChatDTO } from './dto';
 import { ChatGuard } from './guards/chat.guard';
 import { ModelGuard } from './guards/model.guard';
-import { PromptGuard } from './guards/prompt.guard';
 import { PublicChatGuard } from './guards/public-chat.guard';
-
-const USER_STATUS_LIMITS = {
-  [UserStatus.GUEST]: 5,
-  [UserStatus.ACTIVE]: 5,
-  [UserStatus.VERIFIED]: 15,
-  [UserStatus.SUBSCRIPTION_PLUS]: 100000,
-  [UserStatus.SUBSCRIPTION_PRO]: 100000,
-};
 
 @Controller('chat')
 export class ChatController {
   @Inject(ChatService)
   private readonly chatService: ChatService;
-  @Inject(FileStorageService)
-  private readonly fileStorageService: FileStorageService;
   @Inject(ModelService)
   private readonly modelService: ModelService;
 
+  @Post()
+  @UseGuards(ModelGuard)
+  async createChat(@User() user: UserEntity, @Body() body: CreateChatDTO) {
+    const model = await this.modelService.getModel(body.model_id);
+
+    if (!model) {
+      throw new BadRequestException('Model not found');
+    }
+
+    return this.chatService.createChat(user, model);
+  }
+
   @Get()
-  getChats(@User() user: UserEntity) {
+  getChatsList(@User() user: UserEntity) {
     return this.chatService.getUserChats(user);
   }
 
@@ -61,56 +56,6 @@ export class ChatController {
   ) {
     const prompts = await this.chatService.getChatPrompts(id);
     return { chat: { id: chat.id, model }, prompts };
-  }
-
-  @Get(':id/prompt/:promptId/image')
-  @UseGuards(ChatGuard)
-  async getPromptImageURL(
-    @Param('id') id: string,
-    @Param('promptId') promptId: string,
-  ) {
-    const promptImageURL = await this.fileStorageService.getPromptImageUrl(
-      id,
-      promptId,
-    );
-    return promptImageURL;
-  }
-
-  @Post()
-  @UseGuards(ModelGuard)
-  async createChat(@User() user: UserEntity, @Body() body: CreateChatDTO) {
-    const model = await this.modelService.getModel(body.model_id ?? 1);
-
-    if (!model) {
-      throw new BadRequestException('Model not found');
-    }
-
-    return this.chatService.createChat(user, body.model_id);
-  }
-
-  @Throttle({
-    prompt: {
-      ttl: hours(12),
-      limit: (context: ExecutionContext) => {
-        const user = context.switchToHttp().getRequest().user as UserEntity;
-
-        return USER_STATUS_LIMITS[user.status];
-      },
-      getTracker: (req: Request) => {
-        return `${req.user?.id}-${req.params.id}`;
-      },
-    },
-  })
-  @Sse(':id/prompt-stream')
-  @UseGuards(ChatGuard, PromptGuard)
-  async createPromptStream(
-    @Query() body: PromptDTO,
-    @Chat() chat: ChatEntity,
-    @ChatModel() model: Model,
-  ) {
-    const stream = await this.chatService.sendStreamPrompt(chat, model, body);
-
-    return stream;
   }
 
   @Patch(':id/public')

@@ -17,7 +17,6 @@ import { ThrottlerModule, days, hours } from '@nestjs/throttler';
 import { APP_GUARD } from '@nestjs/core';
 import { JwtAuthGuard } from './auth/guards/jwt.guard';
 import { AppThrottlerGuard } from './guards/prompt.guard';
-import { ChatController } from './chat/chat.controller';
 import { ModelProvider } from './entities/ModelProvider';
 import { Model } from './entities/Model';
 import { ModelModule } from './model/model.module';
@@ -39,6 +38,7 @@ import { Promotion } from './entities/Promotion';
 import { UserPromotion } from './entities/UserPromotion';
 import { PromptMeta } from './entities/PromptMeta';
 import { CacheModule } from '@nestjs/cache-manager';
+import { PromptController } from './chat/prompt.controller';
 
 @Module({
   imports: [
@@ -106,7 +106,7 @@ import { CacheModule } from '@nestjs/cache-manager';
         skipIf: (context) => {
           return (
             context.getHandler().name !==
-            ChatController.prototype.createPromptStream.name
+            PromptController.prototype.createPromptStream.name
           );
         },
       },
