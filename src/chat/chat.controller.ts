@@ -10,11 +10,9 @@ import {
   Post,
   UseGuards,
 } from '@nestjs/common';
-import { ChatModel } from 'src/decorators/chat-model.decorator';
 import { Chat } from 'src/decorators/chat.decorator';
 import { User } from 'src/decorators/user.decorator';
 import { Chat as ChatEntity } from 'src/entities/Chat';
-import { Model } from 'src/entities/Model';
 import { User as UserEntity } from 'src/entities/User';
 import { ModelService } from 'src/model/model.service';
 import { ChatService } from './chat.service';

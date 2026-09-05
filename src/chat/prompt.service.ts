@@ -167,6 +167,17 @@ export class PromptService {
     );
   }
 
+  public async makePromptPublic(id: string) {
+    await this.promptRepository.update(id, { is_public: true });
+  }
+
+  public async getPromptById(id: string) {
+    return this.promptRepository.findOne({
+      where: { id },
+      relations: ['chat'],
+    });
+  }
+
   public async getChatPrompts(
     chatId: string,
   ): Promise<{ id: string; text: string; role: string }[]> {

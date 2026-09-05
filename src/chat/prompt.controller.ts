@@ -4,6 +4,7 @@ import {
   Get,
   Inject,
   Param,
+  Post,
   Query,
   Sse,
   UseGuards,
@@ -21,6 +22,7 @@ import { ChatGuard } from './guards/chat.guard';
 import { PromptGuard } from './guards/prompt.guard';
 import { PromptService } from './prompt.service';
 import { PublicChatGuard } from './guards/public-chat.guard';
+import { PublicPromptGuard } from './guards/public-prompt.guard';
 
 const USER_STATUS_LIMITS = {
   [UserStatus.GUEST]: 5,
@@ -79,5 +81,21 @@ export class PromptController {
   @UseGuards(PublicChatGuard)
   async getChatPrompts(@Param('id') id: string) {
     return this.promptService.getChatPrompts(id);
+  }
+
+  @Post(':id/prompt/:promptId/public')
+  @UseGuards(PublicChatGuard)
+  async makePromptPublic(@Param('promptId') promptId: string) {
+    await this.promptService.makePromptPublic(promptId);
+  }
+
+  @Get(':id/prompt/:promptId')
+  @UseGuards(PublicPromptGuard)
+  async getPromptById(@Param('promptId') promptId: string) {
+    const { chat, ...prompt } = await this.promptService.getPromptById(
+      promptId,
+    );
+
+    return prompt;
   }
 }

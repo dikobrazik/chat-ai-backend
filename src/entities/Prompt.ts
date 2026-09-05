@@ -37,6 +37,9 @@ export class Prompt {
   @Column({ nullable: true })
   is_image: boolean;
 
+  @Column({ nullable: true })
+  is_public: boolean;
+
   @CreateDateColumn()
   created_at: Date;
 }
