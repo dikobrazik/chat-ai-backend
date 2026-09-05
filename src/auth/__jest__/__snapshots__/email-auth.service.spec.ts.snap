@@ -1,5 +1,7 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
+exports[`EmailAuthService validateCredentials Если пользователь существующий Если email привязан к пользователю без пароля Должен вызвать ошибку 1`] = `[BadRequestException: You have not set a password for this email. Please use "Reset password" to log in.]`;
+
 exports[`EmailAuthService verifyAuthCode Если email не является debug email Должен вызвать ошибку, если код не совпадает 1`] = `
 {
   "code": "INVALID_AUTH_CODE",

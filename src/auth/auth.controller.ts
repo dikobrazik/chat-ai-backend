@@ -9,12 +9,11 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { AuthGuard } from '@nestjs/passport';
-import { ACCESS_TOKEN_EXPIRES_IN, AuthService } from './auth.service';
-import { Public } from './decorators/public.decorator';
 import { Request, Response } from 'express';
 import { SessionService } from 'src/session/session.service';
 import { UserService } from 'src/user/user.service';
-import { SECURE_COOKIE_OPTIONS } from './constants';
+import { ACCESS_TOKEN_EXPIRES_IN, AuthService } from './auth.service';
+import { Public } from './decorators/public.decorator';
 
 @Public()
 @Controller('auth')

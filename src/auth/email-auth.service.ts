@@ -25,6 +25,15 @@ export class EmailAuthService {
     const user = await this.userService.findByEmail(body.email);
 
     if (user) {
+      if (!user.passwordHash) {
+        throw new BadRequestException({
+          message:
+            'You have not set a password for this email. Please use "Reset password" to log in.',
+          code: 'NO_PASSWORD_SET',
+          status: 400,
+        });
+      }
+
       const isPasswordValid = await bcrypt.compare(
         body.password,
         user.passwordHash,
