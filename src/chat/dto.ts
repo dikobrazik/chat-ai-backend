@@ -4,8 +4,10 @@ import {
   IsNotEmpty,
   IsNumber,
   IsOptional,
+  IsString,
   IsUUID,
   Min,
+  MinLength,
 } from 'class-validator';
 
 export class CreateChatDTO {
@@ -13,6 +15,12 @@ export class CreateChatDTO {
   @Type(() => Number)
   @Min(1)
   model_id: number;
+}
+
+export class PatchChatDto {
+  @IsString()
+  @MinLength(3)
+  title: string;
 }
 
 export class PromptDTO {

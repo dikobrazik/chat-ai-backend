@@ -18,7 +18,7 @@ import { Model } from 'src/entities/Model';
 import { User as UserEntity } from 'src/entities/User';
 import { ModelService } from 'src/model/model.service';
 import { ChatService } from './chat.service';
-import { CreateChatDTO } from './dto';
+import { CreateChatDTO, PatchChatDto } from './dto';
 import { ChatGuard } from './guards/chat.guard';
 import { ModelGuard } from './guards/model.guard';
 import { PublicChatGuard } from './guards/public-chat.guard';
@@ -47,6 +47,7 @@ export class ChatController {
     return this.chatService.getUserChats(user);
   }
 
+  // TODO: разнести на 2 метода
   @Get(':id')
   @UseGuards(PublicChatGuard)
   async getChat(
@@ -55,7 +56,13 @@ export class ChatController {
     @ChatModel() model: Model,
   ) {
     const prompts = await this.chatService.getChatPrompts(id);
-    return { chat: { id: chat.id, model }, prompts };
+    return { chat: { id: chat.id, model, title: chat.title }, prompts };
+  }
+
+  @Patch(':id')
+  @UseGuards(PublicChatGuard)
+  async patchChat(@Param('id') id: string, @Body() body: PatchChatDto) {
+    await this.chatService.updateChat(id, body);
   }
 
   @Patch(':id/public')
