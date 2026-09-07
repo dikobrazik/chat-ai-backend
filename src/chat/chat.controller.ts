@@ -65,7 +65,7 @@ export class ChatController {
   @Patch(':id/public')
   @UseGuards(ChatGuard)
   async makeChatPublic(@Chat() chat: ChatEntity) {
-    await this.chatService.makeChatPublic(chat);
+    await this.chatService.updateChat(chat.id, { ...chat, is_public: true });
   }
 
   @Delete(':id')

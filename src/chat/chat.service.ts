@@ -40,14 +40,9 @@ export class ChatService {
 
   public async updateChat(
     id: string,
-    chat: Partial<Omit<Chat, 'id' | 'user_id' | 'model_id'>>,
+    updateFields: Partial<Omit<Chat, 'id' | 'user_id' | 'model_id'>>,
   ) {
-    await this.chatRepository.save({ ...chat, id });
-  }
-
-  public async makeChatPublic(chat: Chat) {
-    chat.is_public = true;
-    await this.chatRepository.save(chat);
+    await this.chatRepository.save({ ...updateFields, id });
   }
 
   public async deleteChat(chat: Chat) {
