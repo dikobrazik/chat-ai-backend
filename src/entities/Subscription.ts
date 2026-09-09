@@ -48,6 +48,9 @@ export class Subscription {
   @Column({ type: 'bigint', nullable: true })
   rebill_id: number;
 
+  @Column({ nullable: true })
+  account_token: string;
+
   @CreateDateColumn()
   created_at: Date;
 }

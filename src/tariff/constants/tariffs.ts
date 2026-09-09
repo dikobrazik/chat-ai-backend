@@ -1,6 +1,6 @@
 import { SubscriptionPlan } from 'src/entities/Subscription';
 
-export const PLANS = [
+export const TARIFFS = [
   {
     id: SubscriptionPlan.BASE,
     name: 'Бесплатный',

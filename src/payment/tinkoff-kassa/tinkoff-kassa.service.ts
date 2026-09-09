@@ -1,20 +1,24 @@
 import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import axios, { AxiosInstance } from 'axios';
-import { generateTokenFromBody } from './utils';
-import {
-  AddAccountQrResponse,
-  BankListResponse,
-  Device,
-  DeviceOS,
-  GetLinkResponse,
-  GetLinkStatusResponse,
-  InitResponse,
-  RebillResponse,
-} from './types';
+import { addMinutes } from 'date-fns';
 import { readFileSync } from 'fs';
-import { join } from 'path';
 import { Agent } from 'https';
+import { join } from 'path';
+import {
+  ChargeQrResponse,
+  ErrorResponse,
+  Init200Response,
+  InitRequest,
+  InitResponse,
+  Link200Response,
+  Link200ResponseOneOf,
+  Status200Response,
+  Status200ResponseOneOf,
+  AddAccountQrResponse,
+  Charge200Response,
+} from './generated';
+import { generateTokenFromBody } from './utils';
 
 @Injectable()
 export class TinkoffKassaService {
@@ -42,54 +46,47 @@ export class TinkoffKassaService {
   }
 
   // https://www.tbank.ru/kassa/dev/payments/#tag/Standartnyj-platezh/operation/Init
-  public async initPayment(
-    orderId: string | number,
-    amount: number,
-    customerKey: string,
-    customerEmail: string,
-    device: 'Desktop' | 'Mobile' = 'Desktop',
-    deviceOs: 'Windows' | 'Linux' | 'macOS' | 'iOS' | 'Android' = 'Windows',
+  public async createPayment(
+    payload: Pick<
+      InitRequest,
+      'Amount' | 'CustomerKey' | 'OrderId' | 'DATA'
+    > & {
+      Email: string;
+    },
   ): Promise<InitResponse> {
-    const body: Record<string, any> = this.prepareBody({
+    const body: InitRequest = this.prepareBody<Omit<InitRequest, 'Token'>>({
       TerminalKey: this.terminalKey,
-      Amount: amount,
-      OrderId: String(orderId),
+      Amount: payload.Amount,
+      OrderId: String(payload.OrderId),
       Description: 'Подписка на сервис Jonu',
-      CustomerKey: customerKey,
+      CustomerKey: payload.CustomerKey,
       Recurrent: 'Y',
-      NotificationURL: `${this.baseApiUrl}/subscription/notify`,
+      NotificationURL: `${this.baseApiUrl}/webhook/notify`,
       SuccessURL: `${this.baseAppUrl}/payment/success`,
       FailURL: `${this.baseAppUrl}/payment/fail`,
       Receipt: {
         Items: [
           {
             Name: 'Подписка на сервис Jonu',
-            Price: amount,
+            Price: payload.Amount,
             Quantity: 1,
-            Amount: amount,
+            Amount: payload.Amount,
             Tax: 'none',
           },
         ],
         Taxation: 'usn_income',
-        Email: customerEmail,
+        Email: payload.Email,
       },
-      DATA: {
-        TinkoffPayWeb: true,
-        Device: device,
-        DeviceOs: deviceOs,
-        DeviceWebView: true,
-        OperationInitiatorType: 'R',
-        Email: customerEmail,
-      },
+      DATA: payload.DATA,
     });
 
     const response = await this.client
-      .post<InitResponse>('/Init', body)
+      .post<Init200Response>('/Init', body)
       .then((r) => r.data);
 
-    console.warn('Init response', body, response);
+    console.log('Init response', body, response);
 
-    if (!response.Success) {
+    if (this.isErrorResponse(response)) {
       throw new InternalServerErrorException();
     }
 
@@ -97,16 +94,14 @@ export class TinkoffKassaService {
   }
 
   // https://developer.tbank.ru/eacq/api/status
-  public async checkTPayLink(): Promise<GetLinkStatusResponse> {
+  public async checkTPayLink(): Promise<Status200ResponseOneOf> {
     const response = await this.client
-      .get<GetLinkStatusResponse>(
-        `TinkoffPay/terminals/${this.terminalKey}/status`,
-      )
+      .get<Status200Response>(`TinkoffPay/terminals/${this.terminalKey}/status`)
       .then((r) => r.data);
 
-    console.warn('GetTPayStatus', response);
+    console.log('GetTPayStatus', response);
 
-    if (!response.Success) {
+    if (this.isErrorResponse(response)) {
       throw new InternalServerErrorException();
     }
 
@@ -117,40 +112,37 @@ export class TinkoffKassaService {
   public async getTPayLink(
     paymentId: string,
     version: string = '2.0',
-  ): Promise<GetLinkResponse> {
+  ): Promise<Link200ResponseOneOf> {
     const response = await this.client
-      .get<GetLinkResponse>(
+      .get<Link200Response>(
         `/TinkoffPay/transactions/${paymentId}/versions/${version}/link`,
       )
       .then((r) => r.data);
 
-    console.warn('GetTPayLink', response);
+    console.log('GetTPayLink', response);
 
-    if (!response.Success) {
+    if (this.isErrorResponse(response)) {
       throw new InternalServerErrorException();
     }
 
     return response;
   }
 
-  // https://developer.tbank.ru/eacq/api/get-qr-bank-list
-  public async getSbpBanksList(
-    device: Device,
-    os: DeviceOS,
-  ): Promise<BankListResponse> {
+  // https://developer.tbank.ru/eacq/api/add-account-qr
+  public async addAccountQr(): Promise<AddAccountQrResponse> {
     const response = await this.client
-      .post<BankListResponse>(
-        `/GetQrBankList`,
+      .post<AddAccountQrResponse>(
+        `/AddAccountQr`,
         this.prepareBody({
           TerminalKey: this.terminalKey,
-          ScenarioType: 'sub',
-          Device: {
-            Type: device.toLowerCase(),
-            Os: os.toLowerCase(),
-          },
+          Description: 'Подписка на сервис Jonu',
+          DataType: 'IMAGE',
+          RedirectDueDate: addMinutes(new Date(), 30).toISOString(), // '2016-08-31T12:28:00+03:00',
         }),
       )
       .then((r) => r.data);
+
+    console.log('AddAccountQr', response);
 
     if (!response.Success) {
       throw new InternalServerErrorException();
@@ -160,31 +152,25 @@ export class TinkoffKassaService {
   }
 
   // https://developer.tbank.ru/eacq/api/add-account-qr
-  public async addSbpAccount(bankId: string): Promise<AddAccountQrResponse> {
+  public async chargeQr(
+    paymentId: string,
+    accountToken: string,
+  ): Promise<ChargeQrResponse> {
     const response = await this.client
-      .post<AddAccountQrResponse>(
-        `/AddAccountQr`,
+      .post<ChargeQrResponse>(
+        `/ChargeQr`,
         this.prepareBody({
           TerminalKey: this.terminalKey,
-          Description: 'Оплата подписки на сервис Jonu',
-          DataType: 'PAYLOAD',
-          BankId: bankId,
-          // RedirectDueDate: '2016-08-31T12:28:00+03:00',
+          PaymentId: paymentId,
+          AccountToken: accountToken,
+          // SendEmail: true,
+          // InfoEmail: '',
+          // BankMemberId: '',
         }),
       )
       .then((r) => r.data);
 
-    console.warn(
-      'AddAccountQr',
-      this.prepareBody({
-        TerminalKey: this.terminalKey,
-        Description: 'Оплата подписки на сервис Jonu',
-        DataType: 'PAYLOAD',
-        BankId: bankId,
-        // RedirectDueDate: '2016-08-31T12:28:00+03:00',
-      }),
-      response,
-    );
+    console.log('AddAccountQr', response);
 
     if (!response.Success) {
       throw new InternalServerErrorException();
@@ -207,10 +193,10 @@ export class TinkoffKassaService {
     });
 
     const response = await this.client
-      .post<RebillResponse>('/Charge', body)
+      .post<Charge200Response>('/Charge', body)
       .then((r) => r.data);
 
-    console.warn('Charge response', body, response);
+    console.log('Charge response', body, response);
 
     if (!response.Success) {
       throw new InternalServerErrorException();
@@ -233,5 +219,11 @@ export class TinkoffKassaService {
     const token = generateTokenFromBody(bodyWithoutToken, this.password);
 
     return Token === token;
+  }
+
+  private isErrorResponse<T extends { Success: boolean }>(
+    response: T | ErrorResponse,
+  ): response is ErrorResponse {
+    return response.Success === false;
   }
 }

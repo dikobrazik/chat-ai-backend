@@ -39,6 +39,9 @@ import { UserPromotion } from './entities/UserPromotion';
 import { PromptMeta } from './entities/PromptMeta';
 import { CacheModule } from '@nestjs/cache-manager';
 import { PromptController } from './chat/prompt.controller';
+import { TariffModule } from './tariff/tariff.module';
+import { PaymentModule } from './payment/payment.module';
+import { SubscriptionCheckModule } from './subscription/cron/subscription-check.module';
 
 @Module({
   imports: [
@@ -137,6 +140,9 @@ import { PromptController } from './chat/prompt.controller';
     MailerModule,
     PromotionModule,
     CacheModule.register({ isGlobal: true }),
+    TariffModule,
+    PaymentModule,
+    SubscriptionCheckModule,
   ],
   controllers: [AppController],
   providers: [

@@ -1,27 +1,19 @@
 import { Module } from '@nestjs/common';
-import { SubscriptionService } from './subscription.service';
-import { SubscriptionController } from './subscription.controller';
-import { TinkoffKassaService } from './tinkoff-kassa/tinkoff-kassa.service';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Subscription } from 'src/entities/Subscription';
-import { Payment } from 'src/entities/Payment';
-import { SubscriptionPaymentNotificationService } from './subscription-payment-notification.service';
-import { User } from 'src/entities/User';
-import { SubscriptionCheckService } from './subscription-check.service';
 import { PromotionModule } from 'src/promotion/promotion.module';
-import { SubscriptionSbpController } from './sbp.controller';
+import { TariffModule } from 'src/tariff/tariff.module';
+import { SubscriptionController } from './subscription.controller';
+import { SubscriptionService } from './subscription.service';
 
 @Module({
   imports: [
     PromotionModule,
-    TypeOrmModule.forFeature([Subscription, Payment, User]),
+    TariffModule,
+    TypeOrmModule.forFeature([Subscription]),
   ],
-  providers: [
-    SubscriptionService,
-    SubscriptionPaymentNotificationService,
-    TinkoffKassaService,
-    SubscriptionCheckService,
-  ],
-  controllers: [SubscriptionController, SubscriptionSbpController],
+  providers: [SubscriptionService],
+  controllers: [SubscriptionController],
+  exports: [SubscriptionService],
 })
 export class SubscriptionModule {}

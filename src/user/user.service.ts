@@ -51,7 +51,16 @@ export class UserService {
       photo,
       passwordHash,
       emailVerified,
-      status: UserStatus.ACTIVE,
+      status: emailVerified ? UserStatus.VERIFIED : UserStatus.ACTIVE,
+    });
+  }
+
+  public async resetSubscription(userId: string) {
+    const user = await this.findById(userId);
+
+    await this.userRepository.update(userId, {
+      active_subscription_id: null,
+      status: user.emailVerified ? UserStatus.VERIFIED : UserStatus.ACTIVE,
     });
   }
 

@@ -55,21 +55,6 @@ export type GetQrResponse = {
   RequestKey: string;
 };
 
-export type KassaNotification = {
-  TerminalKey: string;
-  OrderId: string;
-  Success: boolean;
-  Status: string;
-  PaymentId: number;
-  ErrorCode: string;
-  Amount: number;
-  CardId: number;
-  Pan: string;
-  ExpDate: string;
-  RebillId: number;
-  Token: string;
-};
-
 export type CancelResponse = {
   TerminalKey: string;
   OrderId: string;
