@@ -61,6 +61,7 @@ describe(SubscriptionCheckService.name, () => {
   it('Должен списывать платёж T-Pay для подписки с RebillId', async () => {
     const subscription = createSubscription({
       rebill_id: 123,
+      account_token: 'account-token',
       current_period_start: SIX_MONTHS_PERIOD_START,
     });
     subscriptionServiceMock.getExpiredSubscriptions.mockResolvedValueOnce([

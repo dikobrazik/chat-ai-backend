@@ -3,5 +3,9 @@
   "[typescript]": {
     "editor.defaultFormatter": "dbaeumer.vscode-eslint"
   },
-  "js/ts.tsdk.path": "node_modules/typescript/lib"
+  "js/ts.tsdk.path": "node_modules/typescript/lib",
+  "jest.runMode": {
+    "type": "on-save",
+    "testFileOnly": false
+  }
 }
