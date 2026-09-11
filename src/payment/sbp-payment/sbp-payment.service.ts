@@ -1,7 +1,7 @@
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Inject, Injectable } from '@nestjs/common';
 import { Cache } from 'cache-manager';
-import { InitSubscriptionDto } from '../dto';
+import { TariffInfoDto } from '../dto';
 import { TinkoffKassaService } from '../tinkoff-kassa/tinkoff-kassa.service';
 
 import { User as UserEntity } from 'src/entities/User';
@@ -21,7 +21,7 @@ export class SbpPaymentService extends BasePaymentService {
   @Inject(CACHE_MANAGER)
   private cacheManager: Cache;
 
-  public async getAddAccountQr(body: InitSubscriptionDto, user: UserEntity) {
+  public async getAddAccountQr(body: TariffInfoDto, user: UserEntity) {
     const response = await this.tinkoffKassaService.addAccountQr();
 
     await this.cacheManager.set<CachedRequestParams>(

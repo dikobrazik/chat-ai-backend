@@ -2,7 +2,7 @@ import { Body, Controller, Inject, Post, Req } from '@nestjs/common';
 import { Request } from 'express';
 import { User } from 'src/decorators/user.decorator';
 import { User as UserEntity } from 'src/entities/User';
-import { InitSubscriptionDto } from './dto';
+import { TariffInfoDto } from './dto';
 import { SbpPaymentService } from './sbp-payment/sbp-payment.service';
 import { TpayPaymentService } from './tpay-payment/tpay-payment.service';
 
@@ -15,7 +15,7 @@ export class PaymentController {
 
   @Post('generate-qr')
   public async generateSbpQr(
-    @Body() body: InitSubscriptionDto,
+    @Body() body: TariffInfoDto,
     @User() user: UserEntity,
   ) {
     return this.sbpPaymentService.getAddAccountQr(body, user);
@@ -24,7 +24,7 @@ export class PaymentController {
   @Post('get-tpay-link')
   public async createTPayLink(
     @Req() req: Request,
-    @Body() body: InitSubscriptionDto,
+    @Body() body: TariffInfoDto,
     @User() user: UserEntity,
   ) {
     return this.tpayPaymentService.getTPayLink(body, user, req);

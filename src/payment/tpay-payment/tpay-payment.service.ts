@@ -1,6 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { BasePaymentService } from '../base-payment.service';
-import { InitSubscriptionDto } from '../dto';
+import { TariffInfoDto } from '../dto';
 import { User as UserEntity } from 'src/entities/User';
 import { Request } from 'express';
 import { prepareDeviceInfo } from '../tinkoff-kassa/utils';
@@ -16,7 +16,7 @@ export class TpayPaymentService extends BasePaymentService {
   private readonly subscriptionService: SubscriptionService;
 
   public async getTPayLink(
-    body: InitSubscriptionDto,
+    body: TariffInfoDto,
     user: UserEntity,
     req: Request,
   ) {
