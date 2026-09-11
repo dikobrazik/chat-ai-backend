@@ -4,6 +4,7 @@ import { Subscription, SubscriptionPlan } from 'src/entities/Subscription';
 import { User } from 'src/entities/User';
 import { SubscriptionService } from 'src/subscription/subscription.service';
 import { TinkoffKassaService } from '../../tinkoff-kassa/tinkoff-kassa.service';
+import { PaymentMethod } from '../../payment-amount.service';
 import { TpayPaymentService } from '../tpay-payment.service';
 
 const requestWithDevice = (type: string, os: string) =>
@@ -133,6 +134,7 @@ describe(TpayPaymentService.name, () => {
         SubscriptionPlan.PRO,
         'user-id',
         true,
+        PaymentMethod.TPAY,
       );
       expect(tinkoffKassaServiceMock.charge).toHaveBeenCalledWith(
         'external-payment-id',

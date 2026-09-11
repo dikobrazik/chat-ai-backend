@@ -16,6 +16,7 @@ import {
 } from 'src/entities/Subscription';
 import { User, UserStatus } from 'src/entities/User';
 import { SbpPaymentService } from 'src/payment/sbp-payment/sbp-payment.service';
+import { PaymentAmountService } from 'src/payment/payment-amount.service';
 import { TinkoffKassaService } from 'src/payment/tinkoff-kassa/tinkoff-kassa.service';
 import { LINK_ACCOUNT_NOTIFICATION_STATUSES } from 'src/payment/webhook/constants';
 import { AddAccountQrNotification } from 'src/payment/webhook/types';
@@ -84,6 +85,7 @@ describe('СБП-привязка счёта (интеграционный те�
       providers: [
         WebhookService,
         SbpPaymentService,
+        PaymentAmountService,
         SubscriptionService,
         TariffService,
         { provide: PromotionService, useValue: promotionServiceMock },
@@ -148,9 +150,12 @@ describe('СБП-привязка счёта (интеграционный те�
       email: 'user@example.com',
       status: UserStatus.ACTIVE,
     });
+    promotionServiceMock.getFirstSubscriptionPromotion.mockResolvedValue({
+      freeDays: 14,
+    });
     await expect(
       sbpPaymentService.getAddAccountQr(
-        { tariff: SubscriptionPlan.PRO, sixMonths: false },
+        { tariff: SubscriptionPlan.PLUS, sixMonths: false },
         user,
       ),
     ).resolves.toEqual({ svg: '<svg />' });
@@ -165,14 +170,14 @@ describe('СБП-привязка счёта (интеграционный те�
     });
 
     expect(subscription).toMatchObject({
-      plan: SubscriptionPlan.PRO,
+      plan: SubscriptionPlan.PLUS,
       status: SubscriptionStatus.PENDING,
       account_token: 'account-token',
     });
     expect(payment).toMatchObject({
       user_id: user.id,
       subscription_id: subscription.id,
-      amount: 2_000,
+      amount: 1_000,
       external_payment_id: 'external-payment-id',
       status: PaymentStatus.NEW,
     });

@@ -16,6 +16,7 @@ import {
 } from 'src/entities/Subscription';
 import { User, UserStatus } from 'src/entities/User';
 import { TinkoffKassaService } from 'src/payment/tinkoff-kassa/tinkoff-kassa.service';
+import { PaymentAmountService } from 'src/payment/payment-amount.service';
 import { TpayPaymentService } from 'src/payment/tpay-payment/tpay-payment.service';
 import { PromotionService } from 'src/promotion/promotion.service';
 import { SubscriptionService } from 'src/subscription/subscription.service';
@@ -61,6 +62,7 @@ describe('T-Pay (интеграционный тест)', () => {
       ],
       providers: [
         TpayPaymentService,
+        PaymentAmountService,
         SubscriptionService,
         TariffService,
         { provide: PromotionService, useValue: promotionServiceMock },

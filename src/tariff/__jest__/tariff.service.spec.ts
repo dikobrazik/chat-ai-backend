@@ -179,7 +179,7 @@ describe(TariffService.name, () => {
       });
     });
 
-    it('Должен учитывать бесплатные дни при расчёте месячной стоимости', async () => {
+    it('Не должен изменять стоимость тарифа из-за бесплатных дней', async () => {
       promotionServiceMock.getFirstSubscriptionPromotion.mockResolvedValueOnce({
         freeDays: 14,
       });
@@ -196,7 +196,7 @@ describe(TariffService.name, () => {
       expect(tariff).toMatchObject({
         id: SubscriptionPlan.PLUS,
         freeDays: 14,
-        price: 100,
+        price: 1000,
         nextChargeAt: new Date('2026-01-29T12:00:00.000Z'),
       });
     });

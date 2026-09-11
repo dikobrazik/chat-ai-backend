@@ -19,6 +19,7 @@ E2E payment tests use `@testcontainers/postgresql`, require a running Docker dae
 - PostgreSQL is accessed through TypeORM. `AppModule` explicitly registers entity classes and enables `synchronize`; there are no TypeORM migrations in the repository. Entity columns and database-facing fields use snake_case.
 - The main domains are auth and sessions, chats/prompts and AI model providers, files, promotions/tariffs, payments, and subscriptions.
 - The payment flow is shared across T-Pay and SBP. `SubscriptionService` persists the subscription, `BasePaymentService` persists the payment, and `TinkoffKassaService` performs the external requests. T-Pay creates a payment link; SBP stores request parameters in cache, then completes the flow when the account-link webhook arrives.
+- `TariffService` calculates tariff prices independently of a payment provider. `PaymentAmountService` owns provider-specific charge rules: a trial with `freeDays` costs `10 ₽` through SBP and `1 ₽` through T-Pay.
 - `WebhookService` validates the Tinkoff token before processing notifications. Confirmed payment webhooks update `Payment`, `Subscription`, and `User` together; an `ACTIVE` account-link webhook delegates to `SbpPaymentService`.
 - `SubscriptionCheckService` runs scheduled renewal checks: subscriptions with `rebill_id` charge through T-Pay, those with `account_token` charge through SBP, and subscriptions with neither are expired and reset on the user.
 

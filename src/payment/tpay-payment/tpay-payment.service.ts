@@ -7,6 +7,7 @@ import { prepareDeviceInfo } from '../tinkoff-kassa/utils';
 import { TinkoffKassaService } from '../tinkoff-kassa/tinkoff-kassa.service';
 import { Subscription } from 'src/entities/Subscription';
 import { SubscriptionService } from 'src/subscription/subscription.service';
+import { PaymentMethod } from '../payment-amount.service';
 
 @Injectable()
 export class TpayPaymentService extends BasePaymentService {
@@ -37,6 +38,7 @@ export class TpayPaymentService extends BasePaymentService {
       body.tariff,
       user.id,
       body.sixMonths,
+      PaymentMethod.TPAY,
     );
 
     const { Params } = await this.tinkoffKassaService.checkTPayLink();
@@ -67,6 +69,7 @@ export class TpayPaymentService extends BasePaymentService {
       subscription.plan,
       subscription.user_id,
       sixMonths,
+      PaymentMethod.TPAY,
     );
 
     const paymentResponse = await this.tinkoffKassaService.createPayment({

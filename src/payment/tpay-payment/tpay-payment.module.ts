@@ -6,10 +6,12 @@ import { Payment } from 'src/entities/Payment';
 import { Subscription } from 'src/entities/Subscription';
 import { TariffModule } from 'src/tariff/tariff.module';
 import { SubscriptionModule } from 'src/subscription/subscription.module';
+import { PaymentAmountModule } from '../payment-amount.module';
 
 @Module({
   imports: [
     TariffModule,
+    PaymentAmountModule,
     SubscriptionModule,
     TypeOrmModule.forFeature([Payment, Subscription]),
   ],

@@ -10,6 +10,7 @@ import { SubscriptionService } from 'src/subscription/subscription.service';
 import { BasePaymentService } from '../base-payment.service';
 import { Subscription } from 'src/entities/Subscription';
 import { CachedRequestParams } from './types';
+import { PaymentMethod } from '../payment-amount.service';
 
 @Injectable()
 export class SbpPaymentService extends BasePaymentService {
@@ -56,6 +57,7 @@ export class SbpPaymentService extends BasePaymentService {
       tariffId,
       userId,
       sixMonths,
+      PaymentMethod.SBP,
     );
 
     const { PaymentId: externalPaymentId } =
@@ -80,6 +82,7 @@ export class SbpPaymentService extends BasePaymentService {
       subscription.plan,
       subscription.user_id,
       sixMonths,
+      PaymentMethod.SBP,
     );
 
     const paymentResponse = await this.tinkoffKassaService.createPayment({

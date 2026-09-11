@@ -55,10 +55,8 @@ export class TariffService {
     tariff: { freeDays?: number; price: number; discount?: number },
     sixMonths: boolean,
   ) {
-    const price = tariff.freeDays ? 1 : tariff.price;
-
-    const discountPrice =
-      tariff.discount && price !== 1 ? (price * tariff.discount) / 100 : 0;
+    const price = tariff.price;
+    const discountPrice = tariff.discount ? (price * tariff.discount) / 100 : 0;
 
     return (price - discountPrice) * 100 * (sixMonths ? 6 : 1);
   }

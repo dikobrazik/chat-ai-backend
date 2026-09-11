@@ -6,6 +6,7 @@ import { User } from 'src/entities/User';
 import { SubscriptionService } from 'src/subscription/subscription.service';
 import { TinkoffKassaService } from '../../tinkoff-kassa/tinkoff-kassa.service';
 import { type AddAccountQrNotification } from '../../webhook/types';
+import { PaymentMethod } from '../../payment-amount.service';
 import { SbpPaymentService } from '../sbp-payment.service';
 
 const accountLinkedNotification: AddAccountQrNotification = {
@@ -117,6 +118,7 @@ describe(SbpPaymentService.name, () => {
         SubscriptionPlan.PRO,
         'user-id',
         false,
+        PaymentMethod.SBP,
       );
       expect(tinkoffKassaServiceMock.createPayment).toHaveBeenCalledWith({
         OrderId: 'payment-id',
@@ -165,6 +167,7 @@ describe(SbpPaymentService.name, () => {
         SubscriptionPlan.PLUS,
         'user-id',
         false,
+        PaymentMethod.SBP,
       );
       expect(tinkoffKassaServiceMock.chargeQr).toHaveBeenCalledWith(
         'external-payment-id',

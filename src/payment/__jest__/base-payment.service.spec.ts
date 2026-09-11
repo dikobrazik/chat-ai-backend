@@ -5,6 +5,7 @@ import { SubscriptionPlan } from 'src/entities/Subscription';
 import { TariffService } from 'src/tariff/tariff.service';
 import { type Tariff } from 'src/tariff/types';
 import { type InsertResult, type Repository } from 'typeorm';
+import { PaymentAmountService, PaymentMethod } from '../payment-amount.service';
 import { BasePaymentService } from '../base-payment.service';
 
 const paymentRepositoryToken = getRepositoryToken(Payment) as string;
@@ -15,6 +16,7 @@ describe(BasePaymentService.name, () => {
   let paymentService: BasePaymentService;
   let paymentRepositoryMock: Mocked<Repository<Payment>>;
   let tariffServiceMock: Mocked<TariffService>;
+  let paymentAmountServiceMock: Mocked<PaymentAmountService>;
 
   beforeAll(async () => {
     const { unit, unitRef } = await TestBed.solitary(TestPaymentService)
@@ -22,11 +24,14 @@ describe(BasePaymentService.name, () => {
       .impl(() => ({ insert: jest.fn(), update: jest.fn() }))
       .mock(TariffService)
       .impl(() => ({ getTariff: jest.fn() }))
+      .mock(PaymentAmountService)
+      .impl(() => ({ getAmount: jest.fn() }))
       .compile();
 
     paymentService = unit;
     paymentRepositoryMock = unitRef.get(paymentRepositoryToken);
     tariffServiceMock = unitRef.get(TariffService);
+    paymentAmountServiceMock = unitRef.get(PaymentAmountService);
   });
 
   beforeEach(() => {
@@ -43,6 +48,7 @@ describe(BasePaymentService.name, () => {
         features: [],
       };
       tariffServiceMock.getTariff.mockResolvedValueOnce(tariff);
+      paymentAmountServiceMock.getAmount.mockReturnValueOnce(2_000);
       const insertResult: InsertResult = {
         identifiers: [{ id: 'payment-id' }],
         generatedMaps: [],
@@ -56,6 +62,7 @@ describe(BasePaymentService.name, () => {
           SubscriptionPlan.PRO,
           'user-id',
           true,
+          PaymentMethod.SBP,
         ),
       ).resolves.toEqual({ paymentId: 'payment-id', amount: 2_000 });
 
@@ -63,6 +70,10 @@ describe(BasePaymentService.name, () => {
         SubscriptionPlan.PRO,
         'user-id',
         true,
+      );
+      expect(paymentAmountServiceMock.getAmount).toHaveBeenCalledWith(
+        tariff,
+        PaymentMethod.SBP,
       );
       expect(paymentRepositoryMock.insert).toHaveBeenCalledWith({
         user_id: 'user-id',

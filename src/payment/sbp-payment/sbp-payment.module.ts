@@ -6,10 +6,12 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { Payment } from 'src/entities/Payment';
 import { Subscription } from 'src/entities/Subscription';
 import { TariffModule } from 'src/tariff/tariff.module';
+import { PaymentAmountModule } from '../payment-amount.module';
 
 @Module({
   imports: [
     TariffModule,
+    PaymentAmountModule,
     SubscriptionModule,
     TypeOrmModule.forFeature([Payment, Subscription]),
   ],
