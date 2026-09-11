@@ -3,22 +3,22 @@ import { Request } from 'express';
 import { User } from 'src/decorators/user.decorator';
 import { User as UserEntity } from 'src/entities/User';
 import { InitSubscriptionDto } from './dto';
-import { SbpService } from './sbp/sbp.service';
-import { TpayService } from './tpay/tpay.service';
+import { SbpPaymentService } from './sbp-payment/sbp-payment.service';
+import { TpayPaymentService } from './tpay-payment/tpay-payment.service';
 
 @Controller('payment')
 export class PaymentController {
-  @Inject(SbpService)
-  private readonly sbpService: SbpService;
-  @Inject(TpayService)
-  private readonly tpayService: TpayService;
+  @Inject(SbpPaymentService)
+  private readonly sbpPaymentService: SbpPaymentService;
+  @Inject(TpayPaymentService)
+  private readonly tpayPaymentService: TpayPaymentService;
 
   @Post('generate-qr')
   public async generateSbpQr(
     @Body() body: InitSubscriptionDto,
     @User() user: UserEntity,
   ) {
-    return this.sbpService.getAddAccountQr(body, user);
+    return this.sbpPaymentService.getAddAccountQr(body, user);
   }
 
   @Post('tpay-link')
@@ -27,6 +27,6 @@ export class PaymentController {
     @Body() body: InitSubscriptionDto,
     @User() user: UserEntity,
   ) {
-    return this.tpayService.getTPayLink(body, user, req);
+    return this.tpayPaymentService.getTPayLink(body, user, req);
   }
 }

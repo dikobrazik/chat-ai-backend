@@ -1,17 +1,17 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { SubscriptionStatus } from 'src/entities/Subscription';
-import { SbpService } from 'src/payment/sbp/sbp.service';
-import { TpayService } from 'src/payment/tpay/tpay.service';
+import { SbpPaymentService } from 'src/payment/sbp-payment/sbp-payment.service';
+import { TpayPaymentService } from 'src/payment/tpay-payment/tpay-payment.service';
 import { UserService } from 'src/user/user.service';
 import { SubscriptionService } from '../subscription.service';
 
 @Injectable()
 export class SubscriptionCheckService {
-  @Inject(SbpService)
-  private readonly sbpService: SbpService;
-  @Inject(TpayService)
-  private readonly tpayService: TpayService;
+  @Inject(SbpPaymentService)
+  private readonly sbpPaymentService: SbpPaymentService;
+  @Inject(TpayPaymentService)
+  private readonly tpayPaymentService: TpayPaymentService;
 
   @Inject(UserService)
   private readonly userService: UserService;
@@ -31,9 +31,9 @@ export class SubscriptionCheckService {
           6 * 30 * 24 * 60 * 60 * 1000;
 
         if (subscription.rebill_id) {
-          await this.tpayService.charge(subscription, isSixMonths);
+          await this.tpayPaymentService.charge(subscription, isSixMonths);
         } else if (subscription.account_token) {
-          await this.sbpService.charge(subscription, isSixMonths);
+          await this.sbpPaymentService.charge(subscription, isSixMonths);
         } else {
           await this.resetUserSubscription(
             subscription.id,

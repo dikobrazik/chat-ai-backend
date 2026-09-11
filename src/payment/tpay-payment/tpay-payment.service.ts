@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { PaymentService } from '../payment.service';
+import { BasePaymentService } from '../base-payment.service';
 import { InitSubscriptionDto } from '../dto';
 import { User as UserEntity } from 'src/entities/User';
 import { Request } from 'express';
@@ -8,9 +8,7 @@ import { TinkoffKassaService } from '../tinkoff-kassa/tinkoff-kassa.service';
 import { Subscription } from 'src/entities/Subscription';
 
 @Injectable()
-export class TpayService extends PaymentService {
-  // @Inject(PaymentService)
-  // private readonly paymentService: PaymentService;
+export class TpayPaymentService extends BasePaymentService {
   @Inject(TinkoffKassaService)
   private readonly tinkoffKassaService: TinkoffKassaService;
 

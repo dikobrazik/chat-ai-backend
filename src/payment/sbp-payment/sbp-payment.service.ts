@@ -7,15 +7,13 @@ import { TinkoffKassaService } from '../tinkoff-kassa/tinkoff-kassa.service';
 import { User as UserEntity } from 'src/entities/User';
 import { AddAccountQrNotification } from 'src/payment/webhook/types';
 import { SubscriptionService } from 'src/subscription/subscription.service';
-import { PaymentService } from '../payment.service';
+import { BasePaymentService } from '../base-payment.service';
 import { Subscription } from 'src/entities/Subscription';
 
 @Injectable()
-export class SbpService extends PaymentService {
+export class SbpPaymentService extends BasePaymentService {
   @Inject(TinkoffKassaService)
   private readonly tinkoffKassaService: TinkoffKassaService;
-  // @Inject(PaymentService)
-  // private readonly paymentService: PaymentService;
   @Inject(SubscriptionService)
   private readonly subscriptionService: SubscriptionService;
 

@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { TpayService } from './tpay.service';
+import { TpayPaymentService } from './tpay-payment.service';
 import { TinkoffKassaService } from '../tinkoff-kassa/tinkoff-kassa.service';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Payment } from 'src/entities/Payment';
@@ -8,7 +8,7 @@ import { TariffModule } from 'src/tariff/tariff.module';
 
 @Module({
   imports: [TariffModule, TypeOrmModule.forFeature([Payment, Subscription])],
-  providers: [TpayService, TinkoffKassaService],
-  exports: [TpayService],
+  providers: [TpayPaymentService, TinkoffKassaService],
+  exports: [TpayPaymentService],
 })
-export class TpayModule {}
+export class TpayPaymentModule {}

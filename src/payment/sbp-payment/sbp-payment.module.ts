@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { SubscriptionModule } from 'src/subscription/subscription.module';
-import { SbpService } from './sbp.service';
+import { SbpPaymentService } from './sbp-payment.service';
 import { TinkoffKassaService } from '../tinkoff-kassa/tinkoff-kassa.service';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Payment } from 'src/entities/Payment';
@@ -13,7 +13,7 @@ import { TariffModule } from 'src/tariff/tariff.module';
     SubscriptionModule,
     TypeOrmModule.forFeature([Payment, Subscription]),
   ],
-  providers: [SbpService, TinkoffKassaService],
-  exports: [SbpService],
+  providers: [SbpPaymentService, TinkoffKassaService],
+  exports: [SbpPaymentService],
 })
-export class SbpModule {}
+export class SbpPaymentModule {}

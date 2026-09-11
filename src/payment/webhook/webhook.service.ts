@@ -9,8 +9,7 @@ import {
 } from 'src/entities/Subscription';
 import { User, UserStatus } from 'src/entities/User';
 import { Repository } from 'typeorm';
-// import { SbpSubscriptionService } from './sbp-subscription.service';
-import { SbpService } from '../sbp/sbp.service';
+import { SbpPaymentService } from '../sbp-payment/sbp-payment.service';
 import { TinkoffKassaService } from '../tinkoff-kassa/tinkoff-kassa.service';
 import {
   LINK_ACCOUNT_NOTIFICATION_STATUSES,
@@ -32,8 +31,8 @@ export class WebhookService {
   @InjectRepository(Subscription)
   private subscriptionRepository: Repository<Subscription>;
 
-  @Inject(SbpService)
-  private sbpService: SbpService;
+  @Inject(SbpPaymentService)
+  private sbpService: SbpPaymentService;
   @Inject(TinkoffKassaService)
   private kassaService: TinkoffKassaService;
 

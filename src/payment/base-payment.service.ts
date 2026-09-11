@@ -1,4 +1,4 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { addDays, addMonths } from 'date-fns';
 import { Payment, PaymentStatus } from 'src/entities/Payment';
@@ -7,8 +7,7 @@ import { SubscriptionFactory } from 'src/subscription/subscription.factory';
 import { TariffService } from 'src/tariff/tariff.service';
 import { Repository } from 'typeorm';
 
-@Injectable()
-export class PaymentService {
+export abstract class BasePaymentService {
   @InjectRepository(Payment)
   private readonly paymentRepository: Repository<Payment>;
   @InjectRepository(Subscription)
