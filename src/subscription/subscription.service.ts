@@ -1,12 +1,47 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Subscription, SubscriptionStatus } from 'src/entities/Subscription';
+import {
+  Subscription,
+  SubscriptionPlan,
+  SubscriptionStatus,
+} from 'src/entities/Subscription';
+import { TariffService } from 'src/tariff/tariff.service';
 import { LessThanOrEqual, Repository } from 'typeorm';
 
 @Injectable()
 export class SubscriptionService {
   @InjectRepository(Subscription)
   private readonly subscriptionRepository: Repository<Subscription>;
+
+  @Inject(TariffService)
+  private readonly tariffService: TariffService;
+
+  public async createSubscription(
+    tariffId: SubscriptionPlan,
+    userId: string,
+    sixMonths: boolean,
+  ) {
+    const tariff = await this.tariffService.getTariff(
+      tariffId,
+      userId,
+      sixMonths,
+    );
+
+    const userSubscription = await this.subscriptionRepository.findOne({
+      where: { user_id: userId },
+    });
+
+    const { id: subscriptionId } = await this.subscriptionRepository.save({
+      id: userSubscription?.id,
+      user_id: userId,
+      status: SubscriptionStatus.PENDING,
+      plan: tariff.id,
+      current_period_start: new Date(),
+      current_period_end: tariff.nextChargeAt,
+    });
+
+    return { subscriptionId };
+  }
 
   public updateAccountToken(subscriptionId: string, accountToken: string) {
     return this.subscriptionRepository.update(subscriptionId, {
@@ -34,6 +69,8 @@ export class SubscriptionService {
 
   public expireSubscription(subscriptionId: string) {
     return this.subscriptionRepository.update(subscriptionId, {
+      current_period_start: null,
+      current_period_end: null,
       status: SubscriptionStatus.EXPIRED,
     });
   }

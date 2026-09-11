@@ -2,6 +2,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import { PromotionService } from 'src/promotion/promotion.service';
 import { TARIFFS } from './constants/tariffs';
 import { SubscriptionPlan } from 'src/entities/Subscription';
+import { add } from 'date-fns/add';
 
 @Injectable()
 export class TariffService {
@@ -17,7 +18,16 @@ export class TariffService {
     const sixMonthPromotion =
       await this.promotionService.getSixMonthsSubscriptionPromotion();
 
+    for (const plan of plans) {
+      plan.nextChargeAt = add(new Date(), {
+        months: sixMonths ? 6 : 1,
+      });
+    }
+
     if (firstSubscriptionPromotion && !sixMonths) {
+      plans[1].nextChargeAt = add(new Date(), {
+        days: firstSubscriptionPromotion.freeDays,
+      });
       plans[1].freeDays = firstSubscriptionPromotion.freeDays;
     }
 

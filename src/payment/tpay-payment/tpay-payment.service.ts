@@ -6,11 +6,14 @@ import { Request } from 'express';
 import { prepareDeviceInfo } from '../tinkoff-kassa/utils';
 import { TinkoffKassaService } from '../tinkoff-kassa/tinkoff-kassa.service';
 import { Subscription } from 'src/entities/Subscription';
+import { SubscriptionService } from 'src/subscription/subscription.service';
 
 @Injectable()
 export class TpayPaymentService extends BasePaymentService {
   @Inject(TinkoffKassaService)
   private readonly tinkoffKassaService: TinkoffKassaService;
+  @Inject(SubscriptionService)
+  private readonly subscriptionService: SubscriptionService;
 
   public async getTPayLink(
     body: InitSubscriptionDto,
@@ -22,7 +25,15 @@ export class TpayPaymentService extends BasePaymentService {
       os: req.clientInfo.os.name,
     });
 
-    const { amount, paymentId } = await this.createSubscription(
+    const { subscriptionId } =
+      await this.subscriptionService.createSubscription(
+        body.tariff,
+        user.id,
+        body.sixMonths,
+      );
+
+    const { paymentId, amount } = await this.createPayment(
+      subscriptionId,
       body.tariff,
       user.id,
       body.sixMonths,

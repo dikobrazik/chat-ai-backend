@@ -1,6 +1,7 @@
 import { SubscriptionPlan } from 'src/entities/Subscription';
+import { Tariff } from '../types';
 
-export const TARIFFS = [
+export const TARIFFS: Tariff[] = [
   {
     id: SubscriptionPlan.BASE,
     name: 'Бесплатный',
@@ -24,6 +25,7 @@ export const TARIFFS = [
     freeDays: 0,
     discount: 0,
     isPopular: true,
+    nextChargeAt: null,
     description: 'Для регулярных задач',
     features: [
       'Расширенный доступ:',

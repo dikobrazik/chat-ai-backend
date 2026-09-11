@@ -9,6 +9,7 @@ import { AddAccountQrNotification } from 'src/payment/webhook/types';
 import { SubscriptionService } from 'src/subscription/subscription.service';
 import { BasePaymentService } from '../base-payment.service';
 import { Subscription } from 'src/entities/Subscription';
+import { CachedRequestParams } from './types';
 
 @Injectable()
 export class SbpPaymentService extends BasePaymentService {
@@ -23,9 +24,14 @@ export class SbpPaymentService extends BasePaymentService {
   public async getAddAccountQr(body: InitSubscriptionDto, user: UserEntity) {
     const response = await this.tinkoffKassaService.addAccountQr();
 
-    await this.cacheManager.set(
+    await this.cacheManager.set<CachedRequestParams>(
       response.RequestKey,
-      { ...body, userId: user.id, userEmail: user.email },
+      {
+        sixMonths: body.sixMonths,
+        tariffId: body.tariff,
+        userId: user.id,
+        userEmail: user.email,
+      },
       30 * 60 * 1000,
     );
 
@@ -35,13 +41,19 @@ export class SbpPaymentService extends BasePaymentService {
   public async onAccountLinked(notification: AddAccountQrNotification) {
     const { RequestKey, AccountToken } = notification;
 
-    const { tariff, sixMonths, userId, userEmail } =
-      await this.cacheManager.get<
-        InitSubscriptionDto & { userId: string; userEmail: string }
-      >(RequestKey);
+    const { tariffId, sixMonths, userId, userEmail } =
+      await this.cacheManager.get<CachedRequestParams>(RequestKey);
 
-    const { amount, subscriptionId, paymentId } = await this.createSubscription(
-      tariff,
+    const { subscriptionId } =
+      await this.subscriptionService.createSubscription(
+        tariffId,
+        userId,
+        sixMonths,
+      );
+
+    const { paymentId, amount } = await this.createPayment(
+      subscriptionId,
+      tariffId,
       userId,
       sixMonths,
     );
