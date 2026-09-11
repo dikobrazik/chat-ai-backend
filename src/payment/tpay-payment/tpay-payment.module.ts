@@ -5,9 +5,14 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { Payment } from 'src/entities/Payment';
 import { Subscription } from 'src/entities/Subscription';
 import { TariffModule } from 'src/tariff/tariff.module';
+import { SubscriptionModule } from 'src/subscription/subscription.module';
 
 @Module({
-  imports: [TariffModule, TypeOrmModule.forFeature([Payment, Subscription])],
+  imports: [
+    TariffModule,
+    SubscriptionModule,
+    TypeOrmModule.forFeature([Payment, Subscription]),
+  ],
   providers: [TpayPaymentService, TinkoffKassaService],
   exports: [TpayPaymentService],
 })

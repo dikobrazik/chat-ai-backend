@@ -28,7 +28,7 @@ export class Payment {
   @Column()
   user_id: string;
 
-  @ManyToOne(() => Subscription, (sub) => sub.id)
+  @ManyToOne(() => Subscription, (sub) => sub.id, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'subscription_id' })
   subscription: Subscription;
 
