@@ -23,8 +23,9 @@ jobs:
         with:
           node-version: '20.10.0'
           cache: 'npm'
-      - run: npm install
+      - run: npm ci
       - run: npm test
+      - run:  npm run test:e2e -- --runInBand
 
   build-backend:
     needs: test-backend
