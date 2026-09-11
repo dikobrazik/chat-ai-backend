@@ -68,12 +68,10 @@ export class SubscriptionService {
   }
 
   public getActiveSubscriptionForUser(userId: string) {
-    return this.subscriptionRepository
-      .findOne({
-        select: { plan: true, status: true, current_period_end: true },
-        where: { id: userId, status: SubscriptionStatus.ACTIVE },
-      })
-      .then(({ rebill_id, ...subscription }) => subscription);
+    return this.subscriptionRepository.findOne({
+      select: { plan: true, status: true, current_period_end: true },
+      where: { id: userId, status: SubscriptionStatus.ACTIVE },
+    });
   }
 
   public expireSubscription(subscriptionId: string) {

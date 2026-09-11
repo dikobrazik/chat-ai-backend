@@ -1,4 +1,4 @@
-import { generateTokenFromBody } from './utils';
+import { formatMoscowDate, generateTokenFromBody } from './utils';
 
 const body = {
   TerminalKey: 'MerchantTerminalKey',
@@ -44,6 +44,14 @@ describe('generateTokenFromBody', () => {
   it('should generate token', () => {
     expect(generateTokenFromBody(body, 'usaf8fw8fsw21g')).toEqual(
       '0024a00af7c350a3a67ca168ce06502aa72772456662e38696d48b56ee9c97d9',
+    );
+  });
+});
+
+describe(formatMoscowDate.name, () => {
+  it('Должен форматировать дату в московском часовом поясе', () => {
+    expect(formatMoscowDate(new Date('2026-09-11T08:30:00.000Z'))).toBe(
+      '2026-09-11T11:30:00+03:00',
     );
   });
 });

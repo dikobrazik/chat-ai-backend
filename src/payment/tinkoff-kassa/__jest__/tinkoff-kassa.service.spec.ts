@@ -155,7 +155,7 @@ describe(TinkoffKassaService.name, () => {
           TerminalKey: 'terminal-key',
           Description: 'Подписка на сервис Jonu',
           DataType: 'IMAGE',
-          RedirectDueDate: '2026-09-11T08:30:00.000Z',
+          RedirectDueDate: '2026-09-11T11:30:00+03:00',
         }),
       );
       expect(kassaService.checkToken(postMock.mock.calls[0][1])).toBeTruthy();

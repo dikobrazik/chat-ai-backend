@@ -18,7 +18,7 @@ import {
   AddAccountQrResponse,
   Charge200Response,
 } from './generated';
-import { generateTokenFromBody } from './utils';
+import { formatMoscowDate, generateTokenFromBody } from './utils';
 
 @Injectable()
 export class TinkoffKassaService {
@@ -137,7 +137,7 @@ export class TinkoffKassaService {
           TerminalKey: this.terminalKey,
           Description: 'Подписка на сервис Jonu',
           DataType: 'IMAGE',
-          RedirectDueDate: addMinutes(new Date(), 30).toISOString(), // '2016-08-31T12:28:00+03:00',
+          RedirectDueDate: formatMoscowDate(addMinutes(new Date(), 30)),
         }),
       )
       .then((r) => r.data);

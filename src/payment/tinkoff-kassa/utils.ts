@@ -1,6 +1,17 @@
 import { createHash } from 'crypto';
 import { Device, DeviceOS } from './types';
 
+const MOSCOW_DATE_FORMATTER = new Intl.DateTimeFormat('en-GB', {
+  timeZone: 'Europe/Moscow',
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit',
+  hour: '2-digit',
+  minute: '2-digit',
+  second: '2-digit',
+  hourCycle: 'h23',
+});
+
 export const generateTokenFromBody = (
   body: Record<string, any>,
   password: string,
@@ -17,6 +28,16 @@ export const generateTokenFromBody = (
     .join('');
 
   return createHash('sha256').update(bodyValuesString, 'utf-8').digest('hex');
+};
+
+export const formatMoscowDate = (date: Date) => {
+  const parts = Object.fromEntries(
+    MOSCOW_DATE_FORMATTER.formatToParts(date)
+      .filter(({ type }) => type !== 'literal')
+      .map(({ type, value }) => [type, value]),
+  );
+
+  return `${parts.year}-${parts.month}-${parts.day}T${parts.hour}:${parts.minute}:${parts.second}+03:00`;
 };
 
 export const prepareDeviceInfo = (device: { type: string; os: string }) => {
