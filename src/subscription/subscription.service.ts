@@ -70,7 +70,7 @@ export class SubscriptionService {
   public getActiveSubscriptionForUser(userId: string) {
     return this.subscriptionRepository.findOne({
       select: { plan: true, status: true, current_period_end: true },
-      where: { id: userId, status: SubscriptionStatus.ACTIVE },
+      where: { user_id: userId, status: SubscriptionStatus.ACTIVE },
     });
   }
 

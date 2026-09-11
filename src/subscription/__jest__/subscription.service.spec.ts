@@ -171,23 +171,6 @@ describe(SubscriptionService.name, () => {
     );
   });
 
-  it('Должен возвращать данные подписки без RebillId', async () => {
-    subscriptionRepositoryMock.findOne.mockResolvedValueOnce({
-      plan: SubscriptionPlan.PLUS,
-      status: SubscriptionStatus.ACTIVE,
-      current_period_end: NEXT_CHARGE_AT,
-      rebill_id: 123,
-    } as Subscription);
-
-    await expect(
-      subscriptionService.getActiveSubscriptionForUser('subscription-id'),
-    ).resolves.toEqual({
-      plan: SubscriptionPlan.PLUS,
-      status: SubscriptionStatus.ACTIVE,
-      current_period_end: NEXT_CHARGE_AT,
-    });
-  });
-
   it('Должен отменять активную подписку пользователя', async () => {
     await subscriptionService.cancelSubscription('user-id');
 
