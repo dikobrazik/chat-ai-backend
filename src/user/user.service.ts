@@ -59,7 +59,6 @@ export class UserService {
     const user = await this.findById(userId);
 
     await this.userRepository.update(userId, {
-      active_subscription_id: null,
       status: user.emailVerified ? UserStatus.VERIFIED : UserStatus.ACTIVE,
     });
   }

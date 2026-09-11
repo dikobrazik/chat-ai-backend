@@ -138,7 +138,6 @@ describe(WebhookService.name, () => {
         { status: SubscriptionStatus.ACTIVE, rebill_id: 789 },
       );
       expect(userRepositoryMock.update).toHaveBeenCalledWith('user-id', {
-        active_subscription_id: 'subscription-id',
         status: UserStatus.SUBSCRIPTION_PRO,
       });
       jest.useRealTimers();

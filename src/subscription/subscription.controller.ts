@@ -15,12 +15,6 @@ export class SubscriptionController {
 
   @Get()
   public getActiveSubscription(@User() user: UserEntity) {
-    if (!user.active_subscription_id) {
-      return null;
-    }
-
-    return this.subscriptionService.getSubscription(
-      user.active_subscription_id,
-    );
+    return this.subscriptionService.getActiveSubscriptionForUser(user.id);
   }
 }

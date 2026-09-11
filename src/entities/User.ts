@@ -43,9 +43,6 @@ export class User {
   })
   status: UserStatus;
 
-  @Column({ nullable: true })
-  active_subscription_id: string;
-
   @CreateDateColumn()
   created_at: Date;
 }

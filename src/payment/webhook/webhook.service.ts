@@ -47,7 +47,11 @@ export class WebhookService {
       // TODO: проверить отношение Success и status
       console.log(notification);
 
-      if (!Success || Status === PAYMENT_NOTIFICATION_STATUSES.REJECTED) {
+      if (!Success) {
+        if ('OrderId' in notification) {
+          await this.rejectPayment(notification.OrderId);
+        }
+      } else if (Status === PAYMENT_NOTIFICATION_STATUSES.REJECTED) {
         await this.rejectPayment((notification as KassaNotification).OrderId);
       } else if (Status === PAYMENT_NOTIFICATION_STATUSES.CONFIRMED) {
         await this.updateSubscriptionAndUserStatus(notification);
@@ -83,7 +87,6 @@ export class WebhookService {
         rebill_id: notification.RebillId,
       }),
       this.userRepository.update(payment.user_id, {
-        active_subscription_id: payment.subscription_id,
         status: SUBSCRIPTION_PLAN_USER_STATUS_MAP[payment.subscription.plan],
       }),
     ]);

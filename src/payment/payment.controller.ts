@@ -21,7 +21,7 @@ export class PaymentController {
     return this.sbpPaymentService.getAddAccountQr(body, user);
   }
 
-  @Post('tpay-link')
+  @Post('get-tpay-link')
   public async createTPayLink(
     @Req() req: Request,
     @Body() body: InitSubscriptionDto,

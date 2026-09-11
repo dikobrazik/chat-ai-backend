@@ -67,21 +67,21 @@ export class SubscriptionService {
     });
   }
 
+  public getActiveSubscriptionForUser(userId: string) {
+    return this.subscriptionRepository
+      .findOne({
+        select: { plan: true, status: true, current_period_end: true },
+        where: { id: userId, status: SubscriptionStatus.ACTIVE },
+      })
+      .then(({ rebill_id, ...subscription }) => subscription);
+  }
+
   public expireSubscription(subscriptionId: string) {
     return this.subscriptionRepository.update(subscriptionId, {
       current_period_start: null,
       current_period_end: null,
       status: SubscriptionStatus.EXPIRED,
     });
-  }
-
-  public getSubscription(subscriptionId: string) {
-    return this.subscriptionRepository
-      .findOne({
-        select: { plan: true, status: true, current_period_end: true },
-        where: { id: subscriptionId },
-      })
-      .then(({ rebill_id, ...subscription }) => subscription);
   }
 
   public cancelSubscription(userId: string) {

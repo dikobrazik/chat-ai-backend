@@ -14,6 +14,5 @@ export const USER_STUB = {
   email: EMAIL_STUB,
   passwordHash: PASSWORD_HASH_STUB,
   status: UserStatus.ACTIVE,
-  active_subscription_id: null,
   created_at: new Date(),
 };
