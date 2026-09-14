@@ -1,23 +1,15 @@
-import {
-  Column,
-  Entity,
-  JoinColumn,
-  OneToOne,
-  PrimaryGeneratedColumn,
-} from 'typeorm';
-import { Prompt } from './Prompt';
+import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
 
 @Entity()
 export class PromptMeta {
   @PrimaryGeneratedColumn('increment')
   id: string;
 
-  // @OneToOne(() => Prompt, { onDelete: 'CASCADE' })
-  // @JoinColumn({ name: 'prompt_id' })
-  // prompt: Prompt;
+  @Column({ type: 'uuid', nullable: true })
+  prompt_id: string;
 
   @Column()
-  prompt_id: string;
+  response_id: string;
 
   @Column()
   input_tokens: number;

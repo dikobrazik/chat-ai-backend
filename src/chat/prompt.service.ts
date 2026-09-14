@@ -85,7 +85,7 @@ export class PromptService {
       tap(async (chunk) => {
         if (chunk.type === 'meta') {
           await this.promptMetaRepository.insert({
-            prompt_id: chunk.promptId,
+            response_id: chunk.promptId,
             input_tokens: chunk.inputTokens ?? 0,
             output_tokens: chunk.outputTokens ?? 0,
             thinking_tokens: chunk.thinkingTokens ?? 0,
@@ -109,6 +109,14 @@ export class PromptService {
             response_id: streamChunk.data.promptId,
             response: streamChunk.data.content,
           });
+
+          await this.promptMetaRepository.upsert(
+            {
+              prompt_id: promptId,
+              response_id: streamChunk.data.promptId,
+            },
+            ['response_id'],
+          );
 
           if (files_ids) {
             for (const fileId of files_ids) {
