@@ -16,12 +16,15 @@ import {
 import { User, UserStatus } from 'src/entities/User';
 import { SbpPaymentService } from 'src/payment/sbp-payment/sbp-payment.service';
 import { TinkoffKassaService } from 'src/payment/tinkoff-kassa/tinkoff-kassa.service';
+import { PromotionService } from 'src/promotion/promotion.service';
+import { TariffService } from 'src/tariff/tariff.service';
 import { PAYMENT_NOTIFICATION_STATUSES } from 'src/payment/webhook/constants';
 import { WebhookService } from 'src/payment/webhook/webhook.service';
 
 jest.setTimeout(120_000);
 
 describe('WebhookService (интеграционный тест)', () => {
+  const nextChargeAt = new Date('2026-10-11T08:00:00.000Z');
   let container: StartedPostgreSqlContainer;
   let moduleRef: TestingModule;
   let webhookService: WebhookService;
@@ -55,6 +58,16 @@ describe('WebhookService (интеграционный тест)', () => {
         {
           provide: TinkoffKassaService,
           useValue: { checkToken: jest.fn(() => true) },
+        },
+        {
+          provide: PromotionService,
+          useValue: { markPromotionAsUsed: jest.fn() },
+        },
+        {
+          provide: TariffService,
+          useValue: {
+            getTariff: jest.fn(() => ({ nextChargeAt })),
+          },
         },
       ],
     }).compile();
@@ -144,6 +157,7 @@ describe('WebhookService (интеграционный тест)', () => {
       status: SubscriptionStatus.ACTIVE,
     });
     expect(String(updatedSubscription.rebill_id)).toBe('789');
+    expect(updatedSubscription.current_period_end).toEqual(nextChargeAt);
     expect(updatedUser).toMatchObject({
       id: user.id,
       status: UserStatus.SUBSCRIPTION_PRO,
