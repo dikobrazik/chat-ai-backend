@@ -17,7 +17,11 @@
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
-    "test:e2e": "jest --config ./test/jest-e2e.json"
+    "test:e2e": "jest --config ./test/jest-e2e.json",
+    "typeorm": "node -r ts-node/register -r tsconfig-paths/register ./node_modules/typeorm/cli.js -d src/database/data-source.ts",
+    "migration:generate": "npm run typeorm -- migration:generate src/database/migrations/generated",
+    "migration:run": "npm run typeorm -- migration:run --transaction none",
+    "migration:revert": "npm run typeorm -- migration:revert --transaction none"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.104.2",
@@ -79,6 +83,7 @@
     "@types/supertest": "2.0.12",
     "@typescript-eslint/eslint-plugin": "6.0.0",
     "@typescript-eslint/parser": "6.0.0",
+    "dotenv": "^16.4.7",
     "eslint": "8.42.0",
     "eslint-config-prettier": "9.0.0",
     "eslint-plugin-prettier": "5.0.0",

@@ -204,4 +204,73 @@ export class PromptService {
       ])
       .flat();
   }
+
+  public async searchPrompts(userId: string, search: string) {
+    const textQuery = `websearch_to_tsquery('russian', :search)`;
+    const inputVector = `to_tsvector('russian', prompt.input)`;
+    const responseVector = `to_tsvector('russian', prompt.response)`;
+    const headlineOptions =
+      'StartSel=<mark>, StopSel=</mark>, MaxFragments=1, MinWords=5, MaxWords=15';
+    const searchPattern = `%${search.replace(/[\\%_]/g, '\\$&')}%`;
+    const createPartialMatchPreview = (column: string) => `
+      CONCAT(
+        CASE
+          WHEN POSITION(LOWER(:search) IN LOWER(${column})) > 60 THEN '...'
+          ELSE ''
+        END,
+        SUBSTRING(
+          ${column}
+          FROM GREATEST(1, POSITION(LOWER(:search) IN LOWER(${column})) - 60)
+          FOR 60
+        ),
+        '<mark>',
+        SUBSTRING(
+          ${column}
+          FROM POSITION(LOWER(:search) IN LOWER(${column}))
+          FOR CHAR_LENGTH(:search)
+        ),
+        '</mark>',
+        SUBSTRING(
+          ${column}
+          FROM POSITION(LOWER(:search) IN LOWER(${column})) + CHAR_LENGTH(:search)
+          FOR 60
+        )
+      )
+    `;
+
+    return this.promptRepository
+      .createQueryBuilder('prompt')
+      .innerJoin('prompt.chat', 'chat')
+      .select('prompt.id', 'id')
+      .addSelect('chat.id', 'chatId')
+      .addSelect(
+        `
+          CASE
+            WHEN ${responseVector} @@ ${textQuery}
+            THEN ts_headline('russian', prompt.response, ${textQuery}, '${headlineOptions}')
+            WHEN ${inputVector} @@ ${textQuery}
+            THEN ts_headline('russian', prompt.input, ${textQuery}, '${headlineOptions}')
+            WHEN prompt.response ILIKE :pattern ESCAPE E'\\\\'
+            THEN ${createPartialMatchPreview('prompt.response')}
+            ELSE ${createPartialMatchPreview('prompt.input')}
+          END
+        `,
+        'preview',
+      )
+      .where('chat.user_id = :userId', { userId })
+      .andWhere(
+        `
+          (
+            ${inputVector} @@ ${textQuery}
+            OR ${responseVector} @@ ${textQuery}
+            OR prompt.input ILIKE :pattern ESCAPE E'\\\\'
+            OR prompt.response ILIKE :pattern ESCAPE E'\\\\'
+          )
+        `,
+      )
+      .setParameter('search', search)
+      .setParameter('pattern', searchPattern)
+      .orderBy('prompt.created_at', 'DESC')
+      .getRawMany();
+  }
 }

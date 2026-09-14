@@ -29,6 +29,12 @@ export class PatchChatDto {
   is_pinned: boolean;
 }
 
+export class SearchChatsDto {
+  @IsOptional()
+  @IsString()
+  search: string;
+}
+
 export class PromptDTO {
   @IsNotEmpty()
   input: string;

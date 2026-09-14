@@ -67,7 +67,7 @@ import { SubscriptionCheckModule } from './subscription/cron/subscription-check.
         ssl: {
           ca: readFileSync(join(cwd(), 'db.pem')),
         },
-        synchronize: true,
+        synchronize: false,
         dropSchema: false,
         logging: configService.get('IS_DEV') === 'true',
         entities: [

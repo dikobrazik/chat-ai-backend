@@ -17,12 +17,13 @@ import { Chat as ChatEntity } from 'src/entities/Chat';
 import { Model } from 'src/entities/Model';
 import { User as UserEntity, UserStatus } from 'src/entities/User';
 import { FileStorageService } from 'src/file-storage/file-storage.service';
-import { PromptDTO } from './dto';
+import { PromptDTO, SearchChatsDto } from './dto';
 import { ChatGuard } from './guards/chat.guard';
 import { PromptGuard } from './guards/prompt.guard';
 import { PromptService } from './prompt.service';
 import { PublicChatGuard } from './guards/public-chat.guard';
 import { PublicPromptGuard } from './guards/public-prompt.guard';
+import { User } from 'src/decorators/user.decorator';
 
 const USER_STATUS_LIMITS = {
   [UserStatus.GUEST]: 5,
@@ -97,5 +98,10 @@ export class PromptController {
     );
 
     return { id: prompt.id, text: prompt.response, role: 'model' };
+  }
+
+  @Get('/prompt/search')
+  getSearchList(@User() user: UserEntity, @Query() params: SearchChatsDto) {
+    return this.promptService.searchPrompts(user.id, params.search);
   }
 }
