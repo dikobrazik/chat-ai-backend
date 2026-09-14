@@ -15,11 +15,15 @@ export class PromotionService {
   @InjectRepository(UserPromotion)
   private readonly userPromotionRepository: Repository<UserPromotion>;
 
-  async markPromotionAsUsed(userPromotionId: string): Promise<void> {
-    await this.userPromotionRepository.update(
-      { id: userPromotionId },
-      { status: UserPromotionStatus.CONSUMED },
-    );
+  async markPromotionAsUsed(
+    promotionId: string,
+    userId: string,
+  ): Promise<void> {
+    await this.userPromotionRepository.save({
+      promotion_id: promotionId,
+      user_id: userId,
+      status: UserPromotionStatus.CONSUMED,
+    });
   }
 
   async getFirstSubscriptionPromotion(userId: string) {

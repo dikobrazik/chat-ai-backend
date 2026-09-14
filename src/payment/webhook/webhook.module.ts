@@ -7,11 +7,15 @@ import { Subscription } from 'src/entities/Subscription';
 import { Payment } from 'src/entities/Payment';
 import { SbpPaymentModule } from '../sbp-payment/sbp-payment.module';
 import { TinkoffKassaService } from '../tinkoff-kassa/tinkoff-kassa.service';
+import { PromotionModule } from 'src/promotion/promotion.module';
+import { TariffModule } from 'src/tariff/tariff.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([User, Payment, Subscription]),
     SbpPaymentModule,
+    PromotionModule,
+    TariffModule,
   ],
   controllers: [WebhookController],
   providers: [WebhookService, TinkoffKassaService],

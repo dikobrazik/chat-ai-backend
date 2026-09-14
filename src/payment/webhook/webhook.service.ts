@@ -16,6 +16,9 @@ import {
   PAYMENT_NOTIFICATION_STATUSES,
 } from './constants';
 import { AddAccountQrNotification, KassaNotification } from './types';
+import { PromotionService } from 'src/promotion/promotion.service';
+import { FIRST_SUBSCRIPTION_PROMOTION_ID } from 'src/promotion/constants';
+import { TariffService } from 'src/tariff/tariff.service';
 
 const SUBSCRIPTION_PLAN_USER_STATUS_MAP = {
   [SubscriptionPlan.PLUS]: UserStatus.SUBSCRIPTION_PLUS,
@@ -35,6 +38,10 @@ export class WebhookService {
   private sbpService: SbpPaymentService;
   @Inject(TinkoffKassaService)
   private kassaService: TinkoffKassaService;
+  @Inject(PromotionService)
+  private promotionService: PromotionService;
+  @Inject(TariffService)
+  private tariffService: TariffService;
 
   public async processNotification(
     notification: KassaNotification | AddAccountQrNotification,
@@ -72,12 +79,25 @@ export class WebhookService {
       relations: { subscription: true },
     });
 
+    const tariff = await this.tariffService.getTariff(
+      payment.subscription.plan,
+      payment.user_id,
+      // todo: надо понимать на сколько месяцев была куплена подписка, чтобы правильно посчитать nextChargeAt
+      // докинуть в Subscription поле, которое будет хранить на сколько месяцев куплена подписка
+      false,
+    );
+
     if (!payment) {
       console.error(`Payment with orderId ${orderId} not found`, notification);
       throw new BadRequestException('Payment not found');
     }
 
     await Promise.all([
+      // todo: проверять, что промо использовано ранее
+      this.promotionService.markPromotionAsUsed(
+        FIRST_SUBSCRIPTION_PROMOTION_ID,
+        payment.user_id,
+      ),
       this.paymentRepository.update(payment.id, {
         status: PaymentStatus.CONFIRMED,
         payment_date: new Date(),
@@ -85,6 +105,8 @@ export class WebhookService {
       this.subscriptionRepository.update(payment.subscription_id, {
         status: SubscriptionStatus.ACTIVE,
         rebill_id: notification.RebillId,
+        current_period_start: new Date(),
+        current_period_end: tariff.nextChargeAt,
       }),
       this.userRepository.update(payment.user_id, {
         status: SUBSCRIPTION_PLAN_USER_STATUS_MAP[payment.subscription.plan],
