@@ -18,7 +18,7 @@ export class SubscriptionCheckService {
   @Inject(SubscriptionService)
   private readonly subscriptionService: SubscriptionService;
 
-  @Cron(CronExpression.EVERY_DAY_AT_NOON) // Каждый день в обед
+  @Cron(CronExpression.EVERY_30_MINUTES) // Каждые пол часа
   async handleSubscriptionCheck() {
     const expiredSubscriptions =
       await this.subscriptionService.getExpiredSubscriptions();
