@@ -11,6 +11,9 @@ import { User, UserStatus } from 'src/entities/User';
 import { type Repository } from 'typeorm';
 import { SbpPaymentService } from '../../sbp-payment/sbp-payment.service';
 import { TinkoffKassaService } from '../../tinkoff-kassa/tinkoff-kassa.service';
+import { PromotionService } from 'src/promotion/promotion.service';
+import { FIRST_SUBSCRIPTION_PROMOTION_ID } from 'src/promotion/constants';
+import { TariffService } from 'src/tariff/tariff.service';
 import {
   LINK_ACCOUNT_NOTIFICATION_STATUSES,
   PAYMENT_NOTIFICATION_STATUSES,
@@ -21,6 +24,7 @@ import { WebhookService } from '../webhook.service';
 const userRepositoryToken = getRepositoryToken(User) as string;
 const paymentRepositoryToken = getRepositoryToken(Payment) as string;
 const subscriptionRepositoryToken = getRepositoryToken(Subscription) as string;
+const nextChargeAt = new Date('2026-10-11T08:00:00.000Z');
 
 const paymentNotification = (
   overrides: Partial<KassaNotification> = {},
@@ -47,6 +51,8 @@ describe(WebhookService.name, () => {
   let subscriptionRepositoryMock: Mocked<Repository<Subscription>>;
   let sbpPaymentServiceMock: Mocked<SbpPaymentService>;
   let tinkoffKassaServiceMock: Mocked<TinkoffKassaService>;
+  let promotionServiceMock: Mocked<PromotionService>;
+  let tariffServiceMock: Mocked<TariffService>;
 
   beforeAll(async () => {
     const { unit, unitRef } = await TestBed.solitary(WebhookService)
@@ -60,6 +66,10 @@ describe(WebhookService.name, () => {
       .impl(() => ({ onAccountLinked: jest.fn() }))
       .mock(TinkoffKassaService)
       .impl(() => ({ checkToken: jest.fn() }))
+      .mock(PromotionService)
+      .impl(() => ({ markPromotionAsUsed: jest.fn() }))
+      .mock(TariffService)
+      .impl(() => ({ getTariff: jest.fn() }))
       .compile();
 
     webhookService = unit;
@@ -68,11 +78,16 @@ describe(WebhookService.name, () => {
     subscriptionRepositoryMock = unitRef.get(subscriptionRepositoryToken);
     sbpPaymentServiceMock = unitRef.get(SbpPaymentService);
     tinkoffKassaServiceMock = unitRef.get(TinkoffKassaService);
+    promotionServiceMock = unitRef.get(PromotionService);
+    tariffServiceMock = unitRef.get(TariffService);
   });
 
   beforeEach(() => {
     jest.resetAllMocks();
     tinkoffKassaServiceMock.checkToken.mockReturnValue(true);
+    tariffServiceMock.getTariff.mockResolvedValue({
+      nextChargeAt,
+    } as Awaited<ReturnType<TariffService['getTariff']>>);
     jest.spyOn(console, 'log').mockImplementation();
     jest.spyOn(console, 'error').mockImplementation();
   });
@@ -135,11 +150,20 @@ describe(WebhookService.name, () => {
       });
       expect(subscriptionRepositoryMock.update).toHaveBeenCalledWith(
         'subscription-id',
-        { status: SubscriptionStatus.ACTIVE, rebill_id: 789 },
+        {
+          status: SubscriptionStatus.ACTIVE,
+          rebill_id: 789,
+          current_period_start: paymentDate,
+          current_period_end: nextChargeAt,
+        },
       );
       expect(userRepositoryMock.update).toHaveBeenCalledWith('user-id', {
         status: UserStatus.SUBSCRIPTION_PRO,
       });
+      expect(promotionServiceMock.markPromotionAsUsed).toHaveBeenCalledWith(
+        FIRST_SUBSCRIPTION_PROMOTION_ID,
+        'user-id',
+      );
       jest.useRealTimers();
     });
 

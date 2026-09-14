@@ -79,6 +79,11 @@ export class WebhookService {
       relations: { subscription: true },
     });
 
+    if (!payment) {
+      console.error(`Payment with orderId ${orderId} not found`, notification);
+      throw new BadRequestException('Payment not found');
+    }
+
     const tariff = await this.tariffService.getTariff(
       payment.subscription.plan,
       payment.user_id,
@@ -86,11 +91,6 @@ export class WebhookService {
       // докинуть в Subscription поле, которое будет хранить на сколько месяцев куплена подписка
       false,
     );
-
-    if (!payment) {
-      console.error(`Payment with orderId ${orderId} not found`, notification);
-      throw new BadRequestException('Payment not found');
-    }
 
     await Promise.all([
       // todo: проверять, что промо использовано ранее
