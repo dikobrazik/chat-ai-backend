@@ -105,6 +105,57 @@ describe(SubscriptionCheckService.name, () => {
     expect(userServiceMock.resetSubscription).toHaveBeenCalledWith('user-id');
   });
 
+  it('Должен завершать подписку и сбрасывать статус пользователя при ошибке повторной оплаты через T-Pay', async () => {
+    const subscription = createSubscription({
+      rebill_id: 123,
+      six_months: true,
+    });
+    subscriptionServiceMock.getExpiredSubscriptions.mockResolvedValueOnce([
+      subscription,
+    ]);
+    tpayPaymentServiceMock.charge.mockRejectedValueOnce(
+      new Error('Payment failed'),
+    );
+
+    await subscriptionCheckService.handleSubscriptionCheck();
+
+    expect(tpayPaymentServiceMock.charge).toHaveBeenCalledWith(
+      subscription,
+      true,
+    );
+    expect(subscriptionServiceMock.expireSubscription).toHaveBeenCalledWith(
+      subscription.id,
+    );
+    expect(userServiceMock.resetSubscription).toHaveBeenCalledWith(
+      subscription.user_id,
+    );
+  });
+
+  it('Должен завершать подписку и сбрасывать статус пользователя при ошибке повторной оплаты через СБП', async () => {
+    const subscription = createSubscription({
+      account_token: 'account-token',
+    });
+    subscriptionServiceMock.getExpiredSubscriptions.mockResolvedValueOnce([
+      subscription,
+    ]);
+    sbpPaymentServiceMock.charge.mockRejectedValueOnce(
+      new Error('Payment failed'),
+    );
+
+    await subscriptionCheckService.handleSubscriptionCheck();
+
+    expect(sbpPaymentServiceMock.charge).toHaveBeenCalledWith(
+      subscription,
+      false,
+    );
+    expect(subscriptionServiceMock.expireSubscription).toHaveBeenCalledWith(
+      subscription.id,
+    );
+    expect(userServiceMock.resetSubscription).toHaveBeenCalledWith(
+      subscription.user_id,
+    );
+  });
+
   it('Должен продолжать обработку остальных подписок после ошибки списания', async () => {
     const failedSubscription = createSubscription({
       id: 'failed-subscription-id',
@@ -127,6 +178,12 @@ describe(SubscriptionCheckService.name, () => {
     expect(sbpPaymentServiceMock.charge).toHaveBeenCalledWith(
       sbpSubscription,
       false,
+    );
+    expect(subscriptionServiceMock.expireSubscription).toHaveBeenCalledWith(
+      failedSubscription.id,
+    );
+    expect(userServiceMock.resetSubscription).toHaveBeenCalledWith(
+      failedSubscription.user_id,
     );
   });
 

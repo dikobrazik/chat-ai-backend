@@ -23,18 +23,20 @@ export class SubscriptionCheckService {
     const expiredSubscriptions =
       await this.subscriptionService.getExpiredSubscriptions();
 
-    const result = await Promise.allSettled(
+    await Promise.allSettled(
       expiredSubscriptions.map(async (subscription) => {
         if (subscription.rebill_id) {
-          await this.tpayPaymentService.charge(
-            subscription,
-            subscription.six_months,
-          );
+          await this.tpayPaymentService
+            .charge(subscription, subscription.six_months)
+            .catch(() =>
+              this.failUserSubscription(subscription.id, subscription.user_id),
+            );
         } else if (subscription.account_token) {
-          await this.sbpPaymentService.charge(
-            subscription,
-            subscription.six_months,
-          );
+          await this.sbpPaymentService
+            .charge(subscription, subscription.six_months)
+            .catch(() =>
+              this.failUserSubscription(subscription.id, subscription.user_id),
+            );
         } else {
           await this.resetUserSubscription(
             subscription.id,
@@ -43,8 +45,6 @@ export class SubscriptionCheckService {
         }
       }),
     );
-
-    console.log('Subscription check result:', result.join('\n'));
   }
 
   // меняем статус у пользователей, которые отменили подписку
@@ -62,6 +62,15 @@ export class SubscriptionCheckService {
     );
   }
 
+  // если не получилось списать деньги, то подписка должна быть отменена
+  private async failUserSubscription(subscriptionId: string, userId: string) {
+    await Promise.all([
+      this.subscriptionService.expireSubscription(subscriptionId),
+      this.userService.resetSubscription(userId),
+    ]);
+  }
+
+  // если нет токена аккаунта и нет rebill_id, то подписка должна быть отменена
   private async resetUserSubscription(subscriptionId: string, userId: string) {
     await Promise.all([
       this.subscriptionService.expireSubscription(subscriptionId),

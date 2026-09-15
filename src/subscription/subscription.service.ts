@@ -83,6 +83,14 @@ export class SubscriptionService {
     });
   }
 
+  public failSubscription(subscriptionId: string) {
+    return this.subscriptionRepository.update(subscriptionId, {
+      current_period_start: null,
+      current_period_end: null,
+      status: SubscriptionStatus.FAILED,
+    });
+  }
+
   public cancelSubscription(userId: string) {
     return this.subscriptionRepository.update(
       {
