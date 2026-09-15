@@ -7,7 +7,6 @@ import { SubscriptionService } from '../../subscription.service';
 import { SubscriptionCheckService } from '../subscription-check.service';
 
 const CURRENT_PERIOD_END = new Date('2026-09-11T08:00:00.000Z');
-const SIX_MONTHS_PERIOD_START = new Date('2026-03-15T08:00:00.000Z');
 const MONTHLY_PERIOD_START = new Date('2026-08-11T08:00:00.000Z');
 
 const createSubscription = (overrides: Partial<Subscription> = {}) =>
@@ -16,6 +15,7 @@ const createSubscription = (overrides: Partial<Subscription> = {}) =>
     user_id: 'user-id',
     current_period_start: MONTHLY_PERIOD_START,
     current_period_end: CURRENT_PERIOD_END,
+    six_months: false,
     user: { id: 'user-id', email: 'user@example.com' },
     ...overrides,
   }) as Subscription;
@@ -62,7 +62,7 @@ describe(SubscriptionCheckService.name, () => {
     const subscription = createSubscription({
       rebill_id: 123,
       account_token: 'account-token',
-      current_period_start: SIX_MONTHS_PERIOD_START,
+      six_months: true,
     });
     subscriptionServiceMock.getExpiredSubscriptions.mockResolvedValueOnce([
       subscription,

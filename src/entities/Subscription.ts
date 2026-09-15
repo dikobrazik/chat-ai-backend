@@ -46,6 +46,9 @@ export class Subscription {
   @Column('timestamptz', { nullable: true })
   current_period_end: Date;
 
+  @Column({ default: false })
+  six_months: boolean;
+
   @Column({ type: 'bigint', nullable: true })
   rebill_id: number;
 

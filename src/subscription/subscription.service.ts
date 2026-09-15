@@ -38,6 +38,7 @@ export class SubscriptionService {
       plan: tariff.id,
       current_period_start: new Date(),
       current_period_end: tariff.nextChargeAt,
+      six_months: sixMonths,
     });
 
     return { subscriptionId };

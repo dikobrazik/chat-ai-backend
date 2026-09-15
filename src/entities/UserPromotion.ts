@@ -6,8 +6,9 @@ import {
   ManyToOne,
   PrimaryGeneratedColumn,
 } from 'typeorm';
-import { User } from './User';
 import { Promotion } from './Promotion';
+import { User } from './User';
+import { Payment } from './Payment';
 
 export enum UserPromotionStatus {
   ACTIVE = 'ACTIVE', // может быть использована
@@ -33,6 +34,13 @@ export class UserPromotion {
 
   @Column()
   promotion_id: string;
+
+  @ManyToOne(() => Payment, { onDelete: 'SET NULL' })
+  @JoinColumn({ name: 'payment_id' })
+  payment: Payment | null;
+
+  @Column({ type: 'uuid', nullable: true })
+  payment_id: string | null;
 
   @CreateDateColumn()
   activated_at: Date;

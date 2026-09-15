@@ -31,7 +31,7 @@ export class TariffService {
       plans[1].freeDays = firstSubscriptionPromotion.freeDays;
     }
 
-    if (sixMonthPromotion) {
+    if (sixMonthPromotion && sixMonths) {
       plans[1].discount = sixMonthPromotion.discount;
       plans[2].discount = sixMonthPromotion.discount;
     }

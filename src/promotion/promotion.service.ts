@@ -18,10 +18,12 @@ export class PromotionService {
   async markPromotionAsUsed(
     promotionId: string,
     userId: string,
+    paymentId: string,
   ): Promise<void> {
     await this.userPromotionRepository.save({
       promotion_id: promotionId,
       user_id: userId,
+      payment_id: paymentId,
       status: UserPromotionStatus.CONSUMED,
     });
   }
@@ -41,12 +43,14 @@ export class PromotionService {
       }),
     ]);
 
-    return userFirstSubscriptionPromotion?.status ===
-      UserPromotionStatus.EXPIRED
-      ? null
-      : {
-          freeDays: promotion.reward_value,
-        };
+    if (
+      userFirstSubscriptionPromotion &&
+      userFirstSubscriptionPromotion.status !== UserPromotionStatus.ACTIVE
+    ) {
+      return null;
+    }
+
+    return promotion ? { freeDays: promotion.reward_value } : null;
   }
 
   async getSixMonthsSubscriptionPromotion() {

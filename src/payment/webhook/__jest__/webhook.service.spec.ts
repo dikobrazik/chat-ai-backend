@@ -131,7 +131,7 @@ describe(WebhookService.name, () => {
         id: 'payment-id',
         subscription_id: 'subscription-id',
         user_id: 'user-id',
-        subscription: { plan: SubscriptionPlan.PRO },
+        subscription: { plan: SubscriptionPlan.PRO, six_months: true },
       } as Payment);
 
       await webhookService.processNotification(
@@ -144,6 +144,11 @@ describe(WebhookService.name, () => {
         where: { id: 'payment-id' },
         relations: { subscription: true },
       });
+      expect(tariffServiceMock.getTariff).toHaveBeenCalledWith(
+        SubscriptionPlan.PRO,
+        'user-id',
+        true,
+      );
       expect(paymentRepositoryMock.update).toHaveBeenCalledWith('payment-id', {
         status: PaymentStatus.CONFIRMED,
         payment_date: paymentDate,
@@ -163,6 +168,7 @@ describe(WebhookService.name, () => {
       expect(promotionServiceMock.markPromotionAsUsed).toHaveBeenCalledWith(
         FIRST_SUBSCRIPTION_PROMOTION_ID,
         'user-id',
+        'payment-id',
       );
       jest.useRealTimers();
     });

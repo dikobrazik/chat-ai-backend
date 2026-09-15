@@ -77,6 +77,7 @@ describe(SubscriptionService.name, () => {
         plan: SubscriptionPlan.PLUS,
         current_period_start: NOW,
         current_period_end: NEXT_CHARGE_AT,
+        six_months: false,
       });
     });
 
@@ -100,7 +101,10 @@ describe(SubscriptionService.name, () => {
       );
 
       expect(subscriptionRepositoryMock.save).toHaveBeenCalledWith(
-        expect.objectContaining({ id: 'existing-subscription-id' }),
+        expect.objectContaining({
+          id: 'existing-subscription-id',
+          six_months: true,
+        }),
       );
     });
   });

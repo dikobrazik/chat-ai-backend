@@ -18,22 +18,23 @@ export class SubscriptionCheckService {
   @Inject(SubscriptionService)
   private readonly subscriptionService: SubscriptionService;
 
-  @Cron(CronExpression.EVERY_DAY_AT_NOON) // каждый день в 12:00
+  @Cron(CronExpression.EVERY_30_MINUTES) // каждые 30 минут
   async handleSubscriptionCheck() {
     const expiredSubscriptions =
       await this.subscriptionService.getExpiredSubscriptions();
 
     const result = await Promise.allSettled(
       expiredSubscriptions.map(async (subscription) => {
-        const isSixMonths =
-          subscription.current_period_end.getTime() -
-            subscription.current_period_start.getTime() >=
-          6 * 30 * 24 * 60 * 60 * 1000;
-
         if (subscription.rebill_id) {
-          await this.tpayPaymentService.charge(subscription, isSixMonths);
+          await this.tpayPaymentService.charge(
+            subscription,
+            subscription.six_months,
+          );
         } else if (subscription.account_token) {
-          await this.sbpPaymentService.charge(subscription, isSixMonths);
+          await this.sbpPaymentService.charge(
+            subscription,
+            subscription.six_months,
+          );
         } else {
           await this.resetUserSubscription(
             subscription.id,

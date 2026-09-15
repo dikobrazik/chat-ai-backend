@@ -87,16 +87,14 @@ export class WebhookService {
     const tariff = await this.tariffService.getTariff(
       payment.subscription.plan,
       payment.user_id,
-      // todo: надо понимать на сколько месяцев была куплена подписка, чтобы правильно посчитать nextChargeAt
-      // докинуть в Subscription поле, которое будет хранить на сколько месяцев куплена подписка
-      false,
+      payment.subscription.six_months,
     );
 
     await Promise.all([
-      // todo: проверять, что промо использовано ранее
       this.promotionService.markPromotionAsUsed(
         FIRST_SUBSCRIPTION_PROMOTION_ID,
         payment.user_id,
+        payment.id,
       ),
       this.paymentRepository.update(payment.id, {
         status: PaymentStatus.CONFIRMED,
