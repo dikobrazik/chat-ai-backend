@@ -14,6 +14,10 @@ import { EmailAuthController } from './email-auth.controller';
 import { MailerService } from 'src/mailer/mailer.service';
 import { EmailAuthService } from './email-auth.service';
 import { PasswordResetService } from './password-reset.service';
+import { VkStrategy } from './strategies/vk.strategy';
+import { MailRuStrategy } from './strategies/mailru.strategy';
+import { OkStrategy } from './strategies/ok.strategy';
+import { OauthProviderGuard } from './guards/oauth-provider.guard';
 
 @Module({
   imports: [
@@ -24,9 +28,14 @@ import { PasswordResetService } from './password-reset.service';
     TypeOrmModule.forFeature([OauthAccount]),
   ],
   providers: [
-    AuthService,
     YandexStrategy,
     GoogleStrategy,
+    VkStrategy,
+    MailRuStrategy,
+    OkStrategy,
+    OauthProviderGuard,
+
+    AuthService,
     JwtStrategy,
     MailerService,
     EmailAuthService,

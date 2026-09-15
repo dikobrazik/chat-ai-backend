@@ -8,12 +8,12 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { AuthGuard } from '@nestjs/passport';
 import { Request, Response } from 'express';
 import { SessionService } from 'src/session/session.service';
 import { UserService } from 'src/user/user.service';
 import { ACCESS_TOKEN_EXPIRES_IN, AuthService } from './auth.service';
 import { Public } from './decorators/public.decorator';
+import { OauthProviderGuard } from './guards/oauth-provider.guard';
 
 @Public()
 @Controller('auth')
@@ -38,23 +38,13 @@ export class AuthController {
     return this.authService.getAccessToken(user, request, response);
   }
 
-  @UseGuards(AuthGuard('google'))
-  @Get('google')
-  loginGoogle() {}
+  @Get(':provider')
+  @UseGuards(OauthProviderGuard)
+  login() {}
 
-  @UseGuards(AuthGuard('yandex'))
-  @Get('yandex')
-  loginYandex() {}
-
-  @Get('ya')
-  @UseGuards(AuthGuard('yandex'))
-  async authYaRedirect(@Req() request: Request, @Res() response: Response) {
-    this.commonRedirect(request, response);
-  }
-
-  @Get('g')
-  @UseGuards(AuthGuard('google'))
-  async authGoogleRedirect(@Req() request: Request, @Res() response: Response) {
+  @Get(':provider/callback')
+  @UseGuards(OauthProviderGuard)
+  async authRedirect(@Req() request: Request, @Res() response: Response) {
     await this.commonRedirect(request, response);
   }
 

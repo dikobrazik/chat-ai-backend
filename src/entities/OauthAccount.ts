@@ -11,6 +11,9 @@ export enum OauthProvider {
   LOCAL = 'local',
   YANDEX = 'yandex',
   GOOGLE = 'google',
+  VK = 'vk',
+  MAILRU = 'mailru',
+  OK = 'ok',
 }
 
 @Entity()

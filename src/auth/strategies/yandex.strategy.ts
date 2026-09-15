@@ -15,7 +15,7 @@ export class YandexStrategy extends PassportStrategy(Strategy, 'yandex', true) {
     super({
       clientID: configService.get('YA_CLIENT_ID'),
       clientSecret: configService.get('YA_CLIENT_SECRET'),
-      callbackURL: `${configService.get('BASE_URL')}/auth/ya`,
+      callbackURL: `${configService.get('BASE_URL')}/auth/yandex/callback`,
       passReqToCallback: true,
     });
   }
@@ -26,8 +26,6 @@ export class YandexStrategy extends PassportStrategy(Strategy, 'yandex', true) {
     providerRefreshToken: string,
     profile: Profile,
   ): Promise<any> {
-    console.log(providerAccessToken, providerRefreshToken, profile);
-
     const user = await this.authService.createUser(
       OauthProvider.YANDEX,
       profile,
@@ -38,6 +36,6 @@ export class YandexStrategy extends PassportStrategy(Strategy, 'yandex', true) {
     if (!profile) {
       throw new UnauthorizedException();
     }
-    return [user];
+    return user;
   }
 }

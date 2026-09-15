@@ -1,4 +1,4 @@
-import { Profile, Strategy } from 'passport-google-oauth20';
+import { Profile, Strategy } from 'passport-vkontakte';
 import { PassportStrategy } from '@nestjs/passport';
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -7,15 +7,15 @@ import { OauthProvider } from 'src/entities/OauthAccount';
 import { Request } from 'express';
 
 @Injectable()
-export class GoogleStrategy extends PassportStrategy(Strategy) {
+export class VkStrategy extends PassportStrategy(Strategy) {
   constructor(
     private authService: AuthService,
-    private configService: ConfigService, // private authService: AuthService
+    private configService: ConfigService,
   ) {
     super({
-      clientID: configService.get('GOOGLE_CLIENT_ID'),
-      clientSecret: configService.get('GOOGLE_CLIENT_SECRET'),
-      callbackURL: `${configService.get('BASE_URL')}/auth/google/callback`,
+      clientID: configService.get('VK_CLIENT_ID'),
+      clientSecret: configService.get('VK_CLIENT_SECRET'),
+      callbackURL: `${configService.get('BASE_URL')}/auth/vk/callback`,
       scope: ['email', 'profile'],
       passReqToCallback: true,
     });
@@ -28,7 +28,7 @@ export class GoogleStrategy extends PassportStrategy(Strategy) {
     profile: Profile,
   ): Promise<any> {
     const user = await this.authService.createUser(
-      OauthProvider.GOOGLE,
+      OauthProvider.VK,
       profile,
       providerAccessToken,
       providerRefreshToken,

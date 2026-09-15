@@ -47,7 +47,6 @@ export class AuthService {
         provider_user_id: profile.id,
         access_token: accessToken,
         refresh_token: refreshToken,
-        // todo: calculate expires_at based on provider data
         expires_at: new Date(),
       },
       ['user_id'],
