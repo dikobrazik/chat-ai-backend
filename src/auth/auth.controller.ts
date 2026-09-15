@@ -45,10 +45,6 @@ export class AuthController {
   @Get(':provider/callback')
   @UseGuards(OauthProviderGuard)
   async authRedirect(@Req() request: Request, @Res() response: Response) {
-    await this.commonRedirect(request, response);
-  }
-
-  private async commonRedirect(request: Request, response: Response) {
     const accessToken = await this.authService.getAccessToken(
       request.user,
       request,
