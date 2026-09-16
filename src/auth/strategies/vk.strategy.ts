@@ -1,4 +1,4 @@
-import { Profile, Strategy } from 'passport-vkontakte';
+import { Strategy } from 'passport-vk-id';
 import { PassportStrategy } from '@nestjs/passport';
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -7,7 +7,7 @@ import { OauthProvider } from 'src/entities/OauthAccount';
 import { Request } from 'express';
 
 @Injectable()
-export class VkStrategy extends PassportStrategy(Strategy) {
+export class VkStrategy extends PassportStrategy(Strategy, 'vkontakte') {
   constructor(
     private authService: AuthService,
     private configService: ConfigService,
@@ -25,8 +25,9 @@ export class VkStrategy extends PassportStrategy(Strategy) {
     request: Request,
     providerAccessToken: string,
     providerRefreshToken: string,
-    profile: Profile,
+    profile: any,
   ): Promise<any> {
+    console.log(request, profile);
     const user = await this.authService.createUser(
       OauthProvider.VK,
       profile,

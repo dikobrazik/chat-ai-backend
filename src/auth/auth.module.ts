@@ -31,8 +31,8 @@ import { OauthProviderGuard } from './guards/oauth-provider.guard';
     YandexStrategy,
     GoogleStrategy,
     VkStrategy,
-    // MailRuStrategy,
-    // OkStrategy,
+    MailRuStrategy,
+    OkStrategy,
     OauthProviderGuard,
 
     AuthService,

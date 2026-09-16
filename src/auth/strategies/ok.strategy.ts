@@ -1,4 +1,4 @@
-import { Profile, Strategy } from 'passport-ok-strategy';
+import { Strategy } from 'passport-vk-id';
 import { PassportStrategy } from '@nestjs/passport';
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -7,7 +7,7 @@ import { OauthProvider } from 'src/entities/OauthAccount';
 import { Request } from 'express';
 
 @Injectable()
-export class OkStrategy extends PassportStrategy(Strategy) {
+export class OkStrategy extends PassportStrategy(Strategy, 'odnoklassniki') {
   constructor(
     private authService: AuthService,
     private configService: ConfigService,
@@ -17,6 +17,7 @@ export class OkStrategy extends PassportStrategy(Strategy) {
       clientSecret: configService.get('VK_CLIENT_SECRET'),
       callbackURL: `${configService.get('BASE_URL')}/auth/ok/callback`,
       scope: ['email', 'profile'],
+      provider: 'ok_ru',
       passReqToCallback: true,
     });
   }
@@ -25,7 +26,7 @@ export class OkStrategy extends PassportStrategy(Strategy) {
     request: Request,
     providerAccessToken: string,
     providerRefreshToken: string,
-    profile: Profile,
+    profile: any,
   ): Promise<any> {
     const user = await this.authService.createUser(
       OauthProvider.OK,

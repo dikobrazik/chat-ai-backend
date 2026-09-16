@@ -5,6 +5,7 @@ import { AppModule } from './app.module';
 import { ConfigService } from '@nestjs/config';
 import * as cookieParser from 'cookie-parser';
 import { ValidationPipe } from '@nestjs/common';
+import * as expressSession from 'express-session';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -26,6 +27,7 @@ async function bootstrap() {
     exclude: [],
   });
 
+  app.use(expressSession({ secret: 'my-secret' }));
   app.use(cookieParser());
 
   await app.listen(80);

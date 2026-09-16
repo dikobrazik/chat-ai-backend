@@ -34,7 +34,8 @@ export class AuthService {
     refreshToken: string,
   ) {
     const user = await this.usersService.saveUser({
-      email: profile.emails[0].value,
+      // @ts-expect-error email приходит из vk
+      email: profile.emails?.[0]?.value ?? profile.email,
       name: profile.displayName,
       photo: profile.photos?.[0]?.value,
       emailVerified: true,
