@@ -6,9 +6,13 @@ import { SubscriptionModule } from '../subscription.module';
 import { SubscriptionCheckService } from './subscription-check.service';
 import { MailerModule } from 'src/mailer/mailer.module';
 import { SubscriptionNotificationCheckService } from './subscription-notification-check.service';
+import { TariffModule } from 'src/tariff/tariff.module';
+import { PaymentAmountModule } from 'src/payment/payment-amount.module';
 
 @Module({
   imports: [
+    TariffModule,
+    PaymentAmountModule,
     MailerModule,
     SubscriptionModule,
     UserModule,
