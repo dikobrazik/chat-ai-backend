@@ -42,6 +42,7 @@ import { PromptController } from './chat/prompt.controller';
 import { TariffModule } from './tariff/tariff.module';
 import { PaymentModule } from './payment/payment.module';
 import { SubscriptionCheckModule } from './subscription/cron/subscription-check.module';
+import { SubscriptionNotification } from './entities/SubscriptionNotification';
 
 @Module({
   imports: [
@@ -85,6 +86,7 @@ import { SubscriptionCheckModule } from './subscription/cron/subscription-check.
           Promotion,
           UserPromotion,
           PromptMeta,
+          SubscriptionNotification,
         ],
         subscribers: [],
         migrations: [],

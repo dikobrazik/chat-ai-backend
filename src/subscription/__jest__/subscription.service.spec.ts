@@ -12,6 +12,7 @@ import { SubscriptionService } from '../subscription.service';
 const subscriptionRepositoryToken = getRepositoryToken(Subscription) as string;
 const NOW = new Date('2026-09-11T08:00:00.000Z');
 const NEXT_CHARGE_AT = new Date('2026-10-11T08:00:00.000Z');
+const THREE_DAYS_FROM_NOW = new Date('2026-09-14T08:00:00.000Z');
 
 describe(SubscriptionService.name, () => {
   let subscriptionService: SubscriptionService;
@@ -159,6 +160,26 @@ describe(SubscriptionService.name, () => {
           }),
         }),
       );
+    });
+  });
+
+  it('Должен искать активные подписки со списанием в ближайшие три дня', async () => {
+    subscriptionRepositoryMock.find.mockResolvedValueOnce([]);
+
+    await subscriptionService.getWillBeChargedSubscriptions();
+
+    expect(subscriptionRepositoryMock.find).toHaveBeenCalledWith({
+      where: {
+        current_period_end: expect.objectContaining({
+          _type: 'and',
+          _value: [
+            expect.objectContaining({ _value: NOW }),
+            expect.objectContaining({ _value: THREE_DAYS_FROM_NOW }),
+          ],
+        }),
+        status: SubscriptionStatus.ACTIVE,
+      },
+      relations: ['user'],
     });
   });
 

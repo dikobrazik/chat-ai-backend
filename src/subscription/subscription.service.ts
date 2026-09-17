@@ -1,12 +1,13 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
+import { add } from 'date-fns';
 import {
   Subscription,
   SubscriptionPlan,
   SubscriptionStatus,
 } from 'src/entities/Subscription';
 import { TariffService } from 'src/tariff/tariff.service';
-import { LessThanOrEqual, Repository } from 'typeorm';
+import { And, LessThanOrEqual, MoreThan, Repository } from 'typeorm';
 
 @Injectable()
 export class SubscriptionService {
@@ -63,6 +64,21 @@ export class SubscriptionService {
       where: {
         current_period_end: LessThanOrEqual(new Date()),
         status,
+      },
+      relations: ['user'],
+    });
+  }
+
+  public getWillBeChargedSubscriptions() {
+    const now = new Date();
+
+    return this.subscriptionRepository.find({
+      where: {
+        current_period_end: And(
+          MoreThan(now),
+          LessThanOrEqual(add(now, { days: 3 })),
+        ),
+        status: SubscriptionStatus.ACTIVE,
       },
       relations: ['user'],
     });

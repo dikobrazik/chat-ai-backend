@@ -17,6 +17,7 @@ import { Session } from 'src/entities/Session';
 import { Subscription } from 'src/entities/Subscription';
 import { User } from 'src/entities/User';
 import { UserPromotion } from 'src/entities/UserPromotion';
+import { SubscriptionNotification } from 'src/entities/SubscriptionNotification';
 
 export default new DataSource({
   type: 'postgres',
@@ -44,6 +45,7 @@ export default new DataSource({
     FileEntity,
     Promotion,
     UserPromotion,
+    SubscriptionNotification,
   ],
   migrations: [join(__dirname, 'migrations/*{.ts,.js}')],
 });
