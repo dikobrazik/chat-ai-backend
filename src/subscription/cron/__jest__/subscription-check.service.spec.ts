@@ -37,6 +37,7 @@ describe(SubscriptionCheckService.name, () => {
       .impl(() => ({ resetSubscription: jest.fn() }))
       .mock(SubscriptionService)
       .impl(() => ({
+        claimExpiredSubscription: jest.fn().mockResolvedValue(true),
         expireSubscription: jest.fn(),
         getExpiredSubscriptions: jest.fn(),
       }))
@@ -51,6 +52,7 @@ describe(SubscriptionCheckService.name, () => {
 
   beforeEach(() => {
     jest.resetAllMocks();
+    subscriptionServiceMock.claimExpiredSubscription.mockResolvedValue(true);
     jest.spyOn(console, 'log').mockImplementation();
   });
 
@@ -74,6 +76,24 @@ describe(SubscriptionCheckService.name, () => {
       subscription,
       true,
     );
+    expect(sbpPaymentServiceMock.charge).not.toHaveBeenCalled();
+  });
+
+  it('Не должен списывать платёж, если подписку уже обрабатывает другой процесс', async () => {
+    const subscription = createSubscription({ rebill_id: 123 });
+    subscriptionServiceMock.getExpiredSubscriptions.mockResolvedValueOnce([
+      subscription,
+    ]);
+    subscriptionServiceMock.claimExpiredSubscription.mockResolvedValueOnce(
+      false,
+    );
+
+    await subscriptionCheckService.handleSubscriptionCheck();
+
+    expect(
+      subscriptionServiceMock.claimExpiredSubscription,
+    ).toHaveBeenCalledWith(subscription.id);
+    expect(tpayPaymentServiceMock.charge).not.toHaveBeenCalled();
     expect(sbpPaymentServiceMock.charge).not.toHaveBeenCalled();
   });
 

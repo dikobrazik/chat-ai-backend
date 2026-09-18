@@ -163,6 +163,37 @@ describe(SubscriptionService.name, () => {
     });
   });
 
+  it('Должен атомарно захватывать просроченную активную подписку для продления', async () => {
+    subscriptionRepositoryMock.update.mockResolvedValueOnce({
+      affected: 1,
+    } as Awaited<ReturnType<Repository<Subscription>['update']>>);
+
+    await expect(
+      subscriptionService.claimExpiredSubscription('subscription-id'),
+    ).resolves.toBe(true);
+
+    expect(subscriptionRepositoryMock.update).toHaveBeenCalledWith(
+      {
+        id: 'subscription-id',
+        current_period_end: expect.objectContaining({ _value: NOW }),
+        status: SubscriptionStatus.ACTIVE,
+      },
+      {
+        status: SubscriptionStatus.RENEWING,
+      },
+    );
+  });
+
+  it('Не должен захватывать уже обрабатываемую или продлённую подписку', async () => {
+    subscriptionRepositoryMock.update.mockResolvedValueOnce({
+      affected: 0,
+    } as Awaited<ReturnType<Repository<Subscription>['update']>>);
+
+    await expect(
+      subscriptionService.claimExpiredSubscription('subscription-id'),
+    ).resolves.toBe(false);
+  });
+
   it('Должен искать активные подписки со списанием в ближайшие три дня', async () => {
     subscriptionRepositoryMock.find.mockResolvedValueOnce([]);
 

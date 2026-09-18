@@ -110,6 +110,36 @@ describe('SubscriptionController (интеграционный тест)', () =>
     expect(response.body).not.toHaveProperty('rebill_id');
   });
 
+  it('Должен позволить только одному процессу захватить просроченную подписку для продления', async () => {
+    const user = await userRepository.save({
+      email: 'user@example.com',
+      status: UserStatus.SUBSCRIPTION_PLUS,
+    });
+    const subscription = await subscriptionRepository.save({
+      user_id: user.id,
+      plan: SubscriptionPlan.PLUS,
+      status: SubscriptionStatus.ACTIVE,
+      current_period_start: new Date('2026-08-11T08:00:00.000Z'),
+      current_period_end: new Date('2026-09-11T08:00:00.000Z'),
+    });
+
+    const claimResults = await Promise.all([
+      moduleRef
+        .get(SubscriptionService)
+        .claimExpiredSubscription(subscription.id),
+      moduleRef
+        .get(SubscriptionService)
+        .claimExpiredSubscription(subscription.id),
+    ]);
+
+    expect(claimResults.filter(Boolean)).toHaveLength(1);
+    await expect(
+      subscriptionRepository.findOneByOrFail({ id: subscription.id }),
+    ).resolves.toMatchObject({
+      status: SubscriptionStatus.RENEWING,
+    });
+  });
+
   describe('Если подписка отсутствует', () => {
     it('Должен возвращать null', async () => {
       currentUser = await userRepository.save({

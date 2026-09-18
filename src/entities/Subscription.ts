@@ -19,6 +19,7 @@ export enum SubscriptionStatus {
   PENDING = 'pending',
   ACTIVE = 'active',
   CANCELED = 'canceled',
+  RENEWING = 'renewing',
   // для подписок, которые не удалось продлить
   FAILED = 'failed',
   EXPIRED = 'expired',

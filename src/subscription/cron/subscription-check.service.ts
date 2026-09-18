@@ -25,6 +25,14 @@ export class SubscriptionCheckService {
 
     await Promise.allSettled(
       expiredSubscriptions.map(async (subscription) => {
+        const claimed = await this.subscriptionService.claimExpiredSubscription(
+          subscription.id,
+        );
+
+        if (!claimed) {
+          return;
+        }
+
         if (subscription.rebill_id) {
           await this.tpayPaymentService
             .charge(subscription, subscription.six_months)

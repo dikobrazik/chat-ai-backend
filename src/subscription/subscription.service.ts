@@ -69,6 +69,21 @@ export class SubscriptionService {
     });
   }
 
+  public async claimExpiredSubscription(subscriptionId: string) {
+    const result = await this.subscriptionRepository.update(
+      {
+        id: subscriptionId,
+        current_period_end: LessThanOrEqual(new Date()),
+        status: SubscriptionStatus.ACTIVE,
+      },
+      {
+        status: SubscriptionStatus.RENEWING,
+      },
+    );
+
+    return result.affected === 1;
+  }
+
   public getWillBeChargedSubscriptions() {
     const now = new Date();
 
