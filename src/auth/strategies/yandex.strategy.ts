@@ -31,6 +31,7 @@ export class YandexStrategy extends PassportStrategy(Strategy, 'yandex', true) {
       profile,
       providerAccessToken,
       providerRefreshToken,
+      this.authService.consumeMailingConsent(request),
     );
 
     if (!profile) {

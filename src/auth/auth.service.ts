@@ -15,6 +15,12 @@ import { SECURE_COOKIE_OPTIONS } from './constants';
 export const ACCESS_TOKEN_EXPIRES_IN = '1day';
 export const REFRESH_TOKEN_EXPIRES_IN = '60days';
 
+type RequestWithMailingConsent = Request & {
+  session?: {
+    mailingConsent?: boolean;
+  };
+};
+
 @Injectable()
 export class AuthService {
   @InjectRepository(OauthAccount)
@@ -32,6 +38,7 @@ export class AuthService {
     profile: YandexProfile | GoogleProfile,
     accessToken: string,
     refreshToken: string,
+    mailingConsent: boolean,
   ) {
     const user = await this.usersService.saveUser({
       // @ts-expect-error email приходит из vk
@@ -39,6 +46,7 @@ export class AuthService {
       name: profile.displayName,
       photo: profile.photos?.[0]?.value,
       emailVerified: true,
+      mailing_consent: mailingConsent,
     });
 
     await this.oauthAccountRepository.upsert(
@@ -54,6 +62,15 @@ export class AuthService {
     );
 
     return user;
+  }
+
+  public consumeMailingConsent(request: Request): boolean {
+    const session = (request as RequestWithMailingConsent).session;
+    const mailingConsent = session?.mailingConsent === true;
+
+    delete session?.mailingConsent;
+
+    return mailingConsent;
   }
 
   async createSession(

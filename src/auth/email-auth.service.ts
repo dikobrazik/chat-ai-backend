@@ -21,7 +21,10 @@ export class EmailAuthService {
   @Inject(CACHE_MANAGER)
   private readonly cacheManager: Cache;
 
-  public async validateCredentials(body: EmailAuthDto) {
+  public async validateCredentials(
+    body: EmailAuthDto,
+    mailingConsent: boolean = false,
+  ) {
     const user = await this.userService.findByEmail(body.email);
 
     if (user) {
@@ -47,6 +50,11 @@ export class EmailAuthService {
         });
       }
 
+      if (mailingConsent && !user.mailing_consent) {
+        await this.userService.enableMailingConsent(user.id);
+        user.mailing_consent = true;
+      }
+
       return user;
     }
 
@@ -54,6 +62,7 @@ export class EmailAuthService {
       email: body.email,
       passwordHash: await generatePasswordHash(body.password),
       status: UserStatus.ACTIVE,
+      mailing_consent: mailingConsent,
     });
   }
 

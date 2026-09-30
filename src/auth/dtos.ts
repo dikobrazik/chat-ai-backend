@@ -1,4 +1,17 @@
-import { IsEmail, IsString, Length, MinLength } from 'class-validator';
+import {
+  IsEmail,
+  IsIn,
+  IsOptional,
+  IsString,
+  Length,
+  MinLength,
+} from 'class-validator';
+
+export class MailingConsentQueryDto {
+  @IsOptional()
+  @IsIn(['1'])
+  mailing_consent?: '1';
+}
 
 export class CheckEmailDto {
   @IsEmail()

@@ -1,4 +1,8 @@
-import { ExecutionContext, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ExecutionContext,
+  NotFoundException,
+} from '@nestjs/common';
 import { AuthGuard, type IAuthGuard } from '@nestjs/passport';
 import { OauthProviderGuard } from '../oauth-provider.guard';
 
@@ -6,12 +10,18 @@ jest.mock('@nestjs/passport', () => ({
   AuthGuard: jest.fn(),
 }));
 
-const createContext = (provider: string) =>
-  ({
+const createContext = (
+  provider: string,
+  query: Record<string, string> = {},
+) => {
+  const request = { params: { provider }, query, session: {} };
+
+  return {
     switchToHttp: () => ({
-      getRequest: () => ({ params: { provider } }),
+      getRequest: () => request,
     }),
-  }) as ExecutionContext;
+  } as ExecutionContext;
+};
 
 describe(OauthProviderGuard.name, () => {
   const canActivate = jest.fn();
@@ -72,5 +82,22 @@ describe(OauthProviderGuard.name, () => {
       new NotFoundException('OAuth provider not found'),
     );
     expect(authGuardMock).not.toHaveBeenCalled();
+  });
+
+  it('Должен сохранить явное согласие на рассылку в OAuth-сессии', async () => {
+    const context = createContext('google', { mailing_consent: '1' });
+    const request = context.switchToHttp().getRequest();
+
+    await guard.canActivate(context);
+
+    expect(request.session.mailingConsent).toBe(true);
+  });
+
+  it('Должен отклонять некорректное согласие на рассылку', () => {
+    expect(() =>
+      guard.canActivate(createContext('google', { mailing_consent: 'true' })),
+    ).toThrow(
+      new BadRequestException('mailing_consent must be "1" when provided'),
+    );
   });
 });

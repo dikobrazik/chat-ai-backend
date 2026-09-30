@@ -33,6 +33,7 @@ export class MailRuStrategy extends PassportStrategy(Strategy, 'mailru') {
       profile,
       providerAccessToken,
       providerRefreshToken,
+      this.authService.consumeMailingConsent(request),
     );
 
     if (!profile) {

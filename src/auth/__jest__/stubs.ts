@@ -10,6 +10,7 @@ export const USER_STUB = {
   id: '1',
   name: 'Me',
   emailVerified: false,
+  mailing_consent: false,
   photo: null,
   email: EMAIL_STUB,
   passwordHash: PASSWORD_HASH_STUB,

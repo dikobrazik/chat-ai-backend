@@ -23,7 +23,11 @@ describe(EmailAuthService.name, () => {
       .mock(ConfigService)
       .final({ get: jest.fn(() => '@tridva.ru') })
       .mock(UserService)
-      .impl(() => ({ findByEmail: jest.fn(), saveUser: jest.fn() }))
+      .impl(() => ({
+        enableMailingConsent: jest.fn(),
+        findByEmail: jest.fn(),
+        saveUser: jest.fn(),
+      }))
       .mock(MailerService)
       .impl(() => ({ sendAuthCode: jest.fn() }))
       .mock(CACHE_MANAGER)
@@ -54,9 +58,24 @@ describe(EmailAuthService.name, () => {
 
         expect(userServiceMock.saveUser).toHaveBeenCalledWith({
           email: EMAIL_STUB,
+          mailing_consent: false,
           passwordHash: expect.any(String),
           status: 'active',
         });
+      });
+
+      it('Должен сохранить согласие на рассылку для нового пользователя', async () => {
+        await emailAuthService.validateCredentials(
+          {
+            email: EMAIL_STUB,
+            password: PASSWORD_STUB,
+          },
+          true,
+        );
+
+        expect(userServiceMock.saveUser).toHaveBeenCalledWith(
+          expect.objectContaining({ mailing_consent: true }),
+        );
       });
     });
 
@@ -73,6 +92,20 @@ describe(EmailAuthService.name, () => {
             });
 
             expect(user).toEqual(USER_STUB);
+          });
+
+          it('Должен сохранить согласие на рассылку для существующего пользователя', async () => {
+            await emailAuthService.validateCredentials(
+              {
+                email: EMAIL_STUB,
+                password: PASSWORD_STUB,
+              },
+              true,
+            );
+
+            expect(userServiceMock.enableMailingConsent).toHaveBeenCalledWith(
+              USER_STUB.id,
+            );
           });
         });
 

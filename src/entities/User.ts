@@ -33,6 +33,9 @@ export class User {
   @Column({ default: false })
   emailVerified: boolean;
 
+  @Column({ default: false })
+  mailing_consent: boolean;
+
   @Column({ nullable: true })
   photo: string;
 

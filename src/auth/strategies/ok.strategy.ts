@@ -33,6 +33,7 @@ export class OkStrategy extends PassportStrategy(Strategy, 'odnoklassniki') {
       profile,
       providerAccessToken,
       providerRefreshToken,
+      this.authService.consumeMailingConsent(request),
     );
 
     if (!profile) {

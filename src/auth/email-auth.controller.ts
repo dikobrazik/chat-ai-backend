@@ -1,15 +1,23 @@
-import { Body, Controller, Inject, Post, Req, Res } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Inject,
+  Post,
+  Query,
+  Req,
+  Res,
+} from '@nestjs/common';
 import { Request, Response } from 'express';
 import { UserService } from 'src/user/user.service';
 import { AuthService } from './auth.service';
-import { SECURE_COOKIE_OPTIONS } from './constants';
 import { Public } from './decorators/public.decorator';
 import {
-  EmailAuthDto,
-  PasswordResetDto,
-  EmailVerifyDto,
-  PasswordResetVerifyDto,
   CheckEmailDto,
+  EmailAuthDto,
+  EmailVerifyDto,
+  MailingConsentQueryDto,
+  PasswordResetDto,
+  PasswordResetVerifyDto,
 } from './dtos';
 import { EmailAuthService } from './email-auth.service';
 import { PasswordResetService } from './password-reset.service';
@@ -29,10 +37,14 @@ export class EmailAuthController {
   @Post('sign-in')
   async signIn(
     @Body() body: EmailAuthDto,
+    @Query() query: MailingConsentQueryDto,
     @Req() request: Request,
     @Res({ passthrough: true }) response: Response,
   ) {
-    const user = await this.emailAuthService.validateCredentials(body);
+    const user = await this.emailAuthService.validateCredentials(
+      body,
+      query.mailing_consent === '1',
+    );
 
     // если пользователь уже зарегистрирован и email подтвержден, возвращаем accessToken
     if (user.emailVerified) {

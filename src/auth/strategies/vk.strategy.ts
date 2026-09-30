@@ -33,6 +33,7 @@ export class VkStrategy extends PassportStrategy(Strategy, 'vkontakte') {
       profile,
       providerAccessToken,
       providerRefreshToken,
+      this.authService.consumeMailingConsent(request),
     );
 
     if (!profile) {

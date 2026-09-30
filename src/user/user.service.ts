@@ -23,9 +23,18 @@ export class UserService {
     passwordHash,
     emailVerified,
     status,
+    mailing_consent: mailingConsent,
   }: Pick<User, 'email'> &
     Partial<
-      Pick<User, 'name' | 'photo' | 'passwordHash' | 'emailVerified' | 'status'>
+      Pick<
+        User,
+        | 'name'
+        | 'photo'
+        | 'passwordHash'
+        | 'emailVerified'
+        | 'status'
+        | 'mailing_consent'
+      >
     >) {
     const user = await this.userRepository.findOne({
       where: { email },
@@ -40,6 +49,7 @@ export class UserService {
         passwordHash,
         emailVerified,
         status,
+        mailing_consent: user.mailing_consent || mailingConsent,
       });
 
       return user;
@@ -51,8 +61,13 @@ export class UserService {
       photo,
       passwordHash,
       emailVerified,
+      mailing_consent: mailingConsent ?? false,
       status: emailVerified ? UserStatus.VERIFIED : UserStatus.ACTIVE,
     });
+  }
+
+  public enableMailingConsent(userId: string) {
+    return this.userRepository.update(userId, { mailing_consent: true });
   }
 
   public async resetSubscription(userId: string) {

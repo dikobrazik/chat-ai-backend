@@ -32,6 +32,7 @@ export class GoogleStrategy extends PassportStrategy(Strategy) {
       profile,
       providerAccessToken,
       providerRefreshToken,
+      this.authService.consumeMailingConsent(request),
     );
 
     if (!profile) {
