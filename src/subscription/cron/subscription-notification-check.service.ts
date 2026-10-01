@@ -1,5 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
+import { Subscription } from 'src/entities/Subscription';
 import { MailerService } from 'src/mailer/mailer.service';
 import {
   PaymentAmountService,
@@ -33,34 +34,16 @@ export class SubscriptionNotificationCheckService {
 
     await Promise.allSettled(
       subscriptions.map((subscription) =>
-        this.sendChargeReminder(
-          subscription.id,
-          subscription.user_id,
-          subscription.plan,
-          subscription.six_months,
-          subscription.rebill_id ? PaymentMethod.TPAY : PaymentMethod.SBP,
-          subscription.current_period_end,
-          subscription.user.email,
-          subscription.user.name,
-        ),
+        this.sendChargeReminder(subscription),
       ),
     );
   }
 
-  private async sendChargeReminder(
-    subscriptionId: string,
-    userId: string,
-    plan: Parameters<TariffService['getTariff']>[0],
-    sixMonths: boolean,
-    paymentMethod: PaymentMethod,
-    periodEnd: Date,
-    email: string,
-    name: string | null,
-  ) {
+  private async sendChargeReminder(subscription: Subscription) {
     const claimed =
       await this.subscriptionNotificationService.claimChargeReminder(
-        subscriptionId,
-        periodEnd,
+        subscription.id,
+        subscription.current_period_end,
       );
 
     if (!claimed) {
@@ -69,27 +52,30 @@ export class SubscriptionNotificationCheckService {
 
     try {
       const tariff = await this.tariffService.getTariff(
-        plan,
-        userId,
-        sixMonths,
+        subscription.plan,
+        subscription.user_id,
+        subscription.six_months,
       );
-      const amount = this.paymentAmountService.getAmount(tariff, paymentMethod);
+      const amount = this.paymentAmountService.getAmount(
+        tariff,
+        subscription.rebill_id ? PaymentMethod.TPAY : PaymentMethod.SBP,
+      );
 
       await this.mailerService.sendChargeNotification({
-        to: email,
-        name,
-        plan,
-        chargeDate: periodEnd,
+        to: subscription.user.email,
+        name: subscription.user.name,
+        plan: subscription.plan,
+        chargeDate: subscription.current_period_end,
         amount,
       });
       await this.subscriptionNotificationService.markChargeReminderSent(
-        subscriptionId,
-        periodEnd,
+        subscription.id,
+        subscription.current_period_end,
       );
     } catch (error) {
       await this.subscriptionNotificationService.markChargeReminderFailed(
-        subscriptionId,
-        periodEnd,
+        subscription.id,
+        subscription.current_period_end,
       );
       throw error;
     }
