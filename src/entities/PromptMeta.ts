@@ -1,6 +1,7 @@
-import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
+import { Column, Entity, Index, PrimaryGeneratedColumn } from 'typeorm';
 
 @Entity()
+@Index('UQ_prompt_meta_response_id', ['response_id'], { unique: true })
 export class PromptMeta {
   @PrimaryGeneratedColumn('increment')
   id: string;
@@ -11,12 +12,12 @@ export class PromptMeta {
   @Column()
   response_id: string;
 
-  @Column()
+  @Column({ default: 0 })
   input_tokens: number;
 
-  @Column()
+  @Column({ default: 0 })
   output_tokens: number;
 
-  @Column()
+  @Column({ default: 0 })
   thinking_tokens: number;
 }
