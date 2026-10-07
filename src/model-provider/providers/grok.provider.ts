@@ -44,6 +44,7 @@ export class GrokProviderService
     const response = await this.providerInstance.images.generate({
       model,
       prompt: input,
+      response_format: 'b64_json',
     });
 
     return new Observable<UnifiedAIStreamChunk>((subscriber) => {
@@ -58,7 +59,7 @@ export class GrokProviderService
 
       subscriber.next(
         this.getImagePayload(
-          response._request_id,
+          imageOutput._request_id,
           imageOutput.data[0].b64_json,
         ),
       );
