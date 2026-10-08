@@ -1,9 +1,15 @@
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
-import { Inject, Injectable } from '@nestjs/common';
+import {
+  ConflictException,
+  Inject,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Cache } from 'cache-manager';
 import { User, UserStatus } from 'src/entities/User';
-import { Repository } from 'typeorm';
+import { PatchUserDto } from 'src/user/dto';
+import { QueryFailedError, Repository } from 'typeorm';
 
 @Injectable()
 export class UserService {
@@ -68,6 +74,43 @@ export class UserService {
 
   public enableMailingConsent(userId: string) {
     return this.userRepository.update(userId, { mailing_consent: true });
+  }
+
+  public async updateProfile(
+    userId: string,
+    { name, mailing_consent }: PatchUserDto,
+  ) {
+    const user = await this.userRepository.findOne({ where: { id: userId } });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    const changes: Partial<User> = {};
+    if (name !== undefined) changes.name = name;
+    if (mailing_consent !== undefined)
+      changes.mailing_consent = mailing_consent;
+
+    if (Object.keys(changes).length === 0) return user;
+
+    try {
+      const result = await this.userRepository.update(userId, changes);
+      if (!result.affected) {
+        throw new NotFoundException('User not found');
+      }
+    } catch (error) {
+      if (
+        error instanceof QueryFailedError &&
+        'code' in error.driverError &&
+        error.driverError.code === '23505'
+      ) {
+        throw new ConflictException('Email is already in use');
+      }
+      throw error;
+    }
+
+    await this.cacheManager.del(`user:${userId}`);
+    return this.findById(userId);
   }
 
   public async resetSubscription(userId: string) {
