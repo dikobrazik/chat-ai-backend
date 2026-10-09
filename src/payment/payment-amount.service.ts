@@ -7,8 +7,8 @@ export enum PaymentMethod {
 }
 
 const TRIAL_PAYMENT_AMOUNT = {
-  [PaymentMethod.SBP]: 1_000,
-  [PaymentMethod.TPAY]: 100,
+  [PaymentMethod.SBP]: 1000,
+  [PaymentMethod.TPAY]: 1000,
 };
 
 @Injectable()
