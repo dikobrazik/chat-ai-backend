@@ -20,7 +20,7 @@ const getRequiredValue = (
 };
 
 export const getDatabaseConnectionOptions = (get: EnvironmentGetter) => {
-  const host = get('DB_HOST') ?? 'postgres';
+  const host = get('DB_HOST')?.trim() || 'postgres';
   const isDockerPostgres = host === 'postgres';
 
   const username = getRequiredValue(
@@ -38,9 +38,9 @@ export const getDatabaseConnectionOptions = (get: EnvironmentGetter) => {
     isDockerPostgres ? 'POSTGRES_DB' : 'DB_NAME',
     isDockerPostgres ? 'DB_NAME' : 'POSTGRES_DB',
   );
-  const sslEnabled = get('DB_SSL')
-    ? get('DB_SSL') === 'true'
-    : !isDockerPostgres;
+  const sslEnabled =
+    !isDockerPostgres &&
+    (get('DB_SSL')?.trim().toLowerCase() ?? 'true') === 'true';
 
   return {
     host,
