@@ -37,6 +37,7 @@ lerna-debug.log*
 # env
 .env
 .env.*
+/configs/deploy/*.env
 
 # db
 db.pem

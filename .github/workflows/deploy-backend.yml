@@ -1,4 +1,4 @@
-name: Docker Image CI
+name: Backend deployment
 
 on:
   push:
@@ -57,41 +57,29 @@ jobs:
           push: true
           tags: ${{ env.BACKEND_IMAGE }}
 
-  update-yc:
+  deploy:
     needs: build-backend
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v3
-
-      - name: echo env file to remote server
-        uses: appleboy/ssh-action@v1.0.0
-        with:
-          host: ${{ secrets.YC_HOST }}
-          username: ${{ secrets.YC_USERNAME }}
-          key: ${{ secrets.ID_RSA }}
-          script: |
-            echo "${{ secrets.ENV }}" > ~/frontend/configs/yc/backend.env
-
       - name: executing remote ssh commands using password
         uses: appleboy/ssh-action@v1.0.0
         with:
-          host: ${{ secrets.YC_HOST }}
-          username: ${{ secrets.YC_USERNAME }}
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USERNAME }}
           key: ${{ secrets.ID_RSA }}
           script: |
-            cd ~/frontend &&
+            cd /home/github/chat-ai &&
             docker login -u ${{ github.actor }} -p ${{ secrets.GITHUB_TOKEN }} ghcr.io &&
-            docker compose -f configs/yc/docker-compose.yaml stop backend && 
-            docker compose -f configs/yc/docker-compose.yaml pull backend && 
-            docker compose -f configs/yc/docker-compose.yaml up -d backend &&
+            docker compose stop backend &&
+            docker compose pull backend &&
+            docker compose up -d backend &&
             docker system prune -f
   notify:
     uses: dikobrazik/chat-ai/.github/workflows/telegram-notify.yaml@main
-    needs: [update-yc]
+    needs: [deploy]
     if: always()
     with:
-        status: ${{ needs.update-yc.result }}
+        status: ${{ needs.deploy.result }}
     secrets:
       TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
       TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
