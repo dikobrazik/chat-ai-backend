@@ -41,10 +41,11 @@ WORKDIR /usr/app
 
 ENV NODE_ENV=production
 COPY --from=dependencies --chown=node:node /usr/app/node_modules ./node_modules
+COPY --from=builder --chown=node:node /usr/app/package*.json ./
 COPY --from=builder --chown=node:node /usr/app/dist ./dist
 COPY --from=builder --chown=node:node /usr/app/db.pem ./db.pem
 COPY --from=builder --chown=node:node /usr/app/russian_trusted_root_ca_pem.crt ./russian_trusted_root_ca_pem.crt
 USER node:1001
 
 EXPOSE 80
-CMD ["node", "dist/src/main.js"]
+CMD ["sh", "-c", "npm run migration:run:prod && node dist/src/main.js"]

@@ -1,7 +1,6 @@
 import 'dotenv/config';
 
 import { DataSource } from 'typeorm';
-import { readFileSync } from 'fs';
 import { join } from 'path';
 import { Chat } from 'src/entities/Chat';
 import { FileEntity } from 'src/entities/File';
@@ -18,17 +17,11 @@ import { Subscription } from 'src/entities/Subscription';
 import { User } from 'src/entities/User';
 import { UserPromotion } from 'src/entities/UserPromotion';
 import { SubscriptionNotification } from 'src/entities/SubscriptionNotification';
+import { getDatabaseConnectionOptions } from './config';
 
 export default new DataSource({
   type: 'postgres',
-  host: process.env.DB_HOST,
-  port: Number(process.env.DB_PORT),
-  username: process.env.DB_USERNAME,
-  password: process.env.DB_PASS,
-  database: process.env.DB_NAME,
-  ssl: {
-    ca: readFileSync(join(process.cwd(), 'db.pem')),
-  },
+  ...getDatabaseConnectionOptions((key) => process.env[key]),
   synchronize: false,
   entities: [
     Chat,

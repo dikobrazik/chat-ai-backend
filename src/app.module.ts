@@ -3,9 +3,6 @@ import { AppController } from './app.controller';
 import { AuthModule } from './auth/auth.module';
 import { UserModule } from './user/user.module';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { readFileSync } from 'fs';
-import { join } from 'path';
-import { cwd } from 'process';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { JwtModule } from '@nestjs/jwt';
 import { User } from './entities/User';
@@ -43,6 +40,7 @@ import { TariffModule } from './tariff/tariff.module';
 import { PaymentModule } from './payment/payment.module';
 import { SubscriptionCheckModule } from './subscription/cron/subscription-check.module';
 import { SubscriptionNotification } from './entities/SubscriptionNotification';
+import { getDatabaseConnectionOptions } from './database/config';
 
 @Module({
   imports: [
@@ -60,14 +58,9 @@ import { SubscriptionNotification } from './entities/SubscriptionNotification';
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => ({
         type: 'postgres',
-        host: configService.getOrThrow('DB_HOST'),
-        port: configService.getOrThrow('DB_PORT'),
-        username: configService.getOrThrow('DB_USERNAME'),
-        password: configService.getOrThrow('DB_PASS'),
-        database: configService.getOrThrow('DB_NAME'),
-        ssl: {
-          ca: readFileSync(join(cwd(), 'db.pem')),
-        },
+        ...getDatabaseConnectionOptions((key) =>
+          configService.get<string>(key),
+        ),
         synchronize: false,
         dropSchema: false,
         logging: configService.get('IS_DEV') === 'true',
