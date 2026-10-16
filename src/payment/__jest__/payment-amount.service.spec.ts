@@ -16,7 +16,7 @@ describe(PaymentAmountService.name, () => {
 
   it.each([
     [1_000, PaymentMethod.SBP],
-    [100, PaymentMethod.TPAY],
+    [1_000, PaymentMethod.TPAY],
   ])(
     'Должен рассчитать сумму %i копеек за пробный период при оплате через %s',
     (expectedAmount: number, method: PaymentMethod) => {
