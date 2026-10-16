@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   CanActivate,
   ExecutionContext,
   ForbiddenException,
@@ -30,7 +31,16 @@ export class ModelGuard implements CanActivate {
     const body = request.body as CreateChatDTO;
     const user = request.user as User;
 
+    // Guards run before DTO validation.
+    if (typeof body.model_id !== 'string' || !body.model_id) {
+      throw new BadRequestException('Invalid model ID');
+    }
+
     const model = await this.modelService.getModel(body.model_id);
+
+    if (!model) {
+      throw new BadRequestException('Model not found');
+    }
 
     if (
       USER_STATUS_LIST.indexOf(user.status) <

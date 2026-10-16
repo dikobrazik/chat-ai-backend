@@ -2,6 +2,7 @@ import {
   Column,
   CreateDateColumn,
   Entity,
+  Index,
   JoinColumn,
   ManyToOne,
   OneToMany,
@@ -11,6 +12,10 @@ import { Chat } from './Chat';
 import { PromptFile } from './PromptFile';
 
 @Entity()
+@Index('idx_prompt_input_trgm', { synchronize: false })
+@Index('idx_prompt_response_trgm', { synchronize: false })
+@Index('idx_prompt_input_fts', { synchronize: false })
+@Index('idx_prompt_response_fts', { synchronize: false })
 export class Prompt {
   @PrimaryGeneratedColumn('uuid')
   id: string;

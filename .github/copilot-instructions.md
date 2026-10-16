@@ -6,10 +6,6 @@
 - Build: `npm run build`.
 - Lint: `npm run lint`. This command runs ESLint with `--fix`, so it modifies files.
 - Format: `npm run format`. This command also writes changes.
-- Show pending migrations: `npm run typeorm -- migration:show`.
-- Run migrations: `npm run migration:run`.
-- Revert the latest migration: `npm run migration:revert`.
-- Generate a migration after entity schema changes: `npm run migration:generate -- --name meaningful-name`.
 - Run all unit tests: `npm test`.
 - Run one unit spec: `npx jest src/path/to/file.spec.ts --runInBand`.
 - Run all E2E tests: `npm run test:e2e -- --runInBand`.
@@ -20,7 +16,8 @@ E2E payment tests use `@testcontainers/postgresql`, require a running Docker dae
 ## Architecture
 
 - This is a NestJS/TypeScript REST backend. `src/main.ts` configures validation with transformation, cookie parsing, CORS, and the global `/api` route prefix. `AppModule` assembles the application.
-- PostgreSQL is accessed through TypeORM. `AppModule` explicitly registers entity classes and currently enables `synchronize`; `src/database/data-source.ts` is the CLI DataSource for versioned migrations. Apply migrations before deploying changes that use database-specific SQL or indexes. Entity columns and database-facing fields use snake_case.
+- PostgreSQL is accessed through TypeORM. `AppModule` explicitly registers entity classes and enables `synchronize` for the current empty-database setup; there are no versioned migrations. `DatabaseSeedService` initializes missing providers, models, promotions, and PostgreSQL prompt-search indexes automatically before the application starts accepting requests. Existing seed records are not overwritten, and seed errors abort startup. Entity columns and database-facing fields use snake_case.
+- Model IDs are stable strings in the form `provider:API-model-name`; `Model.name` remains the name sent to the provider API. `Chat.model_id` and the create-chat DTO use string IDs.
 - The main domains are auth and sessions, chats/prompts and AI model providers, files, promotions/tariffs, payments, and subscriptions.
 - The payment flow is shared across T-Pay and SBP. `SubscriptionService` persists the subscription, `BasePaymentService` persists the payment, and `TinkoffKassaService` performs the external requests. T-Pay creates a payment link; SBP stores request parameters in cache, then completes the flow when the account-link webhook arrives.
 - `TariffService` calculates tariff prices independently of a payment provider. `PaymentAmountService` owns provider-specific charge rules: a trial with `freeDays` costs `10 ₽` through SBP and `1 ₽` through T-Pay.

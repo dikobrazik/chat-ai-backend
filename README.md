@@ -58,13 +58,137 @@ $ npm run test:e2e
 $ npm run test:cov
 ```
 
+## Database initialization
+
+For the current empty-database setup, TypeORM creates and updates the schema
+with `synchronize: true`. There are no versioned migrations or migration commands.
+This is not a safe migration strategy for a populated production database;
+introduce versioned migrations before making schema changes that must preserve
+production data.
+
+`DatabaseSeedService` runs automatically during application initialization, before
+the HTTP server accepts requests. In one transaction, it adds missing providers,
+models, and promotions, and creates the PostgreSQL prompt-search indexes.
+Existing seed records are not overwritten or removed. Seed errors abort startup.
+The database role must be allowed to install `pg_trgm` (or the extension must
+already be installed). Search indexes are excluded from TypeORM synchronization
+and created with `IF NOT EXISTS` so they survive subsequent startups.
+
+Seed data lives in `src/database/seeds/`: providers in
+`providers/providers.seed.ts`, promotions in `promotions/promotions.seed.ts`, and
+models in `models/<provider>/models.seed.ts`. `models/index.ts` combines the
+provider catalogs; `DatabaseSeedService` handles the startup transaction.
+
 ## Subscription promotions
 
-Run `npm run migration:run` to create missing subscription promotions:
+Startup creates missing subscription promotions:
 `first_subscription` grants 3 trial days to new users, and
 `six_months_subscription` provides a 10% discount on a six-month subscription.
-Existing promotions with these IDs are not modified. Reverting the seed migration
-keeps the promotions to preserve existing records and their usage history.
+Existing promotions with these IDs are not modified.
+
+## Model catalog
+
+Startup also seeds five providers with the IDs required by the
+API handlers: `1=openai`, `2=google`, `3=grok`, `4=deepseek`, `5=claude`.
+Conflicting provider mappings abort startup instead of changing routing.
+Missing models are identified by their string ID; existing model
+settings and unrelated records are preserved.
+
+| Provider | Model | Minimum user status |
+| --- | --- | --- |
+| openai | gpt-5.4-mini | active |
+| openai | gpt-5.4 | subscription_plus |
+| openai | gpt-6-astra | subscription_plus |
+| openai | gpt-6.1-sol | subscription_plus |
+| openai | gpt-6-luna | subscription_plus |
+| openai | gpt-image-2.5-sunburst | subscription_plus |
+| openai | gpt-image-2.5-flare | subscription_plus |
+| openai | gpt-4o | subscription_plus |
+| openai | gpt-4o-mini | active |
+| openai | gpt-image-1-mini | subscription_plus |
+| openai | gpt-6-sol | subscription_plus |
+| openai | gpt-5.6-sol | subscription_plus |
+| openai | gpt-5.6-terra | subscription_plus |
+| openai | gpt-5.6-luna | subscription_plus |
+| openai | gpt-5.5 | subscription_plus |
+| openai | gpt-5.5-pro | subscription_pro |
+| openai | gpt-5.4-nano | active |
+| openai | gpt-5.2 | subscription_plus |
+| openai | gpt-5.1 | subscription_plus |
+| openai | gpt-5-mini | active |
+| openai | gpt-5 | subscription_plus |
+| openai | gpt-4.1-mini | active |
+| openai | gpt-4.1-nano | active |
+| openai | o3-mini | active |
+| openai | gpt-image-2 | subscription_plus |
+| openai | gpt-image-1.5 | subscription_plus |
+| openai | gpt-image-1 | subscription_plus |
+| openai | chatgpt-image-latest | subscription_plus |
+| google | gemini-3.8-flash | active |
+| google | gemini-4-argon | subscription_plus |
+| google | gemini-3.6-flash | active |
+| google | gemini-3.5-flash-lite | active |
+| google | gemini-3.1-flash-lite | active |
+| google | gemini-nano-banana-2.1 | subscription_plus |
+| google | gemini-3.1-flash-image | subscription_plus |
+| google | gemini-3.1-flash-lite-image | subscription_plus |
+| google | gemini-3.1-pro-preview | subscription_plus |
+| google | gemini-3-flash-preview | active |
+| google | gemini-2.5-flash | active |
+| google | gemini-2.5-flash-image | subscription_plus |
+| google | gemini-2.5-flash-lite | active |
+| google | gemini-2.5-pro | subscription_plus |
+| grok | grok-4.7 | subscription_plus |
+| grok | grok-4.6 | subscription_plus |
+| grok | grok-4.5 | subscription_plus |
+| grok | grok-4.3 | subscription_plus |
+| grok | grok-imagine-image-2.0 | subscription_plus |
+| grok | grok-imagine-image | subscription_plus |
+| grok | grok-imagine-image-quality | subscription_plus |
+| deepseek | deepseek-flash | active |
+| deepseek | deepseek-v4-pro | subscription_plus |
+| claude | claude-haiku-5-5 | subscription_plus |
+| claude | claude-sonnet-5-5 | subscription_pro |
+| claude | claude-fable-5-1 | subscription_pro |
+| claude | claude-opus-5-5 | subscription_pro |
+| claude | claude-fable-5 | subscription_pro |
+| claude | claude-opus-5 | subscription_pro |
+| claude | claude-sonnet-5 | subscription_pro |
+| claude | claude-opus-4-8 | subscription_pro |
+| claude | claude-opus-4-7 | subscription_pro |
+| claude | claude-opus-4-6 | subscription_pro |
+| claude | claude-sonnet-4-6 | subscription_pro |
+| claude | claude-opus-4-5-20251101 | subscription_pro |
+| claude | claude-haiku-4-5-20251001 | subscription_plus |
+
+OpenAI models named `gpt-image-*` and `chatgpt-image-latest`, Google models
+named `gemini-*-image` or `gemini-nano-banana-2.1`, and Grok models named
+`grok-imagine-image*` have `for_image=true`;
+all other seeded models have `for_image=false`. OpenAI text mini/nano models are available
+from `active`, `gpt-5.5-pro` requires `subscription_pro`, and other OpenAI models
+require `subscription_plus`. Google text Flash/Flash-Lite models are available
+from `active`; Argon, Pro, and Google image models require `subscription_plus`.
+All Claude models are text-only; Haiku requires `subscription_plus`, while
+Sonnet, Opus, and Fable require `subscription_pro`.
+All Grok models require `subscription_plus`.
+The seed only populates the
+catalog; it does not update provider integrations or verify API-key access.
+In particular, Claude 5.5 requires adapting the existing manual thinking
+configuration before using thinking mode.
+Google image generation also needs an integration update: the current handler
+uses the Imagen `generateImages` API rather than Gemini image generation.
+
+## Model IDs
+
+Models use stable string IDs in the form `<provider>:<API-model-name>`, for
+example `openai:gpt-5.4`. The separate `name` field remains the API model name.
+`POST /api/chat` requires a string `model_id`, and model/chat responses also
+return string IDs. Numeric IDs are no longer accepted.
+
+The schema and seeds assume a fresh database with string model IDs; there is no
+automatic conversion of old numeric IDs or existing chat references. Coordinate
+the API change with the frontend. Treat IDs as immutable; replacing an API model
+should create a new catalog record rather than rename an existing ID.
 
 ## User profile
 

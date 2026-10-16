@@ -1,17 +1,11 @@
-import {
-  Column,
-  Entity,
-  JoinColumn,
-  ManyToOne,
-  PrimaryGeneratedColumn,
-} from 'typeorm';
+import { Column, Entity, JoinColumn, ManyToOne, PrimaryColumn } from 'typeorm';
 import { UserStatus } from './User';
 import { ModelProvider } from './ModelProvider';
 
 @Entity()
 export class Model {
-  @PrimaryGeneratedColumn('increment')
-  id: number;
+  @PrimaryColumn()
+  id: string;
 
   @ManyToOne(() => ModelProvider, (provider) => provider.id)
   @JoinColumn({ name: 'provider_id' })

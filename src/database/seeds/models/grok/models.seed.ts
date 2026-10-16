@@ -1,0 +1,60 @@
+import { UserStatus } from 'src/entities/User';
+
+export const GROK_MODELS = [
+  {
+    id: 'grok:grok-4.7',
+    provider_id: 3,
+    name: 'grok-4.7',
+    description: 'Модель xAI для диалогов и анализа',
+    for_image: false,
+    available_for_status: UserStatus.SUBSCRIPTION_PLUS,
+  },
+  {
+    id: 'grok:grok-4.6',
+    provider_id: 3,
+    name: 'grok-4.6',
+    description: 'Текстовая модель xAI Grok 4.6',
+    for_image: false,
+    available_for_status: UserStatus.SUBSCRIPTION_PLUS,
+  },
+  {
+    id: 'grok:grok-4.5',
+    provider_id: 3,
+    name: 'grok-4.5',
+    description: 'Текстовая модель xAI Grok 4.5',
+    for_image: false,
+    available_for_status: UserStatus.SUBSCRIPTION_PLUS,
+  },
+  {
+    id: 'grok:grok-4.3',
+    provider_id: 3,
+    name: 'grok-4.3',
+    description: 'Текстовая модель xAI Grok 4.3',
+    for_image: false,
+    available_for_status: UserStatus.SUBSCRIPTION_PLUS,
+  },
+  {
+    id: 'grok:grok-imagine-image-2.0',
+    provider_id: 3,
+    name: 'grok-imagine-image-2.0',
+    description: 'Генерация изображений xAI Grok Imagine Image 2.0',
+    for_image: true,
+    available_for_status: UserStatus.SUBSCRIPTION_PLUS,
+  },
+  {
+    id: 'grok:grok-imagine-image',
+    provider_id: 3,
+    name: 'grok-imagine-image',
+    description: 'Генерация изображений xAI Grok Imagine Image',
+    for_image: true,
+    available_for_status: UserStatus.SUBSCRIPTION_PLUS,
+  },
+  {
+    id: 'grok:grok-imagine-image-quality',
+    provider_id: 3,
+    name: 'grok-imagine-image-quality',
+    description: 'Генерация изображений xAI Grok Imagine Image Quality',
+    for_image: true,
+    available_for_status: UserStatus.SUBSCRIPTION_PLUS,
+  },
+];

@@ -1,20 +1,17 @@
-import { Transform, Type } from 'class-transformer';
+import { Transform } from 'class-transformer';
 import {
   IsBoolean,
   IsNotEmpty,
-  IsNumber,
   IsOptional,
   IsString,
   IsUUID,
-  Min,
   MinLength,
 } from 'class-validator';
 
 export class CreateChatDTO {
-  @IsNumber()
-  @Type(() => Number)
-  @Min(1)
-  model_id: number;
+  @IsString()
+  @IsNotEmpty()
+  model_id: string;
 }
 
 export class PatchChatDto {

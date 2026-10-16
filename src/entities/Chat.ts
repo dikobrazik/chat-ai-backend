@@ -38,8 +38,8 @@ export class Chat {
   @JoinColumn({ name: 'model_id' })
   model: Model;
 
-  @Column({ default: 1 })
-  model_id: number;
+  @Column()
+  model_id: string;
 
   @VirtualColumn({
     query: (alias) =>

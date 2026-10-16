@@ -41,6 +41,7 @@ import { PaymentModule } from './payment/payment.module';
 import { SubscriptionCheckModule } from './subscription/cron/subscription-check.module';
 import { SubscriptionNotification } from './entities/SubscriptionNotification';
 import { getDatabaseConnectionOptions } from './database/config';
+import { DatabaseSeedService } from './database/database-seed.service';
 
 @Module({
   imports: [
@@ -82,7 +83,6 @@ import { getDatabaseConnectionOptions } from './database/config';
           SubscriptionNotification,
         ],
         subscribers: [],
-        migrations: [],
       }),
     }),
     ConfigModule.forRoot({
@@ -141,6 +141,7 @@ import { getDatabaseConnectionOptions } from './database/config';
   ],
   controllers: [AppController],
   providers: [
+    DatabaseSeedService,
     {
       provide: APP_GUARD,
       useClass: JwtAuthGuard, // Используем кастомный Guard

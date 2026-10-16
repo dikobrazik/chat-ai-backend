@@ -20,7 +20,7 @@ export class ModelService {
     return this.modelProviderRepository.find({ relations: ['models'] });
   }
 
-  public getModel(id: number): Promise<Model> {
+  public getModel(id: string): Promise<Model> {
     return this.cacheManager.wrap(
       `model:${id}`,
       () => this.modelRepository.findOne({ where: { id } }),

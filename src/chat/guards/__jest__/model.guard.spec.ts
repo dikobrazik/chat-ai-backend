@@ -1,4 +1,8 @@
-import { ExecutionContext, ForbiddenException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ExecutionContext,
+  ForbiddenException,
+} from '@nestjs/common';
 import { TestBed, type Mocked } from '@suites/unit';
 import { type Request } from 'express';
 import { type Model } from 'src/entities/Model';
@@ -6,7 +10,7 @@ import { UserStatus } from 'src/entities/User';
 import { ModelService } from 'src/model/model.service';
 import { ModelGuard } from '../model.guard';
 
-const createContext = (modelId: number, userStatus: UserStatus) =>
+const createContext = (modelId: unknown, userStatus: UserStatus) =>
   ({
     switchToHttp: () => ({
       getRequest: () =>
@@ -33,6 +37,10 @@ describe(ModelGuard.name, () => {
     modelServiceMock = unitRef.get(ModelService);
   });
 
+  beforeEach(() => {
+    jest.resetAllMocks();
+  });
+
   it.each([
     [UserStatus.GUEST, UserStatus.GUEST],
     [UserStatus.ACTIVE, UserStatus.GUEST],
@@ -45,10 +53,12 @@ describe(ModelGuard.name, () => {
       } as Model);
 
       await expect(
-        modelGuard.canActivate(createContext(42, userStatus)),
+        modelGuard.canActivate(createContext('openai:gpt-5.4', userStatus)),
       ).resolves.toBe(true);
 
-      expect(modelServiceMock.getModel).toHaveBeenLastCalledWith(42);
+      expect(modelServiceMock.getModel).toHaveBeenLastCalledWith(
+        'openai:gpt-5.4',
+      );
     },
   );
 
@@ -58,11 +68,36 @@ describe(ModelGuard.name, () => {
     } as Model);
 
     await expect(
-      modelGuard.canActivate(createContext(7, UserStatus.VERIFIED)),
+      modelGuard.canActivate(
+        createContext('openai:gpt-5.4', UserStatus.VERIFIED),
+      ),
     ).rejects.toThrow(
       new ForbiddenException('Данная модель не доступна на вашем тарифе'),
     );
 
-    expect(modelServiceMock.getModel).toHaveBeenLastCalledWith(7);
+    expect(modelServiceMock.getModel).toHaveBeenLastCalledWith(
+      'openai:gpt-5.4',
+    );
+  });
+
+  it.each([42, '', null, undefined, {}])(
+    'должен отклонять некорректный ID модели %p до обращения к сервису',
+    async (modelId) => {
+      await expect(
+        modelGuard.canActivate(createContext(modelId, UserStatus.ACTIVE)),
+      ).rejects.toThrow(new BadRequestException('Invalid model ID'));
+
+      expect(modelServiceMock.getModel).not.toHaveBeenCalled();
+    },
+  );
+
+  it('должен возвращать явную ошибку для неизвестной модели', async () => {
+    modelServiceMock.getModel.mockResolvedValueOnce(null);
+
+    await expect(
+      modelGuard.canActivate(
+        createContext('openai:missing-model', UserStatus.ACTIVE),
+      ),
+    ).rejects.toThrow(new BadRequestException('Model not found'));
   });
 });
