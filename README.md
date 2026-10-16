@@ -60,11 +60,26 @@ $ npm run test:cov
 
 ## Database initialization
 
-For the current empty-database setup, TypeORM creates and updates the schema
-with `synchronize: true`. There are no versioned migrations or migration commands.
-This is not a safe migration strategy for a populated production database;
-introduce versioned migrations before making schema changes that must preserve
-production data.
+Schema synchronization is disabled (`synchronize: false`). Apply versioned
+migrations before starting an application version that requires schema changes.
+The CLI DataSource is `src/database/data-source.ts`; after `npm run build`, the
+production file is `dist/src/database/data-source.js`.
+
+```bash
+# Generate a migration from entity changes (review its SQL before applying)
+npm run migration:generate
+
+# Apply pending migrations locally
+npm run migration:run
+
+# Apply compiled migrations in the production image
+npm run migration:run:prod
+```
+
+Migration files belong in `src/database/migrations/`. There are currently no
+schema migrations in this repository: the schema must already exist, or an initial
+migration must be created and applied before starting against a new empty database.
+The Docker entrypoint runs compiled migrations before starting the application.
 
 `DatabaseSeedService` runs automatically during application initialization, before
 the HTTP server accepts requests. In one transaction, it adds missing providers,
@@ -185,7 +200,7 @@ example `openai:gpt-5.4`. The separate `name` field remains the API model name.
 `POST /api/chat` requires a string `model_id`, and model/chat responses also
 return string IDs. Numeric IDs are no longer accepted.
 
-The schema and seeds assume a fresh database with string model IDs; there is no
+The schema and seeds require string model IDs; there is no
 automatic conversion of old numeric IDs or existing chat references. Coordinate
 the API change with the frontend. Treat IDs as immutable; replacing an API model
 should create a new catalog record rather than rename an existing ID.

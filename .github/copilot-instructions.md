@@ -6,6 +6,10 @@
 - Build: `npm run build`.
 - Lint: `npm run lint`. This command runs ESLint with `--fix`, so it modifies files.
 - Format: `npm run format`. This command also writes changes.
+- Generate a migration from entity changes: `npm run migration:generate`.
+- Run migrations: `npm run migration:run`.
+- Run compiled migrations: `npm run migration:run:prod`.
+- Revert the latest migration: `npm run migration:revert`.
 - Run all unit tests: `npm test`.
 - Run one unit spec: `npx jest src/path/to/file.spec.ts --runInBand`.
 - Run all E2E tests: `npm run test:e2e -- --runInBand`.
@@ -16,7 +20,7 @@ E2E payment tests use `@testcontainers/postgresql`, require a running Docker dae
 ## Architecture
 
 - This is a NestJS/TypeScript REST backend. `src/main.ts` configures validation with transformation, cookie parsing, CORS, and the global `/api` route prefix. `AppModule` assembles the application.
-- PostgreSQL is accessed through TypeORM. `AppModule` explicitly registers entity classes and enables `synchronize` for the current empty-database setup; there are no versioned migrations. `DatabaseSeedService` initializes missing providers, models, promotions, and PostgreSQL prompt-search indexes automatically before the application starts accepting requests. Existing seed records are not overwritten, and seed errors abort startup. Entity columns and database-facing fields use snake_case.
+- PostgreSQL is accessed through TypeORM with `synchronize: false`. Use versioned migrations for schema changes; the CLI DataSource is `src/database/data-source.ts`, compiled to `dist/src/database/data-source.js`. Both the app and CLI must register the same entities. The CLI uses relative entity imports so it works in the production image without TypeScript path aliases. `DatabaseSeedService` initializes missing providers, models, promotions, and PostgreSQL prompt-search indexes before the application starts accepting requests; required tables must already exist. Existing seed records are not overwritten, and seed errors abort startup. Entity columns and database-facing fields use snake_case.
 - Model IDs are stable strings in the form `provider:API-model-name`; `Model.name` remains the name sent to the provider API. `Chat.model_id` and the create-chat DTO use string IDs.
 - The main domains are auth and sessions, chats/prompts and AI model providers, files, promotions/tariffs, payments, and subscriptions.
 - The payment flow is shared across T-Pay and SBP. `SubscriptionService` persists the subscription, `BasePaymentService` persists the payment, and `TinkoffKassaService` performs the external requests. T-Pay creates a payment link; SBP stores request parameters in cache, then completes the flow when the account-link webhook arrives.
