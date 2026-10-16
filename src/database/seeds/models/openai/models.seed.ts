@@ -71,7 +71,7 @@ export const OPENAI_MODELS = [
     name: 'gpt-4o-mini',
     description: 'Текстовая модель OpenAI GPT-4o Mini',
     for_image: false,
-    available_for_status: UserStatus.ACTIVE,
+    available_for_status: UserStatus.GUEST,
   },
   {
     id: 'openai:gpt-image-1-mini',

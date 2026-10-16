@@ -83,8 +83,14 @@ The Docker entrypoint runs compiled migrations before starting the application.
 
 `DatabaseSeedService` runs automatically during application initialization, before
 the HTTP server accepts requests. In one transaction, it adds missing providers,
-models, and promotions, and creates the PostgreSQL prompt-search indexes.
-Existing seed records are not overwritten or removed. Seed errors abort startup.
+models, and promotions, updates existing records by `id`, and creates the
+PostgreSQL prompt-search indexes. Fields explicitly present in each seed are
+authoritative and overwrite database values on startup. Omitted fields are left
+unchanged; an explicit `null` clears a nullable field. Creation timestamps and
+existing chat/promotion-usage references are preserved. Records removed from
+seed files are not deleted from the database. Changing an ID creates a new record
+rather than renaming the old one; provider IDs must remain fixed.
+Seed errors abort startup and roll back seed inserts and updates.
 The database role must be allowed to install `pg_trgm` (or the extension must
 already be installed). Search indexes are excluded from TypeORM synchronization
 and created with `IF NOT EXISTS` so they survive subsequent startups.
@@ -96,18 +102,18 @@ provider catalogs; `DatabaseSeedService` handles the startup transaction.
 
 ## Subscription promotions
 
-Startup creates missing subscription promotions:
+Startup creates or updates subscription promotions:
 `first_subscription` grants 3 trial days to new users, and
 `six_months_subscription` provides a 10% discount on a six-month subscription.
-Existing promotions with these IDs are not modified.
+Seed-defined fields on existing promotions with these IDs are updated.
 
 ## Model catalog
 
 Startup also seeds five providers with the IDs required by the
 API handlers: `1=openai`, `2=google`, `3=grok`, `4=deepseek`, `5=claude`.
-Conflicting provider mappings abort startup instead of changing routing.
-Missing models are identified by their string ID; existing model
-settings and unrelated records are preserved.
+Provider names are updated by their fixed IDs. A provider name already assigned
+to a different ID aborts startup instead of silently changing routing.
+Models are created or updated by their string ID; unrelated records are preserved.
 
 | Provider | Model | Minimum user status |
 | --- | --- | --- |
@@ -119,7 +125,7 @@ settings and unrelated records are preserved.
 | openai | gpt-image-2.5-sunburst | subscription_plus |
 | openai | gpt-image-2.5-flare | subscription_plus |
 | openai | gpt-4o | subscription_plus |
-| openai | gpt-4o-mini | active |
+| openai | gpt-4o-mini | guest |
 | openai | gpt-image-1-mini | subscription_plus |
 | openai | gpt-6-sol | subscription_plus |
 | openai | gpt-5.6-sol | subscription_plus |
@@ -143,7 +149,7 @@ settings and unrelated records are preserved.
 | google | gemini-4-argon | subscription_plus |
 | google | gemini-3.6-flash | active |
 | google | gemini-3.5-flash-lite | active |
-| google | gemini-3.1-flash-lite | active |
+| google | gemini-3.1-flash-lite | guest |
 | google | gemini-nano-banana-2.1 | subscription_plus |
 | google | gemini-3.1-flash-image | subscription_plus |
 | google | gemini-3.1-flash-lite-image | subscription_plus |
@@ -160,9 +166,9 @@ settings and unrelated records are preserved.
 | grok | grok-imagine-image-2.0 | subscription_plus |
 | grok | grok-imagine-image | subscription_plus |
 | grok | grok-imagine-image-quality | subscription_plus |
-| deepseek | deepseek-flash | active |
+| deepseek | deepseek-flash | guest |
 | deepseek | deepseek-v4-pro | subscription_plus |
-| claude | claude-haiku-5-5 | subscription_plus |
+| claude | claude-haiku-5-5 | active |
 | claude | claude-sonnet-5-5 | subscription_pro |
 | claude | claude-fable-5-1 | subscription_pro |
 | claude | claude-opus-5-5 | subscription_pro |
@@ -180,10 +186,10 @@ OpenAI models named `gpt-image-*` and `chatgpt-image-latest`, Google models
 named `gemini-*-image` or `gemini-nano-banana-2.1`, and Grok models named
 `grok-imagine-image*` have `for_image=true`;
 all other seeded models have `for_image=false`. OpenAI text mini/nano models are available
-from `active`, `gpt-5.5-pro` requires `subscription_pro`, and other OpenAI models
+from `active` (`gpt-4o-mini` from `guest`), `gpt-5.5-pro` requires `subscription_pro`, and other OpenAI models
 require `subscription_plus`. Google text Flash/Flash-Lite models are available
-from `active`; Argon, Pro, and Google image models require `subscription_plus`.
-All Claude models are text-only; Haiku requires `subscription_plus`, while
+from `active` (`gemini-3.1-flash-lite` from `guest`); Argon, Pro, and Google image models require `subscription_plus`.
+All Claude models are text-only; Haiku 5.5 requires `active` and Haiku 4.5 requires `subscription_plus`, while
 Sonnet, Opus, and Fable require `subscription_pro`.
 All Grok models require `subscription_plus`.
 The seed only populates the

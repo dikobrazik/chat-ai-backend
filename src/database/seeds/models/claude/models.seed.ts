@@ -7,7 +7,7 @@ export const CLAUDE_MODELS = [
     name: 'claude-haiku-5-5',
     description: 'Быстрая модель Claude',
     for_image: false,
-    available_for_status: UserStatus.SUBSCRIPTION_PLUS,
+    available_for_status: UserStatus.ACTIVE,
   },
   {
     id: 'claude:claude-sonnet-5-5',

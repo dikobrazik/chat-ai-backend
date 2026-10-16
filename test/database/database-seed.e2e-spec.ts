@@ -7,6 +7,7 @@ import {
   StartedPostgreSqlContainer,
 } from '@testcontainers/postgresql';
 import { DatabaseSeedService } from 'src/database/database-seed.service';
+import { SEED_PROMOTIONS } from 'src/database/seeds/promotions/promotions.seed';
 import { Chat } from 'src/entities/Chat';
 import { FileEntity } from 'src/entities/File';
 import { Model } from 'src/entities/Model';
@@ -109,7 +110,7 @@ describe('Автоматическое заполнение БД', () => {
       'openai:gpt-image-2.5-sunburst': UserStatus.SUBSCRIPTION_PLUS,
       'openai:gpt-image-2.5-flare': UserStatus.SUBSCRIPTION_PLUS,
       'openai:gpt-4o': UserStatus.SUBSCRIPTION_PLUS,
-      'openai:gpt-4o-mini': UserStatus.ACTIVE,
+      'openai:gpt-4o-mini': UserStatus.GUEST,
       'openai:gpt-image-1-mini': UserStatus.SUBSCRIPTION_PLUS,
       'openai:gpt-6-sol': UserStatus.SUBSCRIPTION_PLUS,
       'openai:gpt-5.6-sol': UserStatus.SUBSCRIPTION_PLUS,
@@ -133,7 +134,7 @@ describe('Автоматическое заполнение БД', () => {
       'google:gemini-4-argon': UserStatus.SUBSCRIPTION_PLUS,
       'google:gemini-3.6-flash': UserStatus.ACTIVE,
       'google:gemini-3.5-flash-lite': UserStatus.ACTIVE,
-      'google:gemini-3.1-flash-lite': UserStatus.ACTIVE,
+      'google:gemini-3.1-flash-lite': UserStatus.GUEST,
       'google:gemini-nano-banana-2.1': UserStatus.SUBSCRIPTION_PLUS,
       'google:gemini-3.1-flash-image': UserStatus.SUBSCRIPTION_PLUS,
       'google:gemini-3.1-flash-lite-image': UserStatus.SUBSCRIPTION_PLUS,
@@ -150,9 +151,9 @@ describe('Автоматическое заполнение БД', () => {
       'grok:grok-imagine-image-2.0': UserStatus.SUBSCRIPTION_PLUS,
       'grok:grok-imagine-image': UserStatus.SUBSCRIPTION_PLUS,
       'grok:grok-imagine-image-quality': UserStatus.SUBSCRIPTION_PLUS,
-      'deepseek:deepseek-flash': UserStatus.ACTIVE,
+      'deepseek:deepseek-flash': UserStatus.GUEST,
       'deepseek:deepseek-v4-pro': UserStatus.SUBSCRIPTION_PLUS,
-      'claude:claude-haiku-5-5': UserStatus.SUBSCRIPTION_PLUS,
+      'claude:claude-haiku-5-5': UserStatus.ACTIVE,
       'claude:claude-sonnet-5-5': UserStatus.SUBSCRIPTION_PRO,
       'claude:claude-fable-5-1': UserStatus.SUBSCRIPTION_PRO,
       'claude:claude-opus-5-5': UserStatus.SUBSCRIPTION_PRO,
@@ -246,7 +247,7 @@ describe('Автоматическое заполнение БД', () => {
   it.each([
     FIRST_SUBSCRIPTION_PROMOTION_ID,
     SIX_MONTHS_SUBSCRIPTION_PROMOTION_ID,
-  ])('Сохраняет настройки акции %s и добавляет недостающую', async (id) => {
+  ])('Обновляет поля акции %s из seed и сохраняет остальные', async (id) => {
     const existing = await promotions.save({
       id,
       name: 'Существующая акция',
@@ -254,24 +255,30 @@ describe('Автоматическое заполнение БД', () => {
       reward_type: PromotionRewardType.PERCENT_DISCOUNT,
       reward_value: 20,
       max_usages_per_user: 5,
+      code: 'existing-code',
+      max_usages: 42,
+      created_at: new Date('2020-01-01T00:00:00Z'),
       ends_at: new Date('2027-01-01T00:00:00Z'),
     });
 
     await seed.onModuleInit();
 
     expect(await promotions.count()).toBe(2);
-    expect(await promotions.findOneByOrFail({ id })).toEqual(existing);
+    expect(await promotions.findOneByOrFail({ id })).toEqual({
+      ...existing,
+      ...SEED_PROMOTIONS.find((promotion) => promotion.id === id),
+    });
   });
 
-  it('Сохраняет настройки существующих моделей и сторонние записи', async () => {
+  it('Обновляет существующие модели и сохраняет сторонние записи', async () => {
     await dataSource.query(`
       INSERT INTO "model_provider" ("id", "name")
       VALUES (1, 'openai'), (20, 'custom')
     `);
     const existing = await models.save({
       id: 'openai:gpt-5.4-mini',
-      provider_id: 1,
-      name: 'gpt-5.4-mini',
+      provider_id: 20,
+      name: 'old-model-name',
       description: 'Существующее описание',
       for_image: true,
       available_for_status: UserStatus.SUBSCRIPTION_PRO,
@@ -289,14 +296,21 @@ describe('Автоматическое заполнение БД', () => {
 
     expect(await providers.count()).toBe(6);
     expect(await models.count()).toBe(65);
-    expect(await models.findOneByOrFail({ id: existing.id })).toEqual(existing);
+    expect(await models.findOneByOrFail({ id: existing.id })).toMatchObject({
+      id: existing.id,
+      provider_id: 1,
+      name: 'gpt-5.4-mini',
+      description: 'Быстрая модель для повседневных задач',
+      for_image: false,
+      available_for_status: UserStatus.ACTIVE,
+    });
     expect(await models.findOneByOrFail({ id: custom.id })).toEqual(custom);
     expect((await providers.save({ name: 'another-provider' })).id).toBe(21);
   });
 
   it.each([
-    { id: 1, name: 'custom' },
     { id: 10, name: 'openai' },
+    { id: 3, name: 'google' },
   ])('Явно сообщает о конфликте провайдера $id=$name', async (provider) => {
     await dataSource.query(
       `INSERT INTO "model_provider" ("id", "name") VALUES ($1, $2)`,
@@ -312,6 +326,20 @@ describe('Автоматическое заполнение БД', () => {
     expect(await promotions.count()).toBe(0);
   });
 
+  it('Обновляет имя провайдера по его фиксированному ID', async () => {
+    await dataSource.query(
+      `INSERT INTO "model_provider" ("id", "name") VALUES (1, 'outdated-name')`,
+    );
+
+    await seed.onModuleInit();
+
+    expect(await providers.findOneByOrFail({ id: 1 })).toEqual({
+      id: 1,
+      name: 'openai',
+    });
+    expect(await providers.count()).toBe(5);
+  });
+
   it('Откатывает все добавленные записи при ошибке заполнения', async () => {
     await dataSource.query(`
       ALTER TABLE "model" ADD CONSTRAINT "reject_seed_model"
@@ -323,6 +351,35 @@ describe('Автоматическое заполнение БД', () => {
     expect(await providers.count()).toBe(0);
     expect(await models.count()).toBe(0);
     expect(await promotions.count()).toBe(0);
+  });
+
+  it('Откатывает обновления провайдеров и моделей при ошибке обновления акции', async () => {
+    await seed.onModuleInit();
+    await providers.update({ id: 1 }, { name: 'outdated-name' });
+    await models.update(
+      { id: 'openai:gpt-5.4-mini' },
+      { description: 'Старое описание' },
+    );
+    await promotions.update(
+      { id: FIRST_SUBSCRIPTION_PROMOTION_ID },
+      { reward_value: 99 },
+    );
+    await dataSource.query(`
+      ALTER TABLE "promotion" ADD CONSTRAINT "reject_seed_promotion"
+      CHECK ("reward_value" <> 3)
+    `);
+
+    await expect(seed.onModuleInit()).rejects.toThrow('reject_seed_promotion');
+
+    expect(await providers.findOneByOrFail({ id: 1 })).toMatchObject({
+      name: 'outdated-name',
+    });
+    expect(
+      await models.findOneByOrFail({ id: 'openai:gpt-5.4-mini' }),
+    ).toMatchObject({ description: 'Старое описание' });
+    expect(
+      await promotions.findOneByOrFail({ id: FIRST_SUBSCRIPTION_PROMOTION_ID }),
+    ).toMatchObject({ reward_value: 99 });
   });
 
   it('Не уменьшает уже продвинутую последовательность ID провайдеров', async () => {
@@ -350,6 +407,25 @@ describe('Автоматическое заполнение БД', () => {
 
     expect(savedChat.model_id).toBe('openai:gpt-5.4');
     expect((await savedChat.model).name).toBe('gpt-5.4');
+
+    await models.update(
+      { id: 'openai:gpt-5.4' },
+      {
+        description: 'Старое описание',
+        available_for_status: UserStatus.GUEST,
+      },
+    );
+    await seed.onModuleInit();
+    const updatedChat = await dataSource
+      .getRepository(Chat)
+      .findOneByOrFail({ id: chat.id });
+    expect(updatedChat.model_id).toBe('openai:gpt-5.4');
+    expect(await updatedChat.model).toMatchObject({
+      id: 'openai:gpt-5.4',
+      description: 'Модель для сложных задач и программирования',
+      available_for_status: UserStatus.SUBSCRIPTION_PLUS,
+    });
+
     await expect(
       dataSource.query(`UPDATE "chat" SET "model_id" = 'openai:missing-model'`),
     ).rejects.toThrow('foreign key constraint');

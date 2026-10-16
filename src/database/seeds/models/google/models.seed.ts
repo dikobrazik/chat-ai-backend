@@ -39,7 +39,7 @@ export const GOOGLE_MODELS = [
     name: 'gemini-3.1-flash-lite',
     description: 'Текстовая модель Google Gemini 3.1 Flash-Lite',
     for_image: false,
-    available_for_status: UserStatus.ACTIVE,
+    available_for_status: UserStatus.GUEST,
   },
   {
     id: 'google:gemini-nano-banana-2.1',

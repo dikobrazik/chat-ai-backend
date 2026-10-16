@@ -23,8 +23,7 @@ export class DatabaseSeedService implements OnModuleInit {
       for (const provider of SEED_PROVIDERS) {
         const conflict = existingProviders.find(
           (existing) =>
-            (existing.id === provider.id && existing.name !== provider.name) ||
-            (existing.name === provider.name && existing.id !== provider.id),
+            existing.name === provider.name && existing.id !== provider.id,
         );
         if (conflict) {
           throw new Error(
@@ -37,24 +36,24 @@ export class DatabaseSeedService implements OnModuleInit {
       for (const provider of SEED_PROVIDERS) {
         await manager.query(
           `INSERT INTO "model_provider" ("id", "name") VALUES ($1, $2)
-           ON CONFLICT ("id") DO NOTHING`,
+           ON CONFLICT ("id") DO UPDATE SET "name" = EXCLUDED."name"
+           WHERE "model_provider"."name" IS DISTINCT FROM EXCLUDED."name"`,
           [provider.id, provider.name],
         );
       }
-      await manager
-        .createQueryBuilder()
-        .insert()
-        .into(Model)
-        .values(SEED_MODELS)
-        .orIgnore()
-        .execute();
-      await manager
-        .createQueryBuilder()
-        .insert()
-        .into(Promotion)
-        .values(SEED_PROMOTIONS)
-        .orIgnore()
-        .execute();
+      // Per-record upserts leave fields omitted from that seed untouched.
+      for (const model of SEED_MODELS) {
+        await manager.upsert(Model, model, {
+          conflictPaths: ['id'],
+          skipUpdateIfNoValuesChanged: true,
+        });
+      }
+      for (const promotion of SEED_PROMOTIONS) {
+        await manager.upsert(Promotion, promotion, {
+          conflictPaths: ['id'],
+          skipUpdateIfNoValuesChanged: true,
+        });
+      }
       await manager.query(`
         SELECT setval(
           pg_get_serial_sequence('model_provider', 'id'),

@@ -7,7 +7,7 @@ export const DEEPSEEK_MODELS = [
     name: 'deepseek-flash',
     description: 'Быстрая модель DeepSeek для повседневных задач',
     for_image: false,
-    available_for_status: UserStatus.ACTIVE,
+    available_for_status: UserStatus.GUEST,
   },
   {
     id: 'deepseek:deepseek-v4-pro',
