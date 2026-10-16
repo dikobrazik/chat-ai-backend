@@ -58,6 +58,14 @@ $ npm run test:e2e
 $ npm run test:cov
 ```
 
+## Subscription promotions
+
+Run `npm run migration:run` to create missing subscription promotions:
+`first_subscription` grants 3 trial days to new users, and
+`six_months_subscription` provides a 10% discount on a six-month subscription.
+Existing promotions with these IDs are not modified. Reverting the seed migration
+keeps the promotions to preserve existing records and their usage history.
+
 ## User profile
 
 `PATCH /api/user/profile` updates the authenticated user's profile and returns
