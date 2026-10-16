@@ -3,7 +3,7 @@ import {
   StartedPostgreSqlContainer,
 } from '@testcontainers/postgresql';
 import { DataSource } from 'typeorm';
-import { AddPromptFullTextIndexes1789376667000 } from 'src/database/migrations/1789376667000-add-prompt-full-text-indexes';
+import { AddPromptFullTextIndexes1789376667000 } from 'src/database/migrations/legacy/1789376667000-add-prompt-full-text-indexes';
 
 jest.setTimeout(120_000);
 

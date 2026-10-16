@@ -183,7 +183,7 @@ describe('Использование акции при оплате (интег�
       subscription_id: subscription.id,
     });
 
-    expect(firstPayment.amount).toBe(100);
+    expect(firstPayment.amount).toBe(1_000);
 
     await webhookService.processNotification({
       TerminalKey: 'terminal-key',

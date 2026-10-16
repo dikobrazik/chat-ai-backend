@@ -3,7 +3,7 @@ import {
   StartedPostgreSqlContainer,
 } from '@testcontainers/postgresql';
 import { DataSource } from 'typeorm';
-import { AddPromptTrigramIndexes1789376666000 } from 'src/database/migrations/1789376666000-add-prompt-trigram-indexes';
+import { AddPromptTrigramIndexes1789376666000 } from 'src/database/migrations/legacy/1789376666000-add-prompt-trigram-indexes';
 
 jest.setTimeout(120_000);
 

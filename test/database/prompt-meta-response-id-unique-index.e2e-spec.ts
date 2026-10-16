@@ -3,8 +3,8 @@ import {
   StartedPostgreSqlContainer,
 } from '@testcontainers/postgresql';
 import { DataSource } from 'typeorm';
-import { AddPromptMetaResponseIdUniqueIndex1789660000000 } from 'src/database/migrations/1789660000000-add-prompt-meta-response-id-unique-index';
-import { AddPromptMetaTokenDefaults1789670000000 } from 'src/database/migrations/1789670000000-add-prompt-meta-token-defaults';
+import { AddPromptMetaResponseIdUniqueIndex1789660000000 } from 'src/database/migrations/legacy/1789660000000-add-prompt-meta-response-id-unique-index';
+import { AddPromptMetaTokenDefaults1789670000000 } from 'src/database/migrations/legacy/1789670000000-add-prompt-meta-token-defaults';
 
 jest.setTimeout(120_000);
 
