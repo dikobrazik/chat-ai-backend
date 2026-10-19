@@ -58,6 +58,32 @@ $ npm run test:e2e
 $ npm run test:cov
 ```
 
+## S3 storage
+
+`FileStorageService` supports cloud S3 and self-hosted SeaweedFS. Configure:
+
+| Variable | Purpose |
+| --- | --- |
+| `S3_ENDPOINT` | Public endpoint used for signed image URLs; browsers must be able to reach it. |
+| `S3_INTERNAL_ENDPOINT` | Optional endpoint for server-side uploads/downloads; defaults to `S3_ENDPOINT`. |
+| `S3_FORCE_PATH_STYLE` | Set to `true` for SeaweedFS; omitted or `false` preserves cloud S3 virtual-host addressing. |
+| `S3_REGION` | Signing region, `us-east-1` for the SeaweedFS deployment. |
+| `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY` | S3 credentials; never commit real values. |
+| `USER_FILES_BUCKET_NAME`, `GENERATED_IMAGES_BUCKET_NAME` | Existing buckets for user uploads and generated images. |
+
+The production Compose configuration lives in the adjacent `chat-ai` repository.
+Keep local storage credentials in `storage.env` at this repository's root; it is
+excluded from Git and Docker build contexts. The adjacent repository's
+`tools/copy-env.sh` copies it to the server alongside the frontend/backend env files.
+It uses `http://seaweedfs:8333` internally and `https://jonu.ru:9443` publicly,
+with HTTPS provided by the existing nginx certificate. Image URLs expire after
+120 seconds. The proxy must preserve the original path, query string, and
+`Host` including the port; changing these breaks S3 signatures.
+
+Changing storage endpoints does not copy existing objects. Migrate both buckets
+while preserving their names and keys before switching a database with existing
+files/images to SeaweedFS.
+
 ## Database initialization
 
 Schema synchronization is disabled (`synchronize: false`). Apply versioned

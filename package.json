@@ -8,6 +8,7 @@
   "scripts": {
     "build": "nest build",
     "postgres:open": "ssh -N -L 15432:127.0.0.1:5432 cloud",
+    "dozzle:open": "ssh -N -L 8081:127.0.0.1:8081 cloud",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "start": "nest start",
     "start:dev": "nest start --watch",

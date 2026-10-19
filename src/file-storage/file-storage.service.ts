@@ -2,6 +2,7 @@ import {
   GetObjectCommand,
   PutObjectCommand,
   S3Client,
+  S3ClientConfig,
 } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { Injectable } from '@nestjs/common';
@@ -14,24 +15,46 @@ import { loadEsm } from 'load-esm';
 @Injectable()
 export class FileStorageService {
   private s3Client: S3Client;
+  private s3SigningClient: S3Client;
 
   @InjectRepository(FileEntity)
   private readonly filesRepository: Repository<FileEntity>;
 
   constructor(private configService: ConfigService) {
-    this.s3Client = new S3Client({
-      endpoint: configService.get<string>('S3_ENDPOINT'),
+    const endpoint = configService.get<string>('S3_ENDPOINT');
+    const internalEndpoint = configService.get<string>('S3_INTERNAL_ENDPOINT');
+
+    if (internalEndpoint && !endpoint) {
+      throw new Error(
+        'S3_ENDPOINT is required when S3_INTERNAL_ENDPOINT is configured',
+      );
+    }
+
+    const options: S3ClientConfig = {
       region: configService.get<string>('S3_REGION'),
+      forcePathStyle:
+        configService
+          .get<string>('S3_FORCE_PATH_STYLE')
+          ?.trim()
+          .toLowerCase() === 'true',
       credentials: {
         accessKeyId: configService.get<string>('S3_ACCESS_KEY_ID'),
         secretAccessKey: configService.get<string>('S3_SECRET_ACCESS_KEY'),
       },
+    };
+
+    this.s3Client = new S3Client({
+      ...options,
+      endpoint: internalEndpoint || endpoint,
     });
+    this.s3SigningClient = internalEndpoint
+      ? new S3Client({ ...options, endpoint })
+      : this.s3Client;
   }
 
   async getPromptImageUrl(chatId: string, promptId: string) {
     return getSignedUrl(
-      this.s3Client,
+      this.s3SigningClient,
       new GetObjectCommand({
         Bucket: this.configService.get<string>('GENERATED_IMAGES_BUCKET_NAME'),
         Key: `${chatId}/${promptId}.png`,
