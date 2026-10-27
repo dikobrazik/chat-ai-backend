@@ -368,6 +368,90 @@ describe(SubscriptionService.name, () => {
     );
   });
 
+  describe('Перепривязка способа оплаты', () => {
+    it('Должен искать подписку только текущего пользователя', async () => {
+      subscriptionRepositoryMock.findOne.mockResolvedValueOnce(
+        Object.assign(new Subscription(), { id: 'subscription-id' }),
+      );
+
+      await expect(
+        subscriptionService.getSubscriptionIdForUser('user-id'),
+      ).resolves.toBe('subscription-id');
+      expect(subscriptionRepositoryMock.findOne).toHaveBeenCalledWith({
+        select: { id: true },
+        where: { user_id: 'user-id' },
+      });
+    });
+
+    it('Должен возвращать конфликт без подписки', async () => {
+      subscriptionRepositoryMock.findOne.mockResolvedValueOnce(null);
+
+      await expect(
+        subscriptionService.getSubscriptionIdForUser('user-id'),
+      ).rejects.toThrow(ConflictException);
+    });
+
+    it.each([0, 1])(
+      'Должен регистрировать запрос только существующей подписки (%s)',
+      async (affected) => {
+        subscriptionRepositoryMock.update.mockResolvedValueOnce({
+          affected,
+          raw: [],
+          generatedMaps: [],
+        });
+        const result = subscriptionService.setPaymentMethodLinkRequest(
+          'subscription-id',
+          'user-id',
+          'request-key',
+        );
+        if (affected === 1) {
+          await expect(result).resolves.toBeUndefined();
+        } else {
+          await expect(result).rejects.toThrow(ConflictException);
+        }
+        expect(subscriptionRepositoryMock.update).toHaveBeenCalledWith(
+          { id: 'subscription-id', user_id: 'user-id' },
+          { payment_method_link_request_key: 'request-key' },
+        );
+      },
+    );
+
+    it.each([0, 1])(
+      'Должен атомарно заменять реквизиты только для текущего запроса (%s)',
+      async (affected) => {
+        subscriptionRepositoryMock.update.mockResolvedValueOnce({
+          affected,
+          raw: [],
+          generatedMaps: [],
+        });
+
+        await expect(
+          subscriptionService.completePaymentMethodLink(
+            'subscription-id',
+            'user-id',
+            'request-key',
+            'new-token',
+            'Банк',
+          ),
+        ).resolves.toBe(affected === 1);
+        expect(subscriptionRepositoryMock.update).toHaveBeenCalledWith(
+          {
+            id: 'subscription-id',
+            user_id: 'user-id',
+            payment_method_link_request_key: 'request-key',
+          },
+          {
+            account_token: 'new-token',
+            sbp_bank_name: 'Банк',
+            rebill_id: null,
+            tpay_card_mask: null,
+            payment_method_link_request_key: null,
+          },
+        );
+      },
+    );
+  });
+
   describe('getExpiredSubscriptions', () => {
     it('Должен искать истёкшие активные подписки вместе с пользователем', async () => {
       subscriptionRepositoryMock.find.mockResolvedValueOnce([]);

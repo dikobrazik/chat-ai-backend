@@ -57,6 +57,55 @@ export class SubscriptionService {
     });
   }
 
+  public async getSubscriptionIdForUser(userId: string): Promise<string> {
+    const subscription = await this.subscriptionRepository.findOne({
+      select: { id: true },
+      where: { user_id: userId },
+    });
+    if (!subscription) {
+      throw new ConflictException('Subscription not found');
+    }
+    return subscription.id;
+  }
+
+  public async setPaymentMethodLinkRequest(
+    subscriptionId: string,
+    userId: string,
+    requestKey: string,
+  ): Promise<void> {
+    const result = await this.subscriptionRepository.update(
+      { id: subscriptionId, user_id: userId },
+      { payment_method_link_request_key: requestKey },
+    );
+    if (result.affected !== 1) {
+      throw new ConflictException('Subscription not found');
+    }
+  }
+
+  public async completePaymentMethodLink(
+    subscriptionId: string,
+    userId: string,
+    requestKey: string,
+    accountToken: string,
+    bankName: string | null,
+  ): Promise<boolean> {
+    const result = await this.subscriptionRepository.update(
+      {
+        id: subscriptionId,
+        user_id: userId,
+        payment_method_link_request_key: requestKey,
+      },
+      {
+        account_token: accountToken,
+        sbp_bank_name: bankName,
+        rebill_id: null,
+        tpay_card_mask: null,
+        payment_method_link_request_key: null,
+      },
+    );
+    return result.affected === 1;
+  }
+
   public updateRebillId(subscriptionId: string, rebillId: number) {
     return this.subscriptionRepository.update(subscriptionId, {
       rebill_id: rebillId,

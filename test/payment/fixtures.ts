@@ -7,13 +7,34 @@ import {
 import { User } from 'src/entities/User';
 import {
   KassaNotification,
+  AddAccountQrNotification,
   ReceiptNotification,
 } from 'src/payment/webhook/types';
 import {
   PAYMENT_NOTIFICATION_STATUSES,
+  LINK_ACCOUNT_NOTIFICATION_STATUSES,
   RECEIPT_NOTIFICATION_STATUSES,
 } from 'src/payment/webhook/constants';
 import { type Repository } from 'typeorm';
+
+export function createAccountLinkNotification(
+  overrides: Partial<AddAccountQrNotification> = {},
+): AddAccountQrNotification {
+  return {
+    TerminalKey: 'terminal-key',
+    RequestKey: 'request-key',
+    Status: LINK_ACCOUNT_NOTIFICATION_STATUSES.ACTIVE,
+    Success: true,
+    ErrorCode: '0',
+    Message: 'OK',
+    AccountToken: 'account-token',
+    BankMemberId: 'member-id',
+    BankMemberName: 'Банк',
+    Token: 'valid-token',
+    NotificationType: 'LinkAccount',
+    ...overrides,
+  };
+}
 
 export function createSubscription(
   repository: Repository<Subscription>,

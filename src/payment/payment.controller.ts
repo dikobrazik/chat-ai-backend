@@ -26,6 +26,12 @@ export class PaymentController {
     return response.json(await this.paymentService.getMethod(user.id));
   }
 
+  // перепривязать метод оплаты (сменить сбп)
+  @Post('method/generate-qr')
+  public generatePaymentMethodQr(@User() user: UserEntity) {
+    return this.sbpPaymentService.getPaymentMethodQr(user);
+  }
+
   @Post('generate-qr')
   public async generateSbpQr(
     @Body() body: TariffInfoDto,

@@ -1,4 +1,5 @@
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import { BadRequestException, ConflictException, Logger } from '@nestjs/common';
 import { TestBed, type Mocked } from '@suites/unit';
 import { type Cache } from 'cache-manager';
 import { Subscription, SubscriptionPlan } from 'src/entities/Subscription';
@@ -41,6 +42,9 @@ describe(SbpPaymentService.name, () => {
       .impl(() => ({
         createSubscription: createSubscriptionMock,
         updateAccountToken: jest.fn(),
+        getSubscriptionIdForUser: jest.fn(),
+        setPaymentMethodLinkRequest: jest.fn(),
+        completePaymentMethodLink: jest.fn(),
       }))
       .mock(TinkoffKassaService)
       .impl(() => ({
@@ -58,6 +62,83 @@ describe(SbpPaymentService.name, () => {
 
   beforeEach(() => {
     jest.resetAllMocks();
+    jest.spyOn(Logger.prototype, 'warn').mockImplementation();
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  describe('getPaymentMethodQr', () => {
+    it('Должен создать QR без оплаты и привязать запрос к пользователю и подписке', async () => {
+      subscriptionServiceMock.getSubscriptionIdForUser.mockResolvedValueOnce(
+        'subscription-id',
+      );
+      tinkoffKassaServiceMock.addAccountQr.mockResolvedValueOnce({
+        RequestKey: 'request-key',
+        Data: '<svg />',
+      } as Awaited<ReturnType<TinkoffKassaService['addAccountQr']>>);
+      const createPayment = jest.spyOn(paymentService, 'createPayment');
+
+      await expect(
+        paymentService.getPaymentMethodQr(
+          Object.assign(new User(), { id: 'user-id' }),
+        ),
+      ).resolves.toEqual({ svg: '<svg />' });
+
+      expect(
+        subscriptionServiceMock.getSubscriptionIdForUser,
+      ).toHaveBeenCalledWith('user-id');
+      expect(cacheManagerMock.set).toHaveBeenCalledWith(
+        'request-key',
+        {
+          purpose: 'method_change',
+          subscriptionId: 'subscription-id',
+          userId: 'user-id',
+        },
+        30 * 60 * 1_000,
+      );
+      expect(
+        subscriptionServiceMock.setPaymentMethodLinkRequest,
+      ).toHaveBeenCalledWith('subscription-id', 'user-id', 'request-key');
+      expect(createPayment).not.toHaveBeenCalled();
+      expect(subscriptionServiceMock.createSubscription).not.toHaveBeenCalled();
+      expect(tinkoffKassaServiceMock.createPayment).not.toHaveBeenCalled();
+      expect(tinkoffKassaServiceMock.chargeQr).not.toHaveBeenCalled();
+    });
+
+    it('Должен вернуть конфликт до обращения в банк, если подписки нет', async () => {
+      subscriptionServiceMock.getSubscriptionIdForUser.mockRejectedValueOnce(
+        new ConflictException(),
+      );
+
+      await expect(
+        paymentService.getPaymentMethodQr(
+          Object.assign(new User(), { id: 'user-id' }),
+        ),
+      ).rejects.toThrow(ConflictException);
+      expect(tinkoffKassaServiceMock.addAccountQr).not.toHaveBeenCalled();
+      expect(cacheManagerMock.set).not.toHaveBeenCalled();
+    });
+
+    it('Не должен менять ожидаемый запрос при ошибке банка', async () => {
+      subscriptionServiceMock.getSubscriptionIdForUser.mockResolvedValueOnce(
+        'subscription-id',
+      );
+      tinkoffKassaServiceMock.addAccountQr.mockRejectedValueOnce(
+        new Error('Bank unavailable'),
+      );
+
+      await expect(
+        paymentService.getPaymentMethodQr(
+          Object.assign(new User(), { id: 'user-id' }),
+        ),
+      ).rejects.toThrow('Bank unavailable');
+      expect(cacheManagerMock.set).not.toHaveBeenCalled();
+      expect(
+        subscriptionServiceMock.setPaymentMethodLinkRequest,
+      ).not.toHaveBeenCalled();
+    });
   });
 
   describe('getAddAccountQr', () => {
@@ -88,6 +169,82 @@ describe(SbpPaymentService.name, () => {
   });
 
   describe('onAccountLinked', () => {
+    it('Должен завершать перепривязку без создания подписки, платежа или списания', async () => {
+      cacheManagerMock.get.mockResolvedValueOnce({
+        purpose: 'method_change',
+        subscriptionId: 'subscription-id',
+        userId: 'user-id',
+      });
+      subscriptionServiceMock.completePaymentMethodLink.mockResolvedValueOnce(
+        true,
+      );
+      const createPayment = jest.spyOn(paymentService, 'createPayment');
+
+      await paymentService.onAccountLinked(accountLinkedNotification);
+
+      expect(
+        subscriptionServiceMock.completePaymentMethodLink,
+      ).toHaveBeenCalledWith(
+        'subscription-id',
+        'user-id',
+        'request-key',
+        'account-token',
+        'Банк',
+      );
+      expect(createPayment).not.toHaveBeenCalled();
+      expect(subscriptionServiceMock.createSubscription).not.toHaveBeenCalled();
+      expect(tinkoffKassaServiceMock.createPayment).not.toHaveBeenCalled();
+      expect(tinkoffKassaServiceMock.chargeQr).not.toHaveBeenCalled();
+    });
+
+    it('Должен явно отклонять неизвестный или истёкший запрос без списания', async () => {
+      cacheManagerMock.get.mockResolvedValueOnce(undefined);
+
+      await expect(
+        paymentService.onAccountLinked(accountLinkedNotification),
+      ).rejects.toThrow(BadRequestException);
+      expect(subscriptionServiceMock.createSubscription).not.toHaveBeenCalled();
+      expect(tinkoffKassaServiceMock.chargeQr).not.toHaveBeenCalled();
+      expect(Logger.prototype.warn).toHaveBeenCalled();
+    });
+
+    it('Не должен повторять завершённую или устаревшую перепривязку', async () => {
+      cacheManagerMock.get.mockResolvedValueOnce({
+        purpose: 'method_change',
+        subscriptionId: 'subscription-id',
+        userId: 'user-id',
+      });
+      subscriptionServiceMock.completePaymentMethodLink.mockResolvedValueOnce(
+        false,
+      );
+
+      await paymentService.onAccountLinked(accountLinkedNotification);
+
+      expect(Logger.prototype.warn).toHaveBeenCalled();
+      expect(tinkoffKassaServiceMock.chargeQr).not.toHaveBeenCalled();
+    });
+
+    it.each(['', '   '])(
+      'Не должен сохранять пустой токен счёта (%s)',
+      async (AccountToken) => {
+        cacheManagerMock.get.mockResolvedValueOnce({
+          purpose: 'method_change',
+          subscriptionId: 'subscription-id',
+          userId: 'user-id',
+        });
+
+        await expect(
+          paymentService.onAccountLinked({
+            ...accountLinkedNotification,
+            AccountToken,
+          }),
+        ).rejects.toThrow(BadRequestException);
+        expect(
+          subscriptionServiceMock.completePaymentMethodLink,
+        ).not.toHaveBeenCalled();
+      },
+    );
+
     it.each([
       ['Банк', 'Банк'],
       ['  Банк  ', 'Банк'],

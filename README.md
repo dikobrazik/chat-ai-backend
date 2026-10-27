@@ -210,6 +210,26 @@ If both payment credentials are present, T-Pay takes precedence, matching the
 existing renewal job. This read-only endpoint does not change payment selection,
 clear old tokens, or charge a payment.
 
+## Changing a payment method
+
+`POST /api/payment/method/generate-qr` takes no body and returns HTTP 201 with
+`{ svg }`. It creates an SBP account-link QR without starting checkout or charging
+a payment. HTTP 409 is returned if the authenticated user has no subscription
+record. The existing payment method remains unchanged until successful linking.
+
+The request is bound to the authenticated user and subscription for 30 minutes.
+On an authenticated `ACTIVE` notification, one conditional database update saves
+the new account token and bank name, clears the previous T-Pay identifier and card
+mask, and consumes the pending request. It does not create payments, activate a
+canceled subscription, or change the plan, billing dates, or trial flag.
+Only the latest generated QR can change the method. Repeated, concurrent, and
+superseded notifications cannot replace it again; unsuccessful notifications
+leave the existing method untouched. Unknown or expired request contexts return
+HTTP 400 without modifying credentials.
+
+Apply `AddPaymentMethodLinkRequestKey1793009100000` before deploying this version.
+The existing purchase QR endpoint remains a separate checkout flow.
+
 ## Subscription promotions
 
 Startup creates or updates subscription promotions:

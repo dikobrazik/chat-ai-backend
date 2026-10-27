@@ -67,6 +67,9 @@ export class Subscription {
   @Column({ type: 'text', nullable: true })
   sbp_bank_name: string | null;
 
+  @Column({ type: 'text', nullable: true })
+  payment_method_link_request_key: string | null;
+
   @CreateDateColumn()
   created_at: Date;
 }

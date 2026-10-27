@@ -19,30 +19,13 @@ import { SbpPaymentService } from 'src/payment/sbp-payment/sbp-payment.service';
 import { PaymentAmountService } from 'src/payment/payment-amount.service';
 import { TinkoffKassaService } from 'src/payment/tinkoff-kassa/tinkoff-kassa.service';
 import { LINK_ACCOUNT_NOTIFICATION_STATUSES } from 'src/payment/webhook/constants';
-import { AddAccountQrNotification } from 'src/payment/webhook/types';
 import { WebhookService } from 'src/payment/webhook/webhook.service';
 import { PromotionService } from 'src/promotion/promotion.service';
 import { SubscriptionService } from 'src/subscription/subscription.service';
 import { TariffService } from 'src/tariff/tariff.service';
+import { createAccountLinkNotification as accountLinkNotification } from './fixtures';
 
 jest.setTimeout(120_000);
-
-const accountLinkNotification = (
-  overrides: Partial<AddAccountQrNotification> = {},
-): AddAccountQrNotification => ({
-  TerminalKey: 'terminal-key',
-  RequestKey: 'request-key',
-  Status: LINK_ACCOUNT_NOTIFICATION_STATUSES.ACTIVE,
-  Success: true,
-  ErrorCode: '0',
-  Message: 'OK',
-  AccountToken: 'account-token',
-  BankMemberId: 'member-id',
-  BankMemberName: 'Банк',
-  Token: 'valid-token',
-  NotificationType: 'LinkAccount',
-  ...overrides,
-});
 
 describe('СБП-привязка счёта (интеграционный тест)', () => {
   let container: StartedPostgreSqlContainer;
