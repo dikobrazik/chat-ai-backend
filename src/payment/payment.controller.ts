@@ -1,5 +1,5 @@
-import { Body, Controller, Get, Inject, Post, Req } from '@nestjs/common';
-import { Request } from 'express';
+import { Body, Controller, Get, Inject, Post, Req, Res } from '@nestjs/common';
+import { Request, Response } from 'express';
 import { User } from 'src/decorators/user.decorator';
 import { User as UserEntity } from 'src/entities/User';
 import { TariffInfoDto } from './dto';
@@ -19,6 +19,11 @@ export class PaymentController {
   @Get('history')
   public getHistory(@User() user: UserEntity) {
     return this.paymentService.getHistory(user.id);
+  }
+
+  @Get('method')
+  public async getMethod(@User() user: UserEntity, @Res() response: Response) {
+    return response.json(await this.paymentService.getMethod(user.id));
   }
 
   @Post('generate-qr')

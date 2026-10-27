@@ -173,6 +173,7 @@ describe('СБП-привязка счёта (интеграционный те�
       plan: SubscriptionPlan.PLUS,
       status: SubscriptionStatus.PENDING,
       account_token: 'account-token',
+      sbp_bank_name: 'Банк',
     });
     expect(payment).toMatchObject({
       user_id: user.id,

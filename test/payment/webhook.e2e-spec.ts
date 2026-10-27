@@ -176,6 +176,7 @@ describe('Уведомления об оплате (интеграционный
       id: subscription.id,
       user_id: user.id,
       status: SubscriptionStatus.ACTIVE,
+      tpay_card_mask: '**** 0777',
     });
     expect(String(updatedSubscription.rebill_id)).toBe('789');
     expect(updatedSubscription.current_period_end).toEqual(nextChargeAt);

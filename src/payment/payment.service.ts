@@ -1,17 +1,59 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Payment, PaymentStatus } from 'src/entities/Payment';
+import { Subscription } from 'src/entities/Subscription';
 import { In, Repository } from 'typeorm';
+import { PaymentMethod } from './payment-amount.service';
 
 export type PaymentHistoryItem = Pick<
   Payment,
   'id' | 'amount' | 'status' | 'payment_date' | 'receipt_url'
 >;
 
+export type PaymentMethodInfo = {
+  type: PaymentMethod;
+  description: string | null;
+};
+
 @Injectable()
 export class PaymentService {
   @InjectRepository(Payment)
   private readonly paymentRepository: Repository<Payment>;
+
+  @InjectRepository(Subscription)
+  private readonly subscriptionRepository: Repository<Subscription>;
+
+  public async getMethod(userId: string): Promise<PaymentMethodInfo | null> {
+    const subscription = await this.subscriptionRepository.findOne({
+      select: {
+        rebill_id: true,
+        account_token: true,
+        tpay_card_mask: true,
+        sbp_bank_name: true,
+      },
+      where: { user_id: userId },
+    });
+
+    if (!subscription) {
+      return null;
+    }
+
+    if (Number(subscription.rebill_id) > 0) {
+      return {
+        type: PaymentMethod.TPAY,
+        description: subscription.tpay_card_mask,
+      };
+    }
+
+    if (subscription.account_token) {
+      return {
+        type: PaymentMethod.SBP,
+        description: subscription.sbp_bank_name,
+      };
+    }
+
+    return null;
+  }
 
   public getHistory(userId: string): Promise<PaymentHistoryItem[]> {
     return this.paymentRepository.find({

@@ -192,6 +192,24 @@ terminal's NotificationURL as the public `/api/webhook/notify` URL; setting only
 the per-payment Init URL is insufficient. See the
 [official notification examples](https://developer.tbank.ru/eacq/intro/developer/notification/notify-samples).
 
+## Payment method
+
+`GET /api/payment/method` returns `{ type: "tpay" | "sbp", description: string | null }`
+for the authenticated user's linked payment method, or `null` if none is linked.
+It is independent of subscription status: cancellation or expiry does not unlink
+payment credentials. The response never exposes tokens or billing identifiers.
+
+T-Pay descriptions contain only a mask and the last four card digits
+(`**** 1234`); SBP descriptions contain the bank name. They are saved from
+confirmed T-Pay and successful SBP account-link notifications respectively.
+Apply `AddPaymentMethodDescriptions1793009000000` before deploying this version.
+Existing links remain valid with `description: null` until provider metadata is
+received; bank names and card digits are not inferred from tokens.
+
+If both payment credentials are present, T-Pay takes precedence, matching the
+existing renewal job. This read-only endpoint does not change payment selection,
+clear old tokens, or charge a payment.
+
 ## Subscription promotions
 
 Startup creates or updates subscription promotions:

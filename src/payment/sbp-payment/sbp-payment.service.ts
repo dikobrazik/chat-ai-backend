@@ -71,7 +71,11 @@ export class SbpPaymentService extends BasePaymentService {
 
     await Promise.all([
       this.linkExternalPayment(paymentId, externalPaymentId),
-      this.subscriptionService.updateAccountToken(subscriptionId, AccountToken),
+      this.subscriptionService.updateAccountToken(
+        subscriptionId,
+        AccountToken,
+        notification.BankMemberName?.trim() || null,
+      ),
       this.tinkoffKassaService.chargeQr(externalPaymentId, AccountToken),
     ]);
   }

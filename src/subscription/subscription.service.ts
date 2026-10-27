@@ -46,9 +46,14 @@ export class SubscriptionService {
     return { subscriptionId };
   }
 
-  public updateAccountToken(subscriptionId: string, accountToken: string) {
+  public updateAccountToken(
+    subscriptionId: string,
+    accountToken: string,
+    bankName: string | null = null,
+  ) {
     return this.subscriptionRepository.update(subscriptionId, {
       account_token: accountToken,
+      sbp_bank_name: bankName,
     });
   }
 

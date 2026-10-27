@@ -342,7 +342,20 @@ describe(SubscriptionService.name, () => {
 
     expect(subscriptionRepositoryMock.update).toHaveBeenCalledWith(
       'subscription-id',
-      { account_token: 'account-token' },
+      { account_token: 'account-token', sbp_bank_name: null },
+    );
+  });
+
+  it('Должен сохранять название банка вместе с токеном привязанного счёта', async () => {
+    await subscriptionService.updateAccountToken(
+      'subscription-id',
+      'account-token',
+      'Тестовый банк',
+    );
+
+    expect(subscriptionRepositoryMock.update).toHaveBeenCalledWith(
+      'subscription-id',
+      { account_token: 'account-token', sbp_bank_name: 'Тестовый банк' },
     );
   });
 

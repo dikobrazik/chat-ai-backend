@@ -88,58 +88,71 @@ describe(SbpPaymentService.name, () => {
   });
 
   describe('onAccountLinked', () => {
-    it('Должен создать, связать и списать платёж для привязанного счёта', async () => {
-      cacheManagerMock.get.mockResolvedValueOnce({
-        tariffId: SubscriptionPlan.PRO,
-        sixMonths: false,
-        userId: 'user-id',
-        userEmail: 'user@example.com',
-      });
-      createSubscriptionMock.mockResolvedValueOnce({
-        subscriptionId: 'subscription-id',
-      });
-      jest
-        .spyOn(paymentService, 'createPayment')
-        .mockResolvedValueOnce({ paymentId: 'payment-id', amount: 2_000 });
-      jest.spyOn(paymentService, 'linkExternalPayment').mockResolvedValueOnce();
-      tinkoffKassaServiceMock.createPayment.mockResolvedValueOnce({
-        PaymentId: 'external-payment-id',
-      } as Awaited<ReturnType<TinkoffKassaService['createPayment']>>);
+    it.each([
+      ['Банк', 'Банк'],
+      ['  Банк  ', 'Банк'],
+      ['', null],
+    ])(
+      'Должен создать платёж и сохранить банк привязанного счёта (%s)',
+      async (bankMemberName, bankName) => {
+        cacheManagerMock.get.mockResolvedValueOnce({
+          tariffId: SubscriptionPlan.PRO,
+          sixMonths: false,
+          userId: 'user-id',
+          userEmail: 'user@example.com',
+        });
+        createSubscriptionMock.mockResolvedValueOnce({
+          subscriptionId: 'subscription-id',
+        });
+        jest
+          .spyOn(paymentService, 'createPayment')
+          .mockResolvedValueOnce({ paymentId: 'payment-id', amount: 2_000 });
+        jest
+          .spyOn(paymentService, 'linkExternalPayment')
+          .mockResolvedValueOnce();
+        tinkoffKassaServiceMock.createPayment.mockResolvedValueOnce({
+          PaymentId: 'external-payment-id',
+        } as Awaited<ReturnType<TinkoffKassaService['createPayment']>>);
 
-      await paymentService.onAccountLinked(accountLinkedNotification);
+        await paymentService.onAccountLinked({
+          ...accountLinkedNotification,
+          BankMemberName: bankMemberName,
+        });
 
-      expect(subscriptionServiceMock.createSubscription).toHaveBeenCalledWith(
-        SubscriptionPlan.PRO,
-        'user-id',
-        false,
-      );
-      expect(paymentService.createPayment).toHaveBeenCalledWith(
-        'subscription-id',
-        SubscriptionPlan.PRO,
-        'user-id',
-        false,
-        PaymentMethod.SBP,
-      );
-      expect(tinkoffKassaServiceMock.createPayment).toHaveBeenCalledWith({
-        OrderId: 'payment-id',
-        Amount: 2_000,
-        CustomerKey: 'user-id',
-        Email: 'user@example.com',
-        DATA: { QR: 'true', OperationInitiatorType: 'R' },
-      });
-      expect(paymentService.linkExternalPayment).toHaveBeenCalledWith(
-        'payment-id',
-        'external-payment-id',
-      );
-      expect(subscriptionServiceMock.updateAccountToken).toHaveBeenCalledWith(
-        'subscription-id',
-        'account-token',
-      );
-      expect(tinkoffKassaServiceMock.chargeQr).toHaveBeenCalledWith(
-        'external-payment-id',
-        'account-token',
-      );
-    });
+        expect(subscriptionServiceMock.createSubscription).toHaveBeenCalledWith(
+          SubscriptionPlan.PRO,
+          'user-id',
+          false,
+        );
+        expect(paymentService.createPayment).toHaveBeenCalledWith(
+          'subscription-id',
+          SubscriptionPlan.PRO,
+          'user-id',
+          false,
+          PaymentMethod.SBP,
+        );
+        expect(tinkoffKassaServiceMock.createPayment).toHaveBeenCalledWith({
+          OrderId: 'payment-id',
+          Amount: 2_000,
+          CustomerKey: 'user-id',
+          Email: 'user@example.com',
+          DATA: { QR: 'true', OperationInitiatorType: 'R' },
+        });
+        expect(paymentService.linkExternalPayment).toHaveBeenCalledWith(
+          'payment-id',
+          'external-payment-id',
+        );
+        expect(subscriptionServiceMock.updateAccountToken).toHaveBeenCalledWith(
+          'subscription-id',
+          'account-token',
+          bankName,
+        );
+        expect(tinkoffKassaServiceMock.chargeQr).toHaveBeenCalledWith(
+          'external-payment-id',
+          'account-token',
+        );
+      },
+    );
   });
 
   describe('charge', () => {

@@ -61,6 +61,12 @@ export class Subscription {
   @Column({ nullable: true })
   account_token: string;
 
+  @Column({ type: 'text', nullable: true })
+  tpay_card_mask: string | null;
+
+  @Column({ type: 'text', nullable: true })
+  sbp_bank_name: string | null;
+
   @CreateDateColumn()
   created_at: Date;
 }
