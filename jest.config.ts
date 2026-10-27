@@ -17,7 +17,7 @@ const config: Config = {
     ],
   },
   transformIgnorePatterns: ['/node_modules/(?!@nestjs/cache-manager/)'],
-  collectCoverageFrom: ['**/*.(t|j)s'],
+  collectCoverageFrom: ['**/*.(t|j)s', '!**/*.e2e-spec.ts'],
   coverageDirectory: '../coverage',
   testEnvironment: 'node',
   moduleNameMapper: {

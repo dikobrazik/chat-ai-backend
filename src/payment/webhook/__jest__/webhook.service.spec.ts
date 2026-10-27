@@ -160,6 +160,7 @@ describe(WebhookService.name, () => {
           rebill_id: 789,
           current_period_start: paymentDate,
           current_period_end: nextChargeAt,
+          is_trial: false,
         },
       );
       expect(userRepositoryMock.update).toHaveBeenCalledWith('user-id', {
@@ -184,6 +185,47 @@ describe(WebhookService.name, () => {
         ),
       ).rejects.toThrow(new BadRequestException('Payment not found'));
     });
+
+    it.each([
+      [3, true],
+      [0, false],
+    ])(
+      'Должен обновлять признак пробного периода при подтверждении тарифа с %s бесплатными днями',
+      async (freeDays, isTrial) => {
+        paymentRepositoryMock.findOne.mockResolvedValueOnce(
+          Object.assign(new Payment(), {
+            id: 'payment-id',
+            subscription_id: 'subscription-id',
+            user_id: 'user-id',
+            subscription: Object.assign(new Subscription(), {
+              plan: SubscriptionPlan.PLUS,
+              six_months: false,
+              is_trial: true,
+            }),
+          }),
+        );
+        tariffServiceMock.getTariff.mockResolvedValueOnce({
+          id: SubscriptionPlan.PLUS,
+          name: 'Плюс',
+          description: 'Тестовый тариф',
+          price: 19_900,
+          features: [],
+          freeDays,
+          nextChargeAt,
+        });
+
+        await webhookService.processNotification(
+          paymentNotification({
+            Status: PAYMENT_NOTIFICATION_STATUSES.CONFIRMED,
+          }),
+        );
+
+        expect(subscriptionRepositoryMock.update).toHaveBeenCalledWith(
+          'subscription-id',
+          expect.objectContaining({ is_trial: isTrial }),
+        );
+      },
+    );
 
     it('Должен передать активное уведомление о привязке счёта в СБП', async () => {
       const notification = {

@@ -40,6 +40,7 @@ export class SubscriptionService {
       current_period_start: new Date(),
       current_period_end: tariff.nextChargeAt,
       six_months: sixMonths,
+      is_trial: Boolean(tariff.freeDays),
     });
 
     return { subscriptionId };
@@ -99,11 +100,42 @@ export class SubscriptionService {
     });
   }
 
-  public getActiveSubscriptionForUser(userId: string) {
-    return this.subscriptionRepository.findOne({
-      select: { plan: true, status: true, current_period_end: true },
-      where: { user_id: userId, status: SubscriptionStatus.ACTIVE },
+  public async getCurrentSubscriptionForUser(userId: string) {
+    const subscription = await this.subscriptionRepository.findOne({
+      select: {
+        plan: true,
+        status: true,
+        current_period_end: true,
+        six_months: true,
+        is_trial: true,
+      },
+      where: [
+        { user_id: userId, status: SubscriptionStatus.ACTIVE },
+        {
+          user_id: userId,
+          status: SubscriptionStatus.CANCELED,
+          current_period_end: MoreThan(new Date()),
+        },
+      ],
     });
+
+    if (!subscription) {
+      return null;
+    }
+
+    const tariff = await this.tariffService.getTariff(
+      subscription.plan,
+      userId,
+      subscription.six_months,
+    );
+
+    return {
+      plan: subscription.plan,
+      status: subscription.status,
+      current_period_end: subscription.current_period_end,
+      next_payment_amount: tariff.price,
+      is_trial: subscription.is_trial,
+    };
   }
 
   public expireSubscription(subscriptionId: string) {
@@ -111,6 +143,7 @@ export class SubscriptionService {
       current_period_start: null,
       current_period_end: null,
       status: SubscriptionStatus.EXPIRED,
+      is_trial: false,
     });
   }
 
@@ -119,6 +152,7 @@ export class SubscriptionService {
       current_period_start: null,
       current_period_end: null,
       status: SubscriptionStatus.FAILED,
+      is_trial: false,
     });
   }
 

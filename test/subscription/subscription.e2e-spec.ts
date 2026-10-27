@@ -19,8 +19,12 @@ import { User, UserStatus } from 'src/entities/User';
 import { SubscriptionController } from 'src/subscription/subscription.controller';
 import { SubscriptionService } from 'src/subscription/subscription.service';
 import { TariffService } from 'src/tariff/tariff.service';
+import { PromotionService } from 'src/promotion/promotion.service';
 
 jest.setTimeout(120_000);
+
+const NOW = new Date('2026-09-11T08:00:00.000Z');
+const PERIOD_END = new Date('2026-10-11T08:00:00.000Z');
 
 describe('SubscriptionController (интеграционный тест)', () => {
   let container: StartedPostgreSqlContainer;
@@ -29,6 +33,28 @@ describe('SubscriptionController (интеграционный тест)', () =>
   let userRepository: Repository<User>;
   let subscriptionRepository: Repository<Subscription>;
   let currentUser: User;
+  const promotionServiceMock = {
+    getFirstSubscriptionPromotion: jest.fn(),
+    getSixMonthsSubscriptionPromotion: jest.fn(),
+  };
+
+  async function createSubscription(overrides: Partial<Subscription> = {}) {
+    currentUser = await userRepository.save({
+      email: 'user@example.com',
+      status: UserStatus.SUBSCRIPTION_PLUS,
+    });
+
+    return subscriptionRepository.save({
+      user_id: currentUser.id,
+      plan: SubscriptionPlan.PLUS,
+      status: SubscriptionStatus.ACTIVE,
+      current_period_start: NOW,
+      current_period_end: PERIOD_END,
+      rebill_id: 123,
+      account_token: 'private-account-token',
+      ...overrides,
+    });
+  }
 
   beforeAll(async () => {
     container = await new PostgreSqlContainer('postgres:16-alpine').start();
@@ -50,7 +76,8 @@ describe('SubscriptionController (интеграционный тест)', () =>
       controllers: [SubscriptionController],
       providers: [
         SubscriptionService,
-        { provide: TariffService, useValue: { getTariff: jest.fn() } },
+        TariffService,
+        { provide: PromotionService, useValue: promotionServiceMock },
       ],
     }).compile();
 
@@ -65,7 +92,31 @@ describe('SubscriptionController (интеграционный тест)', () =>
     subscriptionRepository = moduleRef.get(getRepositoryToken(Subscription));
   });
 
+  beforeEach(() => {
+    jest.resetAllMocks();
+    jest.useFakeTimers({
+      doNotFake: [
+        'hrtime',
+        'nextTick',
+        'performance',
+        'queueMicrotask',
+        'setImmediate',
+        'clearImmediate',
+        'setInterval',
+        'clearInterval',
+        'setTimeout',
+        'clearTimeout',
+      ],
+    });
+    jest.setSystemTime(NOW);
+    promotionServiceMock.getFirstSubscriptionPromotion.mockResolvedValue(null);
+    promotionServiceMock.getSixMonthsSubscriptionPromotion.mockResolvedValue({
+      discount: 10,
+    });
+  });
+
   afterEach(async () => {
+    jest.useRealTimers();
     if (!subscriptionRepository || !userRepository) {
       return;
     }
@@ -106,9 +157,122 @@ describe('SubscriptionController (интеграционный тест)', () =>
       plan: SubscriptionPlan.PLUS,
       status: SubscriptionStatus.ACTIVE,
       current_period_end: '2026-10-11T08:00:00.000Z',
+      next_payment_amount: 1_000,
+      is_trial: false,
     });
     expect(response.body).not.toHaveProperty('rebill_id');
   });
+
+  it('Должен возвращать отменённую подписку и оплаченный доступ после отключения автопродления', async () => {
+    await createSubscription();
+
+    await request(app.getHttpServer()).post('/subscription/cancel').expect(201);
+    const response = await request(app.getHttpServer())
+      .get('/subscription')
+      .expect(200);
+
+    expect(response.body).toEqual({
+      plan: SubscriptionPlan.PLUS,
+      status: SubscriptionStatus.CANCELED,
+      current_period_end: PERIOD_END.toISOString(),
+      next_payment_amount: 1_000,
+      is_trial: false,
+    });
+    expect(response.body).not.toHaveProperty('account_token');
+    expect(response.body).not.toHaveProperty('rebill_id');
+    expect(response.body).not.toHaveProperty('user_id');
+  });
+
+  it('Должен возвращать полную цену шестимесячного продления со скидкой в копейках', async () => {
+    await createSubscription({ six_months: true });
+
+    const response = await request(app.getHttpServer())
+      .get('/subscription')
+      .expect(200);
+
+    expect(response.body.next_payment_amount).toBe(5_400);
+    expect(response.body.is_trial).toBe(false);
+  });
+
+  it('Должен возвращать сохранённый пробный период, даже когда акция уже израсходована', async () => {
+    await createSubscription({
+      is_trial: true,
+      current_period_end: new Date('2026-09-14T08:00:00.000Z'),
+    });
+
+    const response = await request(app.getHttpServer())
+      .get('/subscription')
+      .expect(200);
+
+    expect(response.body).toMatchObject({
+      is_trial: true,
+      next_payment_amount: 1_000,
+    });
+  });
+
+  it('Не должен считать оплаченный период пробным из-за текущих настроек акции', async () => {
+    await createSubscription();
+    promotionServiceMock.getFirstSubscriptionPromotion.mockResolvedValue({
+      freeDays: 14,
+    });
+
+    const response = await request(app.getHttpServer())
+      .get('/subscription')
+      .expect(200);
+
+    expect(response.body.is_trial).toBe(false);
+    expect(response.body.next_payment_amount).toBe(1_000);
+  });
+
+  it.each([
+    { status: SubscriptionStatus.CANCELED, end: NOW },
+    {
+      status: SubscriptionStatus.CANCELED,
+      end: new Date('2026-09-10T08:00:00.000Z'),
+    },
+    { status: SubscriptionStatus.CANCELED, end: null },
+    { status: SubscriptionStatus.PENDING, end: PERIOD_END },
+    { status: SubscriptionStatus.RENEWING, end: PERIOD_END },
+    { status: SubscriptionStatus.FAILED, end: PERIOD_END },
+    { status: SubscriptionStatus.EXPIRED, end: PERIOD_END },
+  ])(
+    'Не должен возвращать подписку со статусом $status и концом периода $end',
+    async ({ status, end }) => {
+      await createSubscription({ status, current_period_end: end });
+
+      const response = await request(app.getHttpServer())
+        .get('/subscription')
+        .expect(200);
+
+      expect(response.body).toEqual({});
+    },
+  );
+
+  it.each([SubscriptionStatus.ACTIVE, SubscriptionStatus.CANCELED])(
+    'Не должен возвращать чужую подписку со статусом %s',
+    async (status) => {
+      const other = await userRepository.save({
+        email: 'other@example.com',
+        status: UserStatus.SUBSCRIPTION_PLUS,
+      });
+      await subscriptionRepository.save({
+        user_id: other.id,
+        plan: SubscriptionPlan.PLUS,
+        status,
+        current_period_end: PERIOD_END,
+      });
+      currentUser = await userRepository.save({
+        email: 'user@example.com',
+        status: UserStatus.ACTIVE,
+      });
+
+      const response = await request(app.getHttpServer())
+        .get('/subscription')
+        .expect(200);
+
+      expect(response.body).toEqual({});
+    },
+  );
 
   it('Должен позволить только одному процессу захватить просроченную подписку для продления', async () => {
     const user = await userRepository.save({

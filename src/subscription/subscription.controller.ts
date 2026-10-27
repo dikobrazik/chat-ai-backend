@@ -14,7 +14,7 @@ export class SubscriptionController {
   }
 
   @Get()
-  public getActiveSubscription(@User() user: UserEntity) {
-    return this.subscriptionService.getActiveSubscriptionForUser(user.id);
+  public getCurrentSubscription(@User() user: UserEntity) {
+    return this.subscriptionService.getCurrentSubscriptionForUser(user.id);
   }
 }

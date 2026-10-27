@@ -102,10 +102,13 @@ npm run migration:run
 npm run migration:run:prod
 ```
 
-Migration files belong in `src/database/migrations/`. There are currently no
-schema migrations in this repository: the schema must already exist, or an initial
-migration must be created and applied before starting against a new empty database.
+Migration files belong in `src/database/migrations/`. Existing migrations update
+an existing schema; this repository does not include an initial schema migration.
+The schema must already exist, or an initial migration must be created and applied
+before starting against a new empty database.
 The Docker entrypoint runs compiled migrations before starting the application.
+Migration integration tests live beside migrations in
+`src/database/migrations/__jest__/` and run with `npm run test:e2e`.
 
 `DatabaseSeedService` runs automatically during application initialization, before
 the HTTP server accepts requests. In one transaction, it adds missing providers,
@@ -125,6 +128,27 @@ Seed data lives in `src/database/seeds/`: providers in
 `providers/providers.seed.ts`, promotions in `promotions/promotions.seed.ts`, and
 models in `models/<provider>/models.seed.ts`. `models/index.ts` combines the
 provider catalogs; `DatabaseSeedService` handles the startup transaction.
+
+## Current subscription
+
+`GET /api/subscription` returns the authenticated user's active subscription, or a
+`canceled` subscription while `current_period_end` is strictly in the future.
+Expired cancellations and other subscription statuses are not returned. Existing
+behavior for active subscriptions is unchanged.
+
+The response includes `plan`, `status`, `current_period_end`,
+`next_payment_amount` (kopecks), and `is_trial`. The renewal amount uses the shared
+tariff calculation, including the six-month period and discount; during a trial it
+is the full next-period price, not the initial trial charge. For a canceled
+subscription it is the renewal price if auto-renewal is resumed, not a scheduled
+charge. Payment tokens and internal identifiers are not exposed.
+
+Apply `AddSubscriptionTrialFlag1793008800000` before deploying this version.
+It adds `subscription.is_trial` with a default of `false` for existing test data.
+New subscriptions store the selected tariff's trial flag; confirmed payments
+update it for the new period, so paid renewals clear it. Cancellations preserve it
+while access remains; expiry/failure clears it with the period. The flag does not
+depend on the current promotion settings or on the amount charged.
 
 ## Subscription promotions
 

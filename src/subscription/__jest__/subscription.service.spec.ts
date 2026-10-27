@@ -79,6 +79,7 @@ describe(SubscriptionService.name, () => {
         current_period_start: NOW,
         current_period_end: NEXT_CHARGE_AT,
         six_months: false,
+        is_trial: false,
       });
     });
 
@@ -107,6 +108,161 @@ describe(SubscriptionService.name, () => {
           six_months: true,
         }),
       );
+    });
+
+    it('Должен сохранять признак пробного периода из выбранного тарифа', async () => {
+      tariffServiceMock.getTariff.mockResolvedValueOnce({
+        id: SubscriptionPlan.PLUS,
+        name: 'Плюс',
+        description: 'Тестовый тариф',
+        price: 19_900,
+        features: [],
+        freeDays: 3,
+        nextChargeAt: THREE_DAYS_FROM_NOW,
+      });
+      subscriptionRepositoryMock.findOne.mockResolvedValueOnce(null);
+      subscriptionRepositoryMock.save.mockResolvedValueOnce(
+        Object.assign(new Subscription(), { id: 'subscription-id' }),
+      );
+
+      await subscriptionService.createSubscription(
+        SubscriptionPlan.PLUS,
+        'user-id',
+        false,
+      );
+
+      expect(subscriptionRepositoryMock.save).toHaveBeenCalledWith(
+        expect.objectContaining({
+          is_trial: true,
+          current_period_end: THREE_DAYS_FROM_NOW,
+        }),
+      );
+    });
+  });
+
+  describe('getCurrentSubscriptionForUser', () => {
+    const subscription = Object.assign(new Subscription(), {
+      user_id: 'user-id',
+      plan: SubscriptionPlan.PLUS,
+      status: SubscriptionStatus.ACTIVE,
+      current_period_end: NEXT_CHARGE_AT,
+      six_months: false,
+      is_trial: false,
+      rebill_id: 123,
+      account_token: 'private-token',
+    });
+
+    beforeEach(() => {
+      tariffServiceMock.getTariff.mockResolvedValue({
+        id: SubscriptionPlan.PLUS,
+        name: 'Плюс',
+        description: 'Тестовый тариф',
+        price: 19_900,
+        features: [],
+        nextChargeAt: NEXT_CHARGE_AT,
+      });
+    });
+
+    it('Должен возвращать null без текущей подписки и не рассчитывать тариф', async () => {
+      subscriptionRepositoryMock.findOne.mockResolvedValueOnce(null);
+
+      await expect(
+        subscriptionService.getCurrentSubscriptionForUser('user-id'),
+      ).resolves.toBeNull();
+
+      expect(tariffServiceMock.getTariff).not.toHaveBeenCalled();
+    });
+
+    it('Должен искать активную или неистёкшую отменённую подписку только текущего пользователя', async () => {
+      subscriptionRepositoryMock.findOne.mockResolvedValueOnce(subscription);
+
+      await subscriptionService.getCurrentSubscriptionForUser('user-id');
+
+      expect(subscriptionRepositoryMock.findOne).toHaveBeenCalledWith({
+        select: {
+          plan: true,
+          status: true,
+          current_period_end: true,
+          six_months: true,
+          is_trial: true,
+        },
+        where: [
+          { user_id: 'user-id', status: SubscriptionStatus.ACTIVE },
+          {
+            user_id: 'user-id',
+            status: SubscriptionStatus.CANCELED,
+            current_period_end: expect.objectContaining({
+              _type: 'moreThan',
+              _value: NOW,
+            }),
+          },
+        ],
+      });
+    });
+
+    it.each([SubscriptionStatus.ACTIVE, SubscriptionStatus.CANCELED])(
+      'Должен возвращать сумму продления в копейках и только публичные поля для статуса %s',
+      async (status) => {
+        subscriptionRepositoryMock.findOne.mockResolvedValueOnce({
+          ...subscription,
+          status,
+        });
+
+        await expect(
+          subscriptionService.getCurrentSubscriptionForUser('user-id'),
+        ).resolves.toEqual({
+          plan: SubscriptionPlan.PLUS,
+          status,
+          current_period_end: NEXT_CHARGE_AT,
+          next_payment_amount: 19_900,
+          is_trial: false,
+        });
+        expect(tariffServiceMock.getTariff).toHaveBeenCalledWith(
+          SubscriptionPlan.PLUS,
+          'user-id',
+          false,
+        );
+      },
+    );
+
+    it('Должен учитывать шестимесячный период при расчёте суммы продления', async () => {
+      subscriptionRepositoryMock.findOne.mockResolvedValueOnce({
+        ...subscription,
+        six_months: true,
+      });
+      tariffServiceMock.getTariff.mockResolvedValueOnce({
+        id: SubscriptionPlan.PLUS,
+        name: 'Плюс',
+        description: 'Тестовый тариф',
+        price: 107_460,
+        features: [],
+        nextChargeAt: NEXT_CHARGE_AT,
+      });
+
+      const result = await subscriptionService.getCurrentSubscriptionForUser(
+        'user-id',
+      );
+
+      expect(result.next_payment_amount).toBe(107_460);
+      expect(tariffServiceMock.getTariff).toHaveBeenCalledWith(
+        SubscriptionPlan.PLUS,
+        'user-id',
+        true,
+      );
+    });
+
+    it('Должен возвращать сохранённый пробный период после расходования акции и полную сумму следующего списания', async () => {
+      subscriptionRepositoryMock.findOne.mockResolvedValueOnce({
+        ...subscription,
+        is_trial: true,
+      });
+
+      await expect(
+        subscriptionService.getCurrentSubscriptionForUser('user-id'),
+      ).resolves.toMatchObject({
+        is_trial: true,
+        next_payment_amount: 19_900,
+      });
     });
   });
 
@@ -223,6 +379,21 @@ describe(SubscriptionService.name, () => {
         current_period_start: null,
         current_period_end: null,
         status: SubscriptionStatus.EXPIRED,
+        is_trial: false,
+      },
+    );
+  });
+
+  it('Должен очищать период и признак пробной подписки при неудачном продлении', async () => {
+    await subscriptionService.failSubscription('subscription-id');
+
+    expect(subscriptionRepositoryMock.update).toHaveBeenCalledWith(
+      'subscription-id',
+      {
+        current_period_start: null,
+        current_period_end: null,
+        status: SubscriptionStatus.FAILED,
+        is_trial: false,
       },
     );
   });

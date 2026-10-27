@@ -13,7 +13,11 @@ import {
   PromotionRewardType,
   PromotionType,
 } from 'src/entities/Promotion';
-import { Subscription, SubscriptionPlan } from 'src/entities/Subscription';
+import {
+  Subscription,
+  SubscriptionPlan,
+  SubscriptionStatus,
+} from 'src/entities/Subscription';
 import { User, UserStatus } from 'src/entities/User';
 import { UserPromotion, UserPromotionStatus } from 'src/entities/UserPromotion';
 import { PaymentAmountService } from 'src/payment/payment-amount.service';
@@ -211,6 +215,9 @@ describe('Использование акции при оплате (интег�
       status: UserPromotionStatus.CONSUMED,
       payment_id: firstPayment.id,
     });
+    await expect(
+      subscriptionRepository.findOneByOrFail({ id: subscription.id }),
+    ).resolves.toMatchObject({ is_trial: true });
 
     await subscriptionRepository.update(subscription.id, {
       current_period_end: new Date('2026-01-01T00:00:00.000Z'),
@@ -237,5 +244,27 @@ describe('Использование акции при оплате (интег�
       '789',
       user.email,
     );
+
+    await webhookService.processNotification({
+      TerminalKey: 'terminal-key',
+      OrderId: recurringPayment.id,
+      Success: true,
+      Status: PAYMENT_NOTIFICATION_STATUSES.CONFIRMED,
+      PaymentId: 124,
+      ErrorCode: '0',
+      Amount: recurringPayment.amount,
+      CardId: 456,
+      Pan: '430000******0777',
+      ExpDate: '1228',
+      RebillId: 789,
+      Token: 'valid-token',
+    });
+
+    await expect(
+      subscriptionRepository.findOneByOrFail({ id: subscription.id }),
+    ).resolves.toMatchObject({
+      status: SubscriptionStatus.ACTIVE,
+      is_trial: false,
+    });
   });
 });

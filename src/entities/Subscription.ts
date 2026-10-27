@@ -52,6 +52,9 @@ export class Subscription {
   @Column({ default: false })
   six_months: boolean;
 
+  @Column({ default: false })
+  is_trial: boolean;
+
   @Column({ type: 'bigint', nullable: true })
   rebill_id: number;
 

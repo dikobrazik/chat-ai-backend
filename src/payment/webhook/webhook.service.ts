@@ -105,6 +105,7 @@ export class WebhookService {
         rebill_id: notification.RebillId,
         current_period_start: new Date(),
         current_period_end: tariff.nextChargeAt,
+        is_trial: Boolean(tariff.freeDays),
       }),
       this.userRepository.update(payment.user_id, {
         status: SUBSCRIPTION_PLAN_USER_STATUS_MAP[payment.subscription.plan],

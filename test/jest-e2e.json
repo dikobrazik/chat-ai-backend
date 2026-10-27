@@ -1,6 +1,7 @@
 {
   "moduleFileExtensions": ["js", "json", "ts"],
   "rootDir": ".",
+  "roots": ["<rootDir>", "<rootDir>/../src/database/migrations"],
   "testEnvironment": "node",
   "testRegex": ".e2e-spec.ts$",
   "moduleDirectories": ["node_modules", "src"],
