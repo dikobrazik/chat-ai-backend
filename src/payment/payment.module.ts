@@ -7,6 +7,7 @@ import { PaymentController } from './payment.controller';
 import { SbpPaymentModule } from './sbp-payment/sbp-payment.module';
 import { TpayPaymentModule } from './tpay-payment/tpay-payment.module';
 import { WebhookModule } from './webhook/webhook.module';
+import { PaymentService } from './payment.service';
 
 @Module({
   imports: [
@@ -17,5 +18,6 @@ import { WebhookModule } from './webhook/webhook.module';
     TypeOrmModule.forFeature([Payment, Subscription]),
   ],
   controllers: [PaymentController],
+  providers: [PaymentService],
 })
 export class PaymentModule {}

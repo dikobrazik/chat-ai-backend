@@ -1,6 +1,6 @@
 import { TestBed, type Mocked } from '@suites/unit';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import { BadRequestException } from '@nestjs/common';
+import { BadRequestException, Logger } from '@nestjs/common';
 import { Payment, PaymentStatus } from 'src/entities/Payment';
 import {
   Subscription,
@@ -8,7 +8,7 @@ import {
   SubscriptionStatus,
 } from 'src/entities/Subscription';
 import { User, UserStatus } from 'src/entities/User';
-import { type Repository } from 'typeorm';
+import { In, type Repository } from 'typeorm';
 import { SbpPaymentService } from '../../sbp-payment/sbp-payment.service';
 import { TinkoffKassaService } from '../../tinkoff-kassa/tinkoff-kassa.service';
 import { PromotionService } from 'src/promotion/promotion.service';
@@ -17,9 +17,11 @@ import { TariffService } from 'src/tariff/tariff.service';
 import {
   LINK_ACCOUNT_NOTIFICATION_STATUSES,
   PAYMENT_NOTIFICATION_STATUSES,
+  RECEIPT_NOTIFICATION_STATUSES,
 } from '../constants';
 import { type KassaNotification } from '../types';
 import { WebhookService } from '../webhook.service';
+import { createReceiptNotification as receiptNotification } from '../../../../test/payment/fixtures';
 
 const userRepositoryToken = getRepositoryToken(User) as string;
 const paymentRepositoryToken = getRepositoryToken(Payment) as string;
@@ -85,11 +87,17 @@ describe(WebhookService.name, () => {
   beforeEach(() => {
     jest.resetAllMocks();
     tinkoffKassaServiceMock.checkToken.mockReturnValue(true);
+    paymentRepositoryMock.update.mockResolvedValue({
+      affected: 1,
+      raw: [],
+      generatedMaps: [],
+    });
     tariffServiceMock.getTariff.mockResolvedValue({
       nextChargeAt,
     } as Awaited<ReturnType<TariffService['getTariff']>>);
     jest.spyOn(console, 'log').mockImplementation();
     jest.spyOn(console, 'error').mockImplementation();
+    jest.spyOn(Logger.prototype, 'warn').mockImplementation();
   });
 
   afterEach(() => {
@@ -115,13 +123,135 @@ describe(WebhookService.name, () => {
         { Status: PAYMENT_NOTIFICATION_STATUSES.REJECTED },
       ],
     ])('Должен отклонить уведомление %s', async (_description, overrides) => {
+      const paymentDate = new Date('2026-09-11T08:00:00.000Z');
+      jest.useFakeTimers().setSystemTime(paymentDate);
       await webhookService.processNotification(
         paymentNotification(overrides as Partial<KassaNotification>),
       );
 
+      expect(paymentRepositoryMock.update).toHaveBeenCalledWith(
+        {
+          id: 'payment-id',
+          status: In([PaymentStatus.NEW, PaymentStatus.FORM_SHOWN]),
+        },
+        { status: PaymentStatus.REJECTED, payment_date: paymentDate },
+      );
+    });
+
+    it('Должен сохранять ссылку из RECEIPT без изменения статуса платежа и подписки', async () => {
+      const notification = receiptNotification();
+
+      await webhookService.processNotification(notification);
+
+      expect(tinkoffKassaServiceMock.checkToken).toHaveBeenCalledWith(
+        notification,
+      );
+      expect(paymentRepositoryMock.update).toHaveBeenCalledTimes(1);
       expect(paymentRepositoryMock.update).toHaveBeenCalledWith('payment-id', {
-        status: PaymentStatus.REJECTED,
+        receipt_url: notification.Url,
       });
+      expect(subscriptionRepositoryMock.update).not.toHaveBeenCalled();
+      expect(userRepositoryMock.update).not.toHaveBeenCalled();
+      expect(tariffServiceMock.getTariff).not.toHaveBeenCalled();
+      expect(promotionServiceMock.markPromotionAsUsed).not.toHaveBeenCalled();
+      expect(sbpPaymentServiceMock.onAccountLinked).not.toHaveBeenCalled();
+      expect(console.log).not.toHaveBeenCalled();
+    });
+
+    it('Не должен отклонять платёж при ошибке фискализации', async () => {
+      await webhookService.processNotification(
+        receiptNotification({ Success: false, ErrorCode: '123' }),
+      );
+
+      expect(paymentRepositoryMock.update).not.toHaveBeenCalled();
+      expect(subscriptionRepositoryMock.update).not.toHaveBeenCalled();
+      expect(Logger.prototype.warn).toHaveBeenCalledWith(
+        'Fiscalization failed for payment payment-id: 123',
+      );
+    });
+
+    it.each([undefined, null])(
+      'Не должен очищать существующий чек при отсутствии ссылки (%s)',
+      async (Url) => {
+        await webhookService.processNotification(receiptNotification({ Url }));
+
+        expect(paymentRepositoryMock.update).not.toHaveBeenCalled();
+        expect(Logger.prototype.warn).toHaveBeenCalled();
+      },
+    );
+
+    it.each([
+      '',
+      'javascript:alert(1)',
+      'https://user:password@ofd.example.com',
+    ])('Должен отклонять недопустимую ссылку на чек %s', async (Url) => {
+      await expect(
+        webhookService.processNotification(receiptNotification({ Url })),
+      ).rejects.toThrow(new BadRequestException('Invalid receipt URL'));
+      expect(paymentRepositoryMock.update).not.toHaveBeenCalled();
+    });
+
+    it('Должен отклонять чек с невалидным токеном', async () => {
+      tinkoffKassaServiceMock.checkToken.mockReturnValueOnce(false);
+
+      await expect(
+        webhookService.processNotification(receiptNotification()),
+      ).rejects.toThrow(BadRequestException);
+      expect(paymentRepositoryMock.update).not.toHaveBeenCalled();
+    });
+
+    it('Должен сохранять возврат без изменения исходной даты, подписки и пользователя', async () => {
+      await webhookService.processNotification(
+        paymentNotification({ Status: PAYMENT_NOTIFICATION_STATUSES.REFUNDED }),
+      );
+
+      expect(paymentRepositoryMock.update).toHaveBeenCalledWith('payment-id', {
+        status: PaymentStatus.REFUNDED,
+      });
+      expect(subscriptionRepositoryMock.update).not.toHaveBeenCalled();
+      expect(userRepositoryMock.update).not.toHaveBeenCalled();
+    });
+
+    it.each([
+      RECEIPT_NOTIFICATION_STATUSES.RECEIPT,
+      PAYMENT_NOTIFICATION_STATUSES.REFUNDED,
+    ] as const)(
+      'Должен возвращать ошибку для уведомления %s о неизвестном платеже',
+      async (Status) => {
+        paymentRepositoryMock.update.mockResolvedValueOnce({
+          affected: 0,
+          raw: [],
+          generatedMaps: [],
+        });
+
+        await expect(
+          webhookService.processNotification(
+            Status === RECEIPT_NOTIFICATION_STATUSES.RECEIPT
+              ? receiptNotification()
+              : paymentNotification({ Status }),
+          ),
+        ).rejects.toThrow(new BadRequestException('Payment not found'));
+      },
+    );
+
+    it('Не должен подтверждать возвращённый платёж и продлевать подписку', async () => {
+      paymentRepositoryMock.findOne.mockResolvedValueOnce(
+        Object.assign(new Payment(), {
+          id: 'payment-id',
+          status: PaymentStatus.REFUNDED,
+        }),
+      );
+
+      await webhookService.processNotification(
+        paymentNotification({
+          Status: PAYMENT_NOTIFICATION_STATUSES.CONFIRMED,
+        }),
+      );
+
+      expect(paymentRepositoryMock.update).not.toHaveBeenCalled();
+      expect(subscriptionRepositoryMock.update).not.toHaveBeenCalled();
+      expect(userRepositoryMock.update).not.toHaveBeenCalled();
+      expect(tariffServiceMock.getTariff).not.toHaveBeenCalled();
     });
 
     it('Должен подтвердить платёж, подписку и статус пользователя', async () => {
@@ -173,6 +303,40 @@ describe(WebhookService.name, () => {
       );
       jest.useRealTimers();
     });
+
+    it.each([new Date('2026-09-11T08:00:00.000Z'), null])(
+      'Должен сохранять исходную дату подтверждённого платежа (%s) при повторном уведомлении',
+      async (paymentDate) => {
+        jest.useFakeTimers().setSystemTime(nextChargeAt);
+        paymentRepositoryMock.findOne.mockResolvedValueOnce(
+          Object.assign(new Payment(), {
+            id: 'payment-id',
+            user_id: 'user-id',
+            subscription_id: 'subscription-id',
+            status: PaymentStatus.CONFIRMED,
+            payment_date: paymentDate,
+            subscription: Object.assign(new Subscription(), {
+              plan: SubscriptionPlan.PRO,
+              six_months: false,
+            }),
+          }),
+        );
+
+        await webhookService.processNotification(
+          paymentNotification({
+            Status: PAYMENT_NOTIFICATION_STATUSES.CONFIRMED,
+          }),
+        );
+
+        expect(paymentRepositoryMock.update).toHaveBeenCalledWith(
+          'payment-id',
+          {
+            status: PaymentStatus.CONFIRMED,
+            payment_date: paymentDate,
+          },
+        );
+      },
+    );
 
     it('Должен вернуть ошибку, если подтверждаемый платёж не найден', async () => {
       paymentRepositoryMock.findOne.mockResolvedValueOnce(null);

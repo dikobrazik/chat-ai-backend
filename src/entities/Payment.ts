@@ -46,5 +46,8 @@ export class Payment {
   status: PaymentStatus;
 
   @Column('timestamptz', { nullable: true })
-  payment_date: Date;
+  payment_date: Date | null;
+
+  @Column({ type: 'text', nullable: true })
+  receipt_url: string | null;
 }

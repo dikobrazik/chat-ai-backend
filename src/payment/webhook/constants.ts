@@ -30,3 +30,7 @@ export const LINK_ACCOUNT_NOTIFICATION_STATUSES = {
   ACTIVE: 'ACTIVE',
   INACTIVE: 'INACTIVE',
 } as const;
+
+export const RECEIPT_NOTIFICATION_STATUSES = {
+  RECEIPT: 'RECEIPT',
+} as const;

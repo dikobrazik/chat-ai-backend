@@ -167,6 +167,31 @@ Resuming does not charge a payment or change the plan, billing dates, six-month
 period, payment credentials, or trial flag. It only re-enables renewal at the
 existing period end.
 
+## Payment history
+
+`GET /api/payment/history` returns the authenticated user's payments with status
+`confirmed`, `rejected`, or `refunded`. Pending payments (`new`, `form_shown`)
+are excluded. The response is an array containing only `id`, `amount` (kopecks),
+`status`, `payment_date` (ISO timestamp or `null`), and `receipt_url` (URL or `null`).
+Payments are sorted by date descending; legacy entries with unknown dates come
+last, with descending IDs used to break ties. No dates are fabricated for legacy
+data. The frontend must handle nullable dates; pagination remains client-side.
+
+Apply `AddPaymentReceiptUrl1793008900000` before deploying this version.
+Rejection notifications now record a date without changing it on retries or
+overwriting confirmed/refunded payments. Refund notifications change the status
+but retain the original payment date. Repeated confirmations retain the original
+payment date; a refunded payment cannot be confirmed again.
+
+Receipt URLs are stored from authenticated T-Bank notifications with
+`Status: "RECEIPT"` and the `Url` field, independently of payment status. Failed
+fiscalization does not reject the payment. Existing payments have no receipt URL
+until a receipt notification is received.
+Enable fiscalization notifications through T-Bank support and configure the
+terminal's NotificationURL as the public `/api/webhook/notify` URL; setting only
+the per-payment Init URL is insufficient. See the
+[official notification examples](https://developer.tbank.ru/eacq/intro/developer/notification/notify-samples).
+
 ## Subscription promotions
 
 Startup creates or updates subscription promotions:

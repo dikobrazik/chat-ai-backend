@@ -8,7 +8,7 @@ import {
 } from '@nestjs/common';
 import { Response } from 'express';
 import { Public } from 'src/auth/decorators/public.decorator';
-import { KassaNotification } from './types';
+import { WebhookNotification } from './types';
 import { WebhookService } from './webhook.service';
 
 @Controller('webhook')
@@ -19,7 +19,7 @@ export class WebhookController {
   @Public()
   @Post('/notify')
   async notification(
-    @Body() body: KassaNotification,
+    @Body() body: WebhookNotification,
     @Res({ passthrough: true }) response: Response,
   ) {
     response.statusCode = HttpStatus.OK;
