@@ -150,6 +150,23 @@ update it for the new period, so paid renewals clear it. Cancellations preserve 
 while access remains; expiry/failure clears it with the period. The flag does not
 depend on the current promotion settings or on the amount charged.
 
+## Resuming a subscription
+
+`POST /api/subscription/resume` takes no body and restores the authenticated
+user's `canceled` subscription to `active`. It requires `current_period_end` to
+be strictly in the future and either a positive `rebill_id` (T-Pay) or a nonempty
+`account_token` (SBP).
+
+Success returns HTTP 201 with an empty body. HTTP 409 is returned if there is no
+eligible subscription, the period has ended, the subscription is not canceled
+(including an already resumed subscription), or no payment method is linked.
+The checks and status change happen in one conditional database update so
+concurrent requests cannot both resume the subscription.
+
+Resuming does not charge a payment or change the plan, billing dates, six-month
+period, payment credentials, or trial flag. It only re-enables renewal at the
+existing period end.
+
 ## Subscription promotions
 
 Startup creates or updates subscription promotions:

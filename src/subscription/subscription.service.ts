@@ -1,4 +1,4 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { ConflictException, Inject, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { add } from 'date-fns';
 import {
@@ -7,7 +7,7 @@ import {
   SubscriptionStatus,
 } from 'src/entities/Subscription';
 import { TariffService } from 'src/tariff/tariff.service';
-import { And, LessThanOrEqual, MoreThan, Repository } from 'typeorm';
+import { And, LessThanOrEqual, MoreThan, Not, Repository } from 'typeorm';
 
 @Injectable()
 export class SubscriptionService {
@@ -166,5 +166,26 @@ export class SubscriptionService {
         status: SubscriptionStatus.CANCELED,
       },
     );
+  }
+
+  public async resumeSubscription(userId: string): Promise<void> {
+    const criteria = {
+      user_id: userId,
+      status: SubscriptionStatus.CANCELED,
+      current_period_end: MoreThan(new Date()),
+    };
+    const result = await this.subscriptionRepository.update(
+      [
+        { ...criteria, rebill_id: MoreThan(0) },
+        { ...criteria, account_token: Not('') },
+      ],
+      { status: SubscriptionStatus.ACTIVE },
+    );
+
+    if (result.affected !== 1) {
+      throw new ConflictException(
+        'Subscription must be canceled, unexpired, and have a linked payment method',
+      );
+    }
   }
 }

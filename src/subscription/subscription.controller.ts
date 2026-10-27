@@ -13,6 +13,11 @@ export class SubscriptionController {
     return this.subscriptionService.cancelSubscription(user.id);
   }
 
+  @Post('resume')
+  public resumeSubscription(@User() user: UserEntity) {
+    return this.subscriptionService.resumeSubscription(user.id);
+  }
+
   @Get()
   public getCurrentSubscription(@User() user: UserEntity) {
     return this.subscriptionService.getCurrentSubscriptionForUser(user.id);

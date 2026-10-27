@@ -1,5 +1,6 @@
 import { TestBed, type Mocked } from '@suites/unit';
 import { getRepositoryToken } from '@nestjs/typeorm';
+import { ConflictException } from '@nestjs/common';
 import {
   Subscription,
   SubscriptionPlan,
@@ -137,6 +138,73 @@ describe(SubscriptionService.name, () => {
           current_period_end: THREE_DAYS_FROM_NOW,
         }),
       );
+    });
+  });
+
+  describe('resumeSubscription', () => {
+    it('Должен атомарно возобновлять только неистёкшую отменённую подписку со способом оплаты', async () => {
+      subscriptionRepositoryMock.update.mockResolvedValueOnce({
+        affected: 1,
+        raw: [],
+        generatedMaps: [],
+      });
+
+      await expect(
+        subscriptionService.resumeSubscription('user-id'),
+      ).resolves.toBeUndefined();
+
+      expect(subscriptionRepositoryMock.update).toHaveBeenCalledWith(
+        [
+          {
+            user_id: 'user-id',
+            status: SubscriptionStatus.CANCELED,
+            current_period_end: expect.objectContaining({
+              _type: 'moreThan',
+              _value: NOW,
+            }),
+            rebill_id: expect.objectContaining({
+              _type: 'moreThan',
+              _value: 0,
+            }),
+          },
+          {
+            user_id: 'user-id',
+            status: SubscriptionStatus.CANCELED,
+            current_period_end: expect.objectContaining({
+              _type: 'moreThan',
+              _value: NOW,
+            }),
+            account_token: expect.objectContaining({
+              _type: 'not',
+              _value: '',
+            }),
+          },
+        ],
+        { status: SubscriptionStatus.ACTIVE },
+      );
+      expect(subscriptionRepositoryMock.findOne).not.toHaveBeenCalled();
+      expect(tariffServiceMock.getTariff).not.toHaveBeenCalled();
+    });
+
+    it('Должен возвращать конфликт, если подписка не соответствует условиям возобновления', async () => {
+      subscriptionRepositoryMock.update.mockResolvedValueOnce({
+        affected: 0,
+        raw: [],
+        generatedMaps: [],
+      });
+
+      await expect(
+        subscriptionService.resumeSubscription('user-id'),
+      ).rejects.toThrow(ConflictException);
+    });
+
+    it('Должен пробрасывать ошибку базы данных без успешного ответа', async () => {
+      const error = new Error('Database unavailable');
+      subscriptionRepositoryMock.update.mockRejectedValueOnce(error);
+
+      await expect(
+        subscriptionService.resumeSubscription('user-id'),
+      ).rejects.toBe(error);
     });
   });
 

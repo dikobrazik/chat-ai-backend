@@ -44,7 +44,7 @@ describe('SubscriptionController (интеграционный тест)', () =>
       status: UserStatus.SUBSCRIPTION_PLUS,
     });
 
-    return subscriptionRepository.save({
+    const subscription = await subscriptionRepository.save({
       user_id: currentUser.id,
       plan: SubscriptionPlan.PLUS,
       status: SubscriptionStatus.ACTIVE,
@@ -54,6 +54,8 @@ describe('SubscriptionController (интеграционный тест)', () =>
       account_token: 'private-account-token',
       ...overrides,
     });
+
+    return subscriptionRepository.findOneByOrFail({ id: subscription.id });
   }
 
   beforeAll(async () => {
@@ -181,6 +183,184 @@ describe('SubscriptionController (интеграционный тест)', () =>
     expect(response.body).not.toHaveProperty('account_token');
     expect(response.body).not.toHaveProperty('rebill_id');
     expect(response.body).not.toHaveProperty('user_id');
+  });
+
+  describe('POST /subscription/resume', () => {
+    it.each([
+      { method: 'T-Pay', rebill_id: 123, account_token: null },
+      { method: 'СБП', rebill_id: null, account_token: 'account-token' },
+    ])(
+      'Должен возобновлять подписку со способом $method без изменения периода и тарифа',
+      async ({ rebill_id, account_token }) => {
+        const subscription = await createSubscription({
+          status: SubscriptionStatus.CANCELED,
+          six_months: true,
+          rebill_id,
+          account_token,
+        });
+
+        const response = await request(app.getHttpServer())
+          .post('/subscription/resume')
+          .expect(201);
+
+        expect(response.text).toBe('');
+        await expect(
+          subscriptionRepository.findOneByOrFail({ id: subscription.id }),
+        ).resolves.toEqual({
+          ...subscription,
+          status: SubscriptionStatus.ACTIVE,
+        });
+        const current = await request(app.getHttpServer())
+          .get('/subscription')
+          .expect(200);
+        expect(current.body).toMatchObject({
+          status: SubscriptionStatus.ACTIVE,
+          current_period_end: PERIOD_END.toISOString(),
+          next_payment_amount: 5_400,
+        });
+      },
+    );
+
+    it('Должен возобновлять отменённый пробный период без его продления и сброса', async () => {
+      const subscription = await createSubscription({
+        status: SubscriptionStatus.CANCELED,
+        is_trial: true,
+        current_period_end: new Date('2026-09-14T08:00:00.000Z'),
+      });
+
+      await request(app.getHttpServer())
+        .post('/subscription/resume')
+        .expect(201);
+
+      await expect(
+        subscriptionRepository.findOneByOrFail({ id: subscription.id }),
+      ).resolves.toEqual({
+        ...subscription,
+        status: SubscriptionStatus.ACTIVE,
+      });
+    });
+
+    it.each([
+      { rebill_id: null, account_token: null },
+      { rebill_id: null, account_token: '' },
+      { rebill_id: 0, account_token: null },
+      { rebill_id: -1, account_token: null },
+    ])(
+      'Должен возвращать 409 без способа оплаты: rebill_id=$rebill_id, account_token=$account_token',
+      async ({ rebill_id, account_token }) => {
+        const subscription = await createSubscription({
+          status: SubscriptionStatus.CANCELED,
+          rebill_id,
+          account_token,
+        });
+
+        await request(app.getHttpServer())
+          .post('/subscription/resume')
+          .expect(409);
+
+        await expect(
+          subscriptionRepository.findOneByOrFail({ id: subscription.id }),
+        ).resolves.toEqual(subscription);
+      },
+    );
+
+    it.each([NOW, new Date('2026-09-10T08:00:00.000Z'), null])(
+      'Должен возвращать 409 без действующего оплаченного периода: %s',
+      async (end) => {
+        const subscription = await createSubscription({
+          status: SubscriptionStatus.CANCELED,
+          current_period_end: end,
+        });
+
+        await request(app.getHttpServer())
+          .post('/subscription/resume')
+          .expect(409);
+
+        await expect(
+          subscriptionRepository.findOneByOrFail({ id: subscription.id }),
+        ).resolves.toEqual(subscription);
+      },
+    );
+
+    it.each([
+      SubscriptionStatus.ACTIVE,
+      SubscriptionStatus.PENDING,
+      SubscriptionStatus.RENEWING,
+      SubscriptionStatus.FAILED,
+      SubscriptionStatus.EXPIRED,
+    ])(
+      'Должен возвращать 409, если подписка не отменена: %s',
+      async (status) => {
+        const subscription = await createSubscription({ status });
+
+        await request(app.getHttpServer())
+          .post('/subscription/resume')
+          .expect(409);
+
+        await expect(
+          subscriptionRepository.findOneByOrFail({ id: subscription.id }),
+        ).resolves.toEqual(subscription);
+      },
+    );
+
+    it('Должен возвращать 409, если своей подписки нет, и не изменять чужую', async () => {
+      const subscription = await createSubscription({
+        status: SubscriptionStatus.CANCELED,
+      });
+      currentUser = await userRepository.save({
+        email: 'other@example.com',
+        status: UserStatus.ACTIVE,
+      });
+
+      await request(app.getHttpServer())
+        .post('/subscription/resume')
+        .expect(409);
+
+      await expect(
+        subscriptionRepository.findOneByOrFail({ id: subscription.id }),
+      ).resolves.toEqual(subscription);
+    });
+
+    it('Должен возвращать 409 при повторном возобновлении и не менять период', async () => {
+      const subscription = await createSubscription({
+        status: SubscriptionStatus.CANCELED,
+      });
+
+      await request(app.getHttpServer())
+        .post('/subscription/resume')
+        .expect(201);
+      await request(app.getHttpServer())
+        .post('/subscription/resume')
+        .expect(409);
+
+      await expect(
+        subscriptionRepository.findOneByOrFail({ id: subscription.id }),
+      ).resolves.toEqual({
+        ...subscription,
+        status: SubscriptionStatus.ACTIVE,
+      });
+    });
+
+    it('Должен возобновлять подписку только один раз при конкурентных запросах', async () => {
+      const subscription = await createSubscription({
+        status: SubscriptionStatus.CANCELED,
+      });
+
+      const responses = await Promise.all([
+        request(app.getHttpServer()).post('/subscription/resume'),
+        request(app.getHttpServer()).post('/subscription/resume'),
+      ]);
+
+      expect(responses.map((response) => response.status).sort()).toEqual([
+        201, 409,
+      ]);
+      await expect(
+        subscriptionRepository.findOneByOrFail({ id: subscription.id }),
+      ).resolves.toEqual({
+        ...subscription,
+        status: SubscriptionStatus.ACTIVE,
+      });
+    });
   });
 
   it('Должен возвращать полную цену шестимесячного продления со скидкой в копейках', async () => {
