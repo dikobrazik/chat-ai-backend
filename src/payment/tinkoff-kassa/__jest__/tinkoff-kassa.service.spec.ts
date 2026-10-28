@@ -76,6 +76,30 @@ describe(TinkoffKassaService.name, () => {
   });
 
   describe('createPayment', () => {
+    it('Должен включать сохранение карты для обычной формы и возвращать PaymentURL', async () => {
+      const response = {
+        Success: true,
+        PaymentId: 'external-payment-id',
+        PaymentURL: 'https://securepay.tinkoff.ru/payment',
+      };
+      postMock.mockResolvedValueOnce({ data: response });
+
+      await expect(
+        kassaService.createPayment({
+          ...paymentPayload,
+          DATA: { OperationInitiatorType: '1' },
+        }),
+      ).resolves.toEqual(response);
+      expect(postMock).toHaveBeenCalledWith(
+        '/Init',
+        expect.objectContaining({
+          Recurrent: 'Y',
+          CustomerKey: 'user-id',
+          DATA: { OperationInitiatorType: '1' },
+        }),
+      );
+    });
+
     it('Должен отправить подписочный платёж с подписанным телом запроса', async () => {
       const response = {
         Success: true,

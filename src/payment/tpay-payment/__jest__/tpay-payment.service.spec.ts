@@ -141,6 +141,13 @@ describe(TpayPaymentService.name, () => {
         123,
         'user@example.com',
       );
+      expect(tinkoffKassaServiceMock.createPayment).toHaveBeenCalledWith({
+        OrderId: 'payment-id',
+        Amount: 2_000,
+        CustomerKey: 'user-id',
+        Email: 'user@example.com',
+        DATA: { OperationInitiatorType: 'R' },
+      });
     });
   });
 });

@@ -17,6 +17,7 @@ import { PaymentController } from 'src/payment/payment.controller';
 import { PaymentService } from 'src/payment/payment.service';
 import { SbpPaymentService } from 'src/payment/sbp-payment/sbp-payment.service';
 import { TpayPaymentService } from 'src/payment/tpay-payment/tpay-payment.service';
+import { TbankPaymentService } from 'src/payment/tbank-payment/tbank-payment.service';
 import { createPayment, createSubscription } from './fixtures';
 
 jest.setTimeout(120_000);
@@ -51,6 +52,7 @@ describe('GET /api/payment/history (интеграционный тест)', () 
       controllers: [PaymentController],
       providers: [
         PaymentService,
+        { provide: TbankPaymentService, useValue: {} },
         {
           provide: SbpPaymentService,
           useValue: { getAddAccountQr: jest.fn() },

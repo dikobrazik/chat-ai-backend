@@ -20,6 +20,7 @@ import { PaymentController } from 'src/payment/payment.controller';
 import { PaymentService } from 'src/payment/payment.service';
 import { SbpPaymentService } from 'src/payment/sbp-payment/sbp-payment.service';
 import { TpayPaymentService } from 'src/payment/tpay-payment/tpay-payment.service';
+import { TbankPaymentService } from 'src/payment/tbank-payment/tbank-payment.service';
 import { TinkoffKassaService } from 'src/payment/tinkoff-kassa/tinkoff-kassa.service';
 import { LINK_ACCOUNT_NOTIFICATION_STATUSES } from 'src/payment/webhook/constants';
 import { WebhookController } from 'src/payment/webhook/webhook.controller';
@@ -69,6 +70,7 @@ describe('POST /api/payment/method/generate-qr (интеграционный т�
         SbpPaymentService,
         SubscriptionService,
         PaymentService,
+        { provide: TbankPaymentService, useValue: {} },
         PaymentAmountService,
         WebhookService,
         { provide: TpayPaymentService, useValue: { getTPayLink: jest.fn() } },

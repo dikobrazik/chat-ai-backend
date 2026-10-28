@@ -4,11 +4,13 @@ import { type Tariff } from 'src/tariff/types';
 export enum PaymentMethod {
   SBP = 'sbp',
   TPAY = 'tpay',
+  TBANK = 'tbank',
 }
 
 const TRIAL_PAYMENT_AMOUNT = {
   [PaymentMethod.SBP]: 1000,
   [PaymentMethod.TPAY]: 1000,
+  [PaymentMethod.TBANK]: 1000,
 };
 
 @Injectable()

@@ -8,11 +8,13 @@ import { SbpPaymentModule } from './sbp-payment/sbp-payment.module';
 import { TpayPaymentModule } from './tpay-payment/tpay-payment.module';
 import { WebhookModule } from './webhook/webhook.module';
 import { PaymentService } from './payment.service';
+import { TbankPaymentModule } from './tbank-payment/tbank-payment.module';
 
 @Module({
   imports: [
     WebhookModule,
     TpayPaymentModule,
+    TbankPaymentModule,
     SbpPaymentModule,
     TariffModule,
     TypeOrmModule.forFeature([Payment, Subscription]),

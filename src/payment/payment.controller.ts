@@ -15,6 +15,7 @@ import { TariffInfoDto } from './dto';
 import { SbpPaymentService } from './sbp-payment/sbp-payment.service';
 import { TpayPaymentService } from './tpay-payment/tpay-payment.service';
 import { PaymentService } from './payment.service';
+import { TbankPaymentService } from './tbank-payment/tbank-payment.service';
 
 @Controller('payment')
 export class PaymentController {
@@ -24,6 +25,8 @@ export class PaymentController {
   private readonly tpayPaymentService: TpayPaymentService;
   @Inject(PaymentService)
   private readonly paymentService: PaymentService;
+  @Inject(TbankPaymentService)
+  private readonly tbankPaymentService: TbankPaymentService;
 
   @Delete('method')
   public async removeMethod(@User() user: UserEntity): Promise<void> {
@@ -61,5 +64,13 @@ export class PaymentController {
     @User() user: UserEntity,
   ) {
     return this.tpayPaymentService.getTPayLink(body, user, req);
+  }
+
+  @Post('get-tbank-link')
+  public async createTBankLink(
+    @Body() body: TariffInfoDto,
+    @User() user: UserEntity,
+  ) {
+    return this.tbankPaymentService.getTBankLink(body, user);
   }
 }

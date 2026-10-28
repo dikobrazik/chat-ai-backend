@@ -129,6 +129,33 @@ Seed data lives in `src/database/seeds/`: providers in
 models in `models/<provider>/models.seed.ts`. `models/index.ts` combines the
 provider catalogs; `DatabaseSeedService` handles the startup transaction.
 
+## T-Bank payment link
+
+`POST /api/payment/get-tbank-link` accepts `{ tariff: "plus" | "pro", sixMonths: boolean }`
+and returns HTTP 201 with `{ PaymentURL: string }`. It creates a pending
+subscription/payment using the shared tariff calculation, calls `Init`, saves
+the external `PaymentId`, and returns the bank-hosted payment form URL.
+Trials currently cost 1,000 kopecks, matching the existing payment methods.
+No device information or T-Pay-specific link API is needed. A missing/empty
+`PaymentURL` returns HTTP 502; the external payment ID is still retained.
+The terminal must be configured to use the bank's payment form.
+
+The initial card payment sends `Recurrent=Y`, `CustomerKey`, and
+`DATA.OperationInitiatorType="1"` (parent CC purchase). After successful payment,
+the existing confirmation webhook saves `RebillId` and activates the subscription.
+The existing renewal job uses this identifier through `Init` with
+`DATA.OperationInitiatorType="R"` followed by `Charge`, without opening another
+payment form. Payments using saved credentials must be enabled for the terminal
+by T-Bank; actual bank acceptance requires testing on a configured terminal.
+
+This is the standard form, not a card-only form. Recurring payments are not
+guaranteed for every payment method offered there. In particular, SBP autopay
+uses separate account linking through the API; keep the existing SBP QR flow
+for it. A payment without recurring credentials cannot be renewed automatically.
+See the official [recurring-payment scenario](https://developer.tbank.ru/eacq/scenarios/payments/nonPCI/autopay/),
+[Init parameters](https://developer.tbank.ru/eacq/api/init), and
+[Charge API](https://developer.tbank.ru/eacq/api/charge).
+
 ## Current subscription
 
 `GET /api/subscription` returns the authenticated user's active subscription, or a

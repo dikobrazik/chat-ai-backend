@@ -77,6 +77,7 @@ export class TpayPaymentService extends BasePaymentService {
       Amount: amount,
       CustomerKey: subscription.user_id,
       Email: subscription.user.email,
+      DATA: { OperationInitiatorType: 'R' },
     });
 
     await this.tinkoffKassaService.charge(

@@ -11,7 +11,7 @@ export type PaymentHistoryItem = Pick<
 >;
 
 export type PaymentMethodInfo = {
-  type: PaymentMethod;
+  type: PaymentMethod.SBP | PaymentMethod.TPAY;
   description: string | null;
 };
 
