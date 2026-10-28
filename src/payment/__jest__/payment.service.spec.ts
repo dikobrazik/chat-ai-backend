@@ -20,7 +20,7 @@ describe(PaymentService.name, () => {
       .mock(repositoryToken)
       .impl(() => ({ find: jest.fn() }))
       .mock(subscriptionRepositoryToken)
-      .impl(() => ({ findOne: jest.fn() }))
+      .impl(() => ({ findOne: jest.fn(), update: jest.fn() }))
       .compile();
     service = unit;
     repository = unitRef.get(repositoryToken);
@@ -29,6 +29,63 @@ describe(PaymentService.name, () => {
 
   beforeEach(() => {
     jest.resetAllMocks();
+  });
+
+  describe('removeMethod', () => {
+    const now = new Date('2026-10-28T13:05:00.000Z');
+
+    beforeEach(() => {
+      jest.useFakeTimers().setSystemTime(now);
+    });
+
+    afterEach(() => {
+      jest.useRealTimers();
+    });
+
+    it.each([0, 1])(
+      'Должен очищать только реквизиты текущего пользователя независимо от наличия подписки (%s)',
+      async (affected) => {
+        subscriptionRepository.update.mockResolvedValueOnce({
+          affected,
+          raw: [],
+          generatedMaps: [],
+        });
+
+        await expect(service.removeMethod('user-id')).resolves.toBeUndefined();
+        expect(subscriptionRepository.update).toHaveBeenCalledWith(
+          { user_id: 'user-id' },
+          {
+            rebill_id: null,
+            account_token: null,
+            tpay_card_mask: null,
+            sbp_bank_name: null,
+            payment_method_link_request_key: null,
+            payment_method_deleted_at: now,
+          },
+        );
+        expect(subscriptionRepository.findOne).not.toHaveBeenCalled();
+      },
+    );
+
+    it('Должен обновлять время удаления при повторном запросе', async () => {
+      await service.removeMethod('user-id');
+      jest.advanceTimersByTime(60_000);
+      await service.removeMethod('user-id');
+
+      expect(subscriptionRepository.update).toHaveBeenLastCalledWith(
+        { user_id: 'user-id' },
+        expect.objectContaining({
+          payment_method_deleted_at: new Date(now.getTime() + 60_000),
+        }),
+      );
+    });
+
+    it('Должен пробрасывать ошибку базы данных без успешного ответа', async () => {
+      const error = new Error('Database unavailable');
+      subscriptionRepository.update.mockRejectedValueOnce(error);
+
+      await expect(service.removeMethod('user-id')).rejects.toBe(error);
+    });
   });
 
   describe('getMethod', () => {

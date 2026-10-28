@@ -1,4 +1,13 @@
-import { Body, Controller, Get, Inject, Post, Req, Res } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Inject,
+  Post,
+  Req,
+  Res,
+} from '@nestjs/common';
 import { Request, Response } from 'express';
 import { User } from 'src/decorators/user.decorator';
 import { User as UserEntity } from 'src/entities/User';
@@ -15,6 +24,11 @@ export class PaymentController {
   private readonly tpayPaymentService: TpayPaymentService;
   @Inject(PaymentService)
   private readonly paymentService: PaymentService;
+
+  @Delete('method')
+  public async removeMethod(@User() user: UserEntity): Promise<void> {
+    await this.paymentService.removeMethod(user.id);
+  }
 
   @Get('history')
   public getHistory(@User() user: UserEntity) {

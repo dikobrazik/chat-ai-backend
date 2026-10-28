@@ -23,6 +23,20 @@ export class PaymentService {
   @InjectRepository(Subscription)
   private readonly subscriptionRepository: Repository<Subscription>;
 
+  public async removeMethod(userId: string): Promise<void> {
+    await this.subscriptionRepository.update(
+      { user_id: userId },
+      {
+        rebill_id: null,
+        account_token: null,
+        tpay_card_mask: null,
+        sbp_bank_name: null,
+        payment_method_link_request_key: null,
+        payment_method_deleted_at: new Date(),
+      },
+    );
+  }
+
   public async getMethod(userId: string): Promise<PaymentMethodInfo | null> {
     const subscription = await this.subscriptionRepository.findOne({
       select: {

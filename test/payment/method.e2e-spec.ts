@@ -21,7 +21,7 @@ import { createSubscription } from './fixtures';
 
 jest.setTimeout(120_000);
 
-describe('GET /api/payment/method (интеграционный тест)', () => {
+describe('/api/payment/method (интеграционный тест)', () => {
   let container: StartedPostgreSqlContainer;
   let moduleRef: TestingModule;
   let app: INestApplication;
@@ -93,6 +93,110 @@ describe('GET /api/payment/method (интеграционный тест)', () =
       await moduleRef.close();
     }
     await container?.stop();
+  });
+
+  describe('DELETE', () => {
+    it.each([
+      { rebill_id: 123, account_token: null },
+      { rebill_id: null, account_token: 'sbp-token' },
+      { rebill_id: 123, account_token: 'sbp-token' },
+    ])(
+      'Должен очищать реквизиты $rebill_id / $account_token и сохранять время удаления без изменения условий подписки',
+      async (credentials) => {
+        const subscription = await createSubscription(
+          subscriptionRepository,
+          currentUser,
+          {
+            ...credentials,
+            status: SubscriptionStatus.ACTIVE,
+            tpay_card_mask: '**** 0777',
+            sbp_bank_name: 'Тестовый банк',
+            payment_method_link_request_key: 'pending-request',
+            payment_method_deleted_at: new Date('2025-01-01T00:00:00.000Z'),
+            six_months: true,
+            is_trial: true,
+          },
+        );
+        const before = await subscriptionRepository.findOneByOrFail({
+          id: subscription.id,
+        });
+        const userBefore = await userRepository.findOneByOrFail({
+          id: currentUser.id,
+        });
+        const deletionStartedAt = Date.now();
+
+        await request(app.getHttpServer())
+          .delete('/api/payment/method')
+          .expect(200)
+          .expect('');
+        const after = await subscriptionRepository.findOneByOrFail({
+          id: subscription.id,
+        });
+        expect(after).toEqual({
+          ...before,
+          rebill_id: null,
+          account_token: null,
+          tpay_card_mask: null,
+          sbp_bank_name: null,
+          payment_method_link_request_key: null,
+          payment_method_deleted_at: expect.any(Date),
+        });
+        expect(
+          after.payment_method_deleted_at.getTime(),
+        ).toBeGreaterThanOrEqual(deletionStartedAt);
+        expect(after.payment_method_deleted_at.getTime()).toBeLessThanOrEqual(
+          Date.now(),
+        );
+        expect(
+          await userRepository.findOneByOrFail({ id: currentUser.id }),
+        ).toEqual(userBefore);
+        await request(app.getHttpServer())
+          .get('/api/payment/method')
+          .expect(200)
+          .expect('null');
+        await request(app.getHttpServer())
+          .delete('/api/payment/method')
+          .expect(200)
+          .expect('');
+        const repeated = await subscriptionRepository.findOneByOrFail({
+          id: subscription.id,
+        });
+        expect(repeated).toEqual({
+          ...after,
+          payment_method_deleted_at: expect.any(Date),
+        });
+        expect(
+          repeated.payment_method_deleted_at.getTime(),
+        ).toBeGreaterThanOrEqual(after.payment_method_deleted_at.getTime());
+      },
+    );
+
+    it('Не должен создавать подписку или менять чужие реквизиты без собственной подписки', async () => {
+      const other = await userRepository.save({ email: 'other@example.com' });
+      const subscription = await createSubscription(
+        subscriptionRepository,
+        other,
+        {
+          rebill_id: 456,
+          account_token: 'other-token',
+        },
+      );
+      const before = await subscriptionRepository.findOneByOrFail({
+        id: subscription.id,
+      });
+
+      await request(app.getHttpServer())
+        .delete('/api/payment/method')
+        .expect(200)
+        .expect('');
+      expect(await subscriptionRepository.count()).toBe(1);
+      expect(
+        await subscriptionRepository.findOneBy({ user_id: currentUser.id }),
+      ).toBeNull();
+      expect(
+        await subscriptionRepository.findOneByOrFail({ id: subscription.id }),
+      ).toEqual(before);
+    });
   });
 
   it('Должен возвращать JSON null, если подписки и реквизитов нет', async () => {

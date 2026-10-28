@@ -70,6 +70,9 @@ export class Subscription {
   @Column({ type: 'text', nullable: true })
   payment_method_link_request_key: string | null;
 
+  @Column('timestamptz', { nullable: true })
+  payment_method_deleted_at: Date | null;
+
   @CreateDateColumn()
   created_at: Date;
 }

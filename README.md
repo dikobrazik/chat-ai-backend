@@ -194,6 +194,20 @@ the per-payment Init URL is insufficient. See the
 
 ## Payment method
 
+`DELETE /api/payment/method` takes no body and returns HTTP 200 with an empty
+body. It clears the authenticated user's `rebill_id`, `account_token`, payment
+method descriptions, and pending method-change QR key, and records
+`payment_method_deleted_at` in the same database update. This nullable timestamp
+stores the latest DELETE time and is updated on repeated requests.
+Subscription status, paid access, billing dates, plan, six-month period, and
+trial flag are unchanged. Repeated requests and users without a subscription
+are handled without creating records. There are no bank calls.
+Apply `AddPaymentMethodDeletedAt1793009200000` before deploying this version;
+existing subscriptions receive `null`, without fabricated deletion dates.
+This only clears local credentials; it does not revoke bank-side consent or
+cancel already-started payments. Existing checkout and payment-notification
+behavior is unchanged, so their later completion can save credentials again.
+
 `GET /api/payment/method` returns `{ type: "tpay" | "sbp", description: string | null }`
 for the authenticated user's linked payment method, or `null` if none is linked.
 It is independent of subscription status: cancellation or expiry does not unlink
