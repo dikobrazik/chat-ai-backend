@@ -1,4 +1,8 @@
-import { Injectable, InternalServerErrorException } from '@nestjs/common';
+import {
+  Injectable,
+  InternalServerErrorException,
+  Logger,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import axios, { AxiosInstance } from 'axios';
 import { addMinutes } from 'date-fns';
@@ -22,6 +26,8 @@ import { formatMoscowDate, generateTokenFromBody } from './utils';
 
 @Injectable()
 export class TinkoffKassaService {
+  private logger = new Logger(TinkoffKassaService.name);
+
   private client: AxiosInstance;
 
   private baseUrl: string;
@@ -84,7 +90,7 @@ export class TinkoffKassaService {
       .post<Init200Response>('/Init', body)
       .then((r) => r.data);
 
-    console.log('Init response', body, response);
+    this.logger.log('Init response', body, response);
 
     if (this.isErrorResponse(response)) {
       throw new InternalServerErrorException();
@@ -99,7 +105,7 @@ export class TinkoffKassaService {
       .get<Status200Response>(`TinkoffPay/terminals/${this.terminalKey}/status`)
       .then((r) => r.data);
 
-    console.log('GetTPayStatus', response);
+    this.logger.log('GetTPayStatus', response);
 
     if (this.isErrorResponse(response)) {
       throw new InternalServerErrorException();
@@ -119,7 +125,7 @@ export class TinkoffKassaService {
       )
       .then((r) => r.data);
 
-    console.log('GetTPayLink', response);
+    this.logger.log('GetTPayLink', response);
 
     if (this.isErrorResponse(response)) {
       throw new InternalServerErrorException();
@@ -142,7 +148,7 @@ export class TinkoffKassaService {
       )
       .then((r) => r.data);
 
-    console.log('AddAccountQr', response);
+    this.logger.log('AddAccountQr', response);
 
     if (!response.Success) {
       throw new InternalServerErrorException();
@@ -170,7 +176,7 @@ export class TinkoffKassaService {
       )
       .then((r) => r.data);
 
-    console.log('AddAccountQr', response);
+    this.logger.log('chargeQr', response);
 
     if (!response.Success) {
       throw new InternalServerErrorException();
@@ -196,7 +202,7 @@ export class TinkoffKassaService {
       .post<Charge200Response>('/Charge', body)
       .then((r) => r.data);
 
-    console.log('Charge response', body, response);
+    this.logger.log('Charge response', body, response);
 
     if (!response.Success) {
       throw new InternalServerErrorException();
