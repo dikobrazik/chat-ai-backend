@@ -225,7 +225,7 @@ describe('POST /api/payment/get-tbank-link (интеграционный тес�
     });
     expect(subscription.status).toBe(SubscriptionStatus.ACTIVE);
     expect(subscription.rebill_id).toBe('789');
-    expect(subscription.tpay_card_mask).toBe('**** 0777');
+    expect(subscription.pan).toBe('430000******0777');
     await subscriptions.update(subscription.id, {
       current_period_end: new Date(Date.now() - 1_000),
     });

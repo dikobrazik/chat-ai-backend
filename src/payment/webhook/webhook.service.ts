@@ -122,9 +122,9 @@ export class WebhookService {
       payment.subscription.six_months,
     );
 
-    const lastFour =
+    const pan =
       typeof notification.Pan === 'string'
-        ? notification.Pan.match(/\d{4}$/)?.[0]
+        ? notification.Pan.trim()
         : undefined;
 
     await Promise.all([
@@ -143,9 +143,7 @@ export class WebhookService {
       this.subscriptionRepository.update(payment.subscription_id, {
         status: SubscriptionStatus.ACTIVE,
         rebill_id: notification.RebillId,
-        ...(Number(notification.RebillId) > 0
-          ? { tpay_card_mask: lastFour ? `**** ${lastFour}` : null }
-          : {}),
+        ...(pan ? { pan } : {}),
         current_period_start: new Date(),
         current_period_end: tariff.nextChargeAt,
         is_trial: Boolean(tariff.freeDays),

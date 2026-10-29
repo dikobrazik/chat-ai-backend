@@ -133,7 +133,7 @@ describe('POST /api/payment/method/generate-qr (интеграционный т�
       {
         status: SubscriptionStatus.ACTIVE,
         rebill_id: 123,
-        tpay_card_mask: '**** 0777',
+        pan: '**** 0777',
       },
     );
     const before = await subscriptionRepository.findOneByOrFail({
@@ -180,9 +180,8 @@ describe('POST /api/payment/method/generate-qr (интеграционный т�
         {
           status,
           rebill_id: 123,
-          tpay_card_mask: '**** 0777',
+          pan: '**** 0777',
           account_token: 'old-sbp-token',
-          sbp_bank_name: 'Старый банк',
           six_months: true,
           is_trial: true,
         },
@@ -209,15 +208,14 @@ describe('POST /api/payment/method/generate-qr (интеграционный т�
       ).toEqual({
         ...before,
         rebill_id: null,
-        tpay_card_mask: null,
+        pan: null,
         account_token: 'new-token',
-        sbp_bank_name: 'Новый банк',
         payment_method_link_request_key: null,
       });
       await request(app.getHttpServer())
         .get('/api/payment/method')
         .expect(200)
-        .expect({ type: 'sbp', description: 'Новый банк' });
+        .expect({ type: 'sbp', description: null });
       expect(await paymentRepository.count()).toBe(0);
       expect(kassa.createPayment).not.toHaveBeenCalled();
       expect(kassa.chargeQr).not.toHaveBeenCalled();
@@ -230,7 +228,7 @@ describe('POST /api/payment/method/generate-qr (интеграционный т�
       currentUser,
       {
         rebill_id: 123,
-        tpay_card_mask: '**** 0777',
+        pan: '**** 0777',
       },
     );
     await request(app.getHttpServer())

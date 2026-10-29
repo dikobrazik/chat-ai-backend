@@ -111,8 +111,7 @@ describe('/api/payment/method (интеграционный тест)', () => {
           {
             ...credentials,
             status: SubscriptionStatus.ACTIVE,
-            tpay_card_mask: '**** 0777',
-            sbp_bank_name: 'Тестовый банк',
+            pan: '**** 0777',
             payment_method_link_request_key: 'pending-request',
             payment_method_deleted_at: new Date('2025-01-01T00:00:00.000Z'),
             six_months: true,
@@ -138,8 +137,7 @@ describe('/api/payment/method (интеграционный тест)', () => {
           ...before,
           rebill_id: null,
           account_token: null,
-          tpay_card_mask: null,
-          sbp_bank_name: null,
+          pan: null,
           payment_method_link_request_key: null,
           payment_method_deleted_at: expect.any(Date),
         });
@@ -216,7 +214,7 @@ describe('/api/payment/method (интеграционный тест)', () => {
     });
     await createSubscription(subscriptionRepository, otherUser, {
       rebill_id: 123,
-      tpay_card_mask: '**** 0777',
+      pan: '**** 0777',
     });
 
     await request(app.getHttpServer())
@@ -229,43 +227,37 @@ describe('/api/payment/method (интеграционный тест)', () => {
     {
       rebill_id: 123,
       account_token: null,
-      tpay_card_mask: '**** 0777',
-      sbp_bank_name: null,
-      expected: { type: 'tpay', description: '**** 0777' },
+      pan: '430000******0777',
+      expected: { type: 'tpay', description: '430000******0777' },
     },
     {
       rebill_id: null,
       account_token: 'private-token',
-      tpay_card_mask: null,
-      sbp_bank_name: 'Тестовый банк',
-      expected: { type: 'sbp', description: 'Тестовый банк' },
+      pan: '+7(900)***-**-12',
+      expected: { type: 'sbp', description: '+7(900)***-**-12' },
     },
     {
       rebill_id: 123,
       account_token: 'private-token',
-      tpay_card_mask: '**** 0777',
-      sbp_bank_name: 'Другой банк',
+      pan: '**** 0777',
       expected: { type: 'tpay', description: '**** 0777' },
     },
     {
       rebill_id: 123,
       account_token: null,
-      tpay_card_mask: null,
-      sbp_bank_name: null,
+      pan: null,
       expected: { type: 'tpay', description: null },
     },
     {
       rebill_id: null,
       account_token: 'private-token',
-      tpay_card_mask: null,
-      sbp_bank_name: null,
+      pan: null,
       expected: { type: 'sbp', description: null },
     },
     {
       rebill_id: 0,
       account_token: '',
-      tpay_card_mask: '**** 0777',
-      sbp_bank_name: 'Удалённый банк',
+      pan: '**** 0777',
       expected: null,
     },
   ])(
@@ -297,13 +289,13 @@ describe('/api/payment/method (интеграционный тест)', () => {
       await createSubscription(subscriptionRepository, currentUser, {
         status,
         account_token: 'private-token',
-        sbp_bank_name: 'Тестовый банк',
+        pan: '+7(900)***-**-12',
       });
 
       await request(app.getHttpServer())
         .get('/api/payment/method')
         .expect(200)
-        .expect({ type: 'sbp', description: 'Тестовый банк' });
+        .expect({ type: 'sbp', description: '+7(900)***-**-12' });
     },
   );
 });

@@ -223,7 +223,7 @@ the per-payment Init URL is insufficient. See the
 
 `DELETE /api/payment/method` takes no body and returns HTTP 200 with an empty
 body. It clears the authenticated user's `rebill_id`, `account_token`, payment
-method descriptions, and pending method-change QR key, and records
+method mask (`pan`), and pending method-change QR key, and records
 `payment_method_deleted_at` in the same database update. This nullable timestamp
 stores the latest DELETE time and is updated on repeated requests.
 Subscription status, paid access, billing dates, plan, six-month period, and
@@ -240,12 +240,18 @@ for the authenticated user's linked payment method, or `null` if none is linked.
 It is independent of subscription status: cancellation or expiry does not unlink
 payment credentials. The response never exposes tokens or billing identifiers.
 
-T-Pay descriptions contain only a mask and the last four card digits
-(`**** 1234`); SBP descriptions contain the bank name. They are saved from
-confirmed T-Pay and successful SBP account-link notifications respectively.
-Apply `AddPaymentMethodDescriptions1793009000000` before deploying this version.
-Existing links remain valid with `description: null` until provider metadata is
-received; bank names and card digits are not inferred from tokens.
+Descriptions come from the shared nullable `subscription.pan` field, saved from
+`Pan` in confirmed payment notifications for both card and SBP payments. The
+provider's masked value is retained (card mask or phone mask); only surrounding
+whitespace is removed. Missing or empty `Pan` does not erase a saved value.
+Account linking does not supply this description. Changing the linked account
+clears the previous mask until a subsequent confirmed payment supplies `Pan`.
+
+Apply `AddSubscriptionPan1793009300000` before deploying this version, after
+the existing payment-method migrations. It renames `tpay_card_mask` to `pan`,
+preserving existing card masks, and drops `sbp_bank_name`. Bank names are not
+PAN values and are deliberately not copied; rollback recreates that column as
+`null` and cannot recover the old bank names. Existing links remain valid.
 
 If both payment credentials are present, T-Pay takes precedence, matching the
 existing renewal job. This read-only endpoint does not change payment selection,
@@ -260,8 +266,8 @@ record. The existing payment method remains unchanged until successful linking.
 
 The request is bound to the authenticated user and subscription for 30 minutes.
 On an authenticated `ACTIVE` notification, one conditional database update saves
-the new account token and bank name, clears the previous T-Pay identifier and card
-mask, and consumes the pending request. It does not create payments, activate a
+the new account token, clears the previous T-Pay identifier and shared payment
+mask (`pan`), and consumes the pending request. It does not create payments, activate a
 canceled subscription, or change the plan, billing dates, or trial flag.
 Only the latest generated QR can change the method. Repeated, concurrent, and
 superseded notifications cannot replace it again; unsuccessful notifications

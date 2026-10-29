@@ -89,7 +89,6 @@ export class SbpPaymentService extends BasePaymentService {
           params.userId,
           RequestKey,
           AccountToken,
-          notification.BankMemberName?.trim() || null,
         );
       if (!completed) {
         this.logger.warn(
@@ -127,11 +126,7 @@ export class SbpPaymentService extends BasePaymentService {
 
     await Promise.all([
       this.linkExternalPayment(paymentId, externalPaymentId),
-      this.subscriptionService.updateAccountToken(
-        subscriptionId,
-        AccountToken,
-        notification.BankMemberName?.trim() || null,
-      ),
+      this.subscriptionService.updateAccountToken(subscriptionId, AccountToken),
       this.tinkoffKassaService.chargeQr(externalPaymentId, AccountToken),
     ]);
   }

@@ -29,8 +29,7 @@ export class PaymentService {
       {
         rebill_id: null,
         account_token: null,
-        tpay_card_mask: null,
-        sbp_bank_name: null,
+        pan: null,
         payment_method_link_request_key: null,
         payment_method_deleted_at: new Date(),
       },
@@ -42,8 +41,7 @@ export class PaymentService {
       select: {
         rebill_id: true,
         account_token: true,
-        tpay_card_mask: true,
-        sbp_bank_name: true,
+        pan: true,
       },
       where: { user_id: userId },
     });
@@ -55,14 +53,14 @@ export class PaymentService {
     if (Number(subscription.rebill_id) > 0) {
       return {
         type: PaymentMethod.TPAY,
-        description: subscription.tpay_card_mask,
+        description: subscription.pan,
       };
     }
 
     if (subscription.account_token) {
       return {
         type: PaymentMethod.SBP,
-        description: subscription.sbp_bank_name,
+        description: subscription.pan,
       };
     }
 

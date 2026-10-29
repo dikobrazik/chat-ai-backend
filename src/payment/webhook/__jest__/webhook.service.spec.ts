@@ -288,7 +288,7 @@ describe(WebhookService.name, () => {
         {
           status: SubscriptionStatus.ACTIVE,
           rebill_id: 789,
-          tpay_card_mask: '**** 0777',
+          pan: '430000******0777',
           current_period_start: paymentDate,
           current_period_end: nextChargeAt,
           is_trial: false,
@@ -340,12 +340,24 @@ describe(WebhookService.name, () => {
     );
 
     it.each([
-      ['0000000000001234', '**** 1234'],
-      ['', null],
-      [undefined, null],
+      {
+        Pan: '430000******1234',
+        RebillId: 789,
+        expectedPan: '430000******1234',
+      },
+      {
+        Pan: '+7(900)***-**-12',
+        RebillId: undefined,
+        expectedPan: '+7(900)***-**-12',
+      },
+      {
+        Pan: '  +7(900)***-**-12  ',
+        RebillId: 0,
+        expectedPan: '+7(900)***-**-12',
+      },
     ])(
-      'Должен сохранять только последние четыре цифры карты (%s)',
-      async (Pan, cardMask) => {
+      'Должен сохранять Pan карты или телефона без потери маски ($Pan)',
+      async ({ Pan, RebillId, expectedPan }) => {
         paymentRepositoryMock.findOne.mockResolvedValueOnce(
           Object.assign(new Payment(), {
             id: 'payment-id',
@@ -363,44 +375,47 @@ describe(WebhookService.name, () => {
           paymentNotification({
             Status: PAYMENT_NOTIFICATION_STATUSES.CONFIRMED,
             Pan,
+            RebillId,
           }),
         );
 
         expect(subscriptionRepositoryMock.update).toHaveBeenCalledWith(
           'subscription-id',
-          expect.objectContaining({ tpay_card_mask: cardMask }),
+          expect.objectContaining({ pan: expectedPan }),
         );
       },
     );
 
-    it('Не должен затирать маску T-Pay при подтверждении СБП без RebillId', async () => {
-      paymentRepositoryMock.findOne.mockResolvedValueOnce(
-        Object.assign(new Payment(), {
-          id: 'payment-id',
-          user_id: 'user-id',
-          subscription_id: 'subscription-id',
-          status: PaymentStatus.NEW,
-          subscription: Object.assign(new Subscription(), {
-            plan: SubscriptionPlan.PRO,
-            six_months: false,
-            tpay_card_mask: '**** 1234',
+    it.each([undefined, '', '   '])(
+      'Не должен затирать сохранённый Pan при подтверждении без маски (%s)',
+      async (Pan) => {
+        paymentRepositoryMock.findOne.mockResolvedValueOnce(
+          Object.assign(new Payment(), {
+            id: 'payment-id',
+            user_id: 'user-id',
+            subscription_id: 'subscription-id',
+            status: PaymentStatus.NEW,
+            subscription: Object.assign(new Subscription(), {
+              plan: SubscriptionPlan.PRO,
+              six_months: false,
+              pan: '**** 1234',
+            }),
           }),
-        }),
-      );
+        );
 
-      await webhookService.processNotification(
-        paymentNotification({
-          Status: PAYMENT_NOTIFICATION_STATUSES.CONFIRMED,
-          RebillId: undefined,
-          Pan: undefined,
-        }),
-      );
+        await webhookService.processNotification(
+          paymentNotification({
+            Status: PAYMENT_NOTIFICATION_STATUSES.CONFIRMED,
+            RebillId: undefined,
+            Pan,
+          }),
+        );
 
-      expect(subscriptionRepositoryMock.update).toHaveBeenCalledWith(
-        'subscription-id',
-        expect.not.objectContaining({ tpay_card_mask: expect.anything() }),
-      );
-    });
+        expect(
+          subscriptionRepositoryMock.update.mock.calls[0][1],
+        ).not.toHaveProperty('pan');
+      },
+    );
 
     it('Должен вернуть ошибку, если подтверждаемый платёж не найден', async () => {
       paymentRepositoryMock.findOne.mockResolvedValueOnce(null);

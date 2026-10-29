@@ -342,20 +342,7 @@ describe(SubscriptionService.name, () => {
 
     expect(subscriptionRepositoryMock.update).toHaveBeenCalledWith(
       'subscription-id',
-      { account_token: 'account-token', sbp_bank_name: null },
-    );
-  });
-
-  it('Должен сохранять название банка вместе с токеном привязанного счёта', async () => {
-    await subscriptionService.updateAccountToken(
-      'subscription-id',
-      'account-token',
-      'Тестовый банк',
-    );
-
-    expect(subscriptionRepositoryMock.update).toHaveBeenCalledWith(
-      'subscription-id',
-      { account_token: 'account-token', sbp_bank_name: 'Тестовый банк' },
+      { account_token: 'account-token' },
     );
   });
 
@@ -431,7 +418,6 @@ describe(SubscriptionService.name, () => {
             'user-id',
             'request-key',
             'new-token',
-            'Банк',
           ),
         ).resolves.toBe(affected === 1);
         expect(subscriptionRepositoryMock.update).toHaveBeenCalledWith(
@@ -442,9 +428,8 @@ describe(SubscriptionService.name, () => {
           },
           {
             account_token: 'new-token',
-            sbp_bank_name: 'Банк',
             rebill_id: null,
-            tpay_card_mask: null,
+            pan: null,
             payment_method_link_request_key: null,
           },
         );

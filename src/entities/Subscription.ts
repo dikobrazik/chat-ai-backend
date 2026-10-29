@@ -62,10 +62,7 @@ export class Subscription {
   account_token: string;
 
   @Column({ type: 'text', nullable: true })
-  tpay_card_mask: string | null;
-
-  @Column({ type: 'text', nullable: true })
-  sbp_bank_name: string | null;
+  pan: string | null;
 
   @Column({ type: 'text', nullable: true })
   payment_method_link_request_key: string | null;

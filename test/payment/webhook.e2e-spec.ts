@@ -176,7 +176,7 @@ describe('Уведомления об оплате (интеграционный
       id: subscription.id,
       user_id: user.id,
       status: SubscriptionStatus.ACTIVE,
-      tpay_card_mask: '**** 0777',
+      pan: '430000******0777',
     });
     expect(String(updatedSubscription.rebill_id)).toBe('789');
     expect(updatedSubscription.current_period_end).toEqual(nextChargeAt);
@@ -185,6 +185,50 @@ describe('Уведомления об оплате (интеграционный
       status: UserStatus.SUBSCRIPTION_PRO,
     });
   });
+
+  it.each([
+    { Pan: '+7(900)***-**-12', expectedPan: '+7(900)***-**-12' },
+    { Pan: undefined, expectedPan: '+7(900)***-**-34' },
+    { Pan: '', expectedPan: '+7(900)***-**-34' },
+  ])(
+    'Должен сохранять маску телефона СБП без реквизитов карты и не стирать её при отсутствии Pan ($Pan)',
+    async ({ Pan, expectedPan }) => {
+      const subscription = await createSubscription(
+        subscriptionRepository,
+        currentUser,
+        { account_token: 'test-account-token', pan: '+7(900)***-**-34' },
+      );
+      const payment = await paymentRepository.save({
+        user_id: currentUser.id,
+        subscription_id: subscription.id,
+        amount: 2_000,
+        status: PaymentStatus.NEW,
+      });
+
+      await request(app.getHttpServer())
+        .post('/api/webhook/notify')
+        .send(
+          createPaymentNotification({
+            OrderId: payment.id,
+            Pan,
+            RebillId: undefined,
+            CardId: undefined,
+            ExpDate: undefined,
+          }),
+        )
+        .expect(200)
+        .expect('OK');
+
+      expect(
+        await subscriptionRepository.findOneByOrFail({ id: subscription.id }),
+      ).toMatchObject({
+        status: SubscriptionStatus.ACTIVE,
+        account_token: 'test-account-token',
+        rebill_id: null,
+        pan: expectedPan,
+      });
+    },
+  );
 
   it('Должен сохранять чек до подтверждения оплаты', async () => {
     const payment = await createPayment(

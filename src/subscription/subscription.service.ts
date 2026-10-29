@@ -46,14 +46,9 @@ export class SubscriptionService {
     return { subscriptionId };
   }
 
-  public updateAccountToken(
-    subscriptionId: string,
-    accountToken: string,
-    bankName: string | null = null,
-  ) {
+  public updateAccountToken(subscriptionId: string, accountToken: string) {
     return this.subscriptionRepository.update(subscriptionId, {
       account_token: accountToken,
-      sbp_bank_name: bankName,
     });
   }
 
@@ -87,7 +82,6 @@ export class SubscriptionService {
     userId: string,
     requestKey: string,
     accountToken: string,
-    bankName: string | null,
   ): Promise<boolean> {
     const result = await this.subscriptionRepository.update(
       {
@@ -97,9 +91,8 @@ export class SubscriptionService {
       },
       {
         account_token: accountToken,
-        sbp_bank_name: bankName,
         rebill_id: null,
-        tpay_card_mask: null,
+        pan: null,
         payment_method_link_request_key: null,
       },
     );

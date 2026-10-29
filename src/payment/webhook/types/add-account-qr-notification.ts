@@ -9,7 +9,7 @@ export type AddAccountQrNotification = {
   Message: string;
   AccountToken: string;
   BankMemberId: string;
-  BankMemberName: string;
+  BankMemberName?: string;
   Token: string;
   NotificationType: string;
 };

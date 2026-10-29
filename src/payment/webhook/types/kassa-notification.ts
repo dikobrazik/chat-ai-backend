@@ -9,7 +9,7 @@ export type KassaNotification = {
   ErrorCode: string;
   Amount: number;
   CardId: number;
-  Pan: string;
+  Pan?: string;
   ExpDate: string;
   RebillId: number;
   Token: string;

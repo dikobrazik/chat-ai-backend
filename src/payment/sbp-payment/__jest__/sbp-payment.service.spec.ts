@@ -189,7 +189,6 @@ describe(SbpPaymentService.name, () => {
         'user-id',
         'request-key',
         'account-token',
-        'Банк',
       );
       expect(createPayment).not.toHaveBeenCalled();
       expect(subscriptionServiceMock.createSubscription).not.toHaveBeenCalled();
@@ -245,13 +244,9 @@ describe(SbpPaymentService.name, () => {
       },
     );
 
-    it.each([
-      ['Банк', 'Банк'],
-      ['  Банк  ', 'Банк'],
-      ['', null],
-    ])(
-      'Должен создать платёж и сохранить банк привязанного счёта (%s)',
-      async (bankMemberName, bankName) => {
+    it.each(['Банк', undefined])(
+      'Должен создать платёж и сохранить токен счёта независимо от названия банка (%s)',
+      async (bankMemberName) => {
         cacheManagerMock.get.mockResolvedValueOnce({
           tariffId: SubscriptionPlan.PRO,
           sixMonths: false,
@@ -302,7 +297,6 @@ describe(SbpPaymentService.name, () => {
         expect(subscriptionServiceMock.updateAccountToken).toHaveBeenCalledWith(
           'subscription-id',
           'account-token',
-          bankName,
         );
         expect(tinkoffKassaServiceMock.chargeQr).toHaveBeenCalledWith(
           'external-payment-id',
