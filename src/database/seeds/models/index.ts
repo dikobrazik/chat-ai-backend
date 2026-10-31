@@ -3,6 +3,7 @@ import { DEEPSEEK_MODELS } from './deepseek/models.seed';
 import { GOOGLE_MODELS } from './google/models.seed';
 import { GROK_MODELS } from './grok/models.seed';
 import { OPENAI_MODELS } from './openai/models.seed';
+import { ALIBABA_MODELS } from './alibaba/models.seed';
 
 export const SEED_MODELS = [
   ...OPENAI_MODELS,
@@ -10,4 +11,5 @@ export const SEED_MODELS = [
   ...GROK_MODELS,
   ...DEEPSEEK_MODELS,
   ...CLAUDE_MODELS,
+  ...ALIBABA_MODELS,
 ];

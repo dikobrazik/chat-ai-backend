@@ -10,6 +10,7 @@ import { FileStorageService } from 'src/file-storage/file-storage.service';
 import {
   UnifiedAIStreamChunk,
   UnifiedAIStreamChunkMain,
+  InputFile,
 } from 'src/model-provider/model-provider.interface';
 import { ModelProviderService } from 'src/model-provider/model-provider.service';
 import { Repository } from 'typeorm';
@@ -49,7 +50,7 @@ export class PromptService {
     }
 
     if (model.for_image) {
-      return this.sendImagePrompt(chat, model, input);
+      return this.sendImagePrompt(chat, model, input, files);
     }
 
     let conversationId = chat.external_chat_id;
@@ -69,8 +70,12 @@ export class PromptService {
       if (lastPrompt) {
         conversationId = lastPrompt.response_id;
       }
-      // если провайдер deepseek или claude - передаем id чата
-    } else if (model.provider_id === 4 || model.provider_id === 5) {
+      // если провайдер deepseek, claude или alibaba - передаем id чата
+    } else if (
+      model.provider_id === 4 ||
+      model.provider_id === 5 ||
+      model.provider_id === 6
+    ) {
       conversationId = chat.id;
     }
 
@@ -78,7 +83,11 @@ export class PromptService {
       model,
       input,
       conversationId,
-      { files, withSearch: with_search, withThinking: with_thinking },
+      {
+        files,
+        withSearch: with_search,
+        withThinking: with_thinking,
+      },
     );
 
     const pipedStream = stream.pipe(
@@ -135,22 +144,31 @@ export class PromptService {
     return pipedStream;
   }
 
-  private async sendImagePrompt(chat: Chat, model: Model, input: string) {
+  private async sendImagePrompt(
+    chat: Chat,
+    model: Model,
+    input: string,
+    files: InputFile[],
+  ) {
     const stream = await this.modelProviderService.generateImageResponse(
       model,
       input,
       chat.external_chat_id,
+      { files },
     );
 
     return stream.pipe(
       filter<UnifiedAIStreamChunk, UnifiedAIStreamChunkMain>(
-        (chunk): chunk is UnifiedAIStreamChunkMain => chunk.type !== 'meta',
+        (chunk): chunk is UnifiedAIStreamChunkMain => chunk.type === 'complete',
       ),
       map((chunk) => ({
         type: chunk.type,
         data: chunk,
       })),
       mergeMap(async (streamChunk) => {
+        if (!streamChunk.data.imageB64) {
+          throw new Error('Image provider completed without an image');
+        }
         const {
           identifiers: [{ id }],
         } = await this.promptRepository.insert({
@@ -158,6 +176,7 @@ export class PromptService {
           chat,
           response: '[Image response]',
           is_image: true,
+          response_id: streamChunk.data.promptId,
         });
 
         await this.fileStorageService.saveGeneratedImage(
@@ -165,6 +184,11 @@ export class PromptService {
           chat.id,
           streamChunk.data.imageB64,
         );
+        if (files.length) {
+          await this.promptFileRepository.insert(
+            files.map((file) => ({ file_id: file.id, prompt_id: id })),
+          );
+        }
 
         streamChunk.data.promptId = id;
         streamChunk.data.imageB64 = null;

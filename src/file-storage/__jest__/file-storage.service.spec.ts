@@ -168,4 +168,17 @@ describe(FileStorageService.name, () => {
       'S3_ENDPOINT is required when S3_INTERNAL_ENDPOINT is configured',
     );
   });
+
+  it('Не сообщает об успешном сохранении изображения при ошибке S3', async () => {
+    const error = new Error('Storage unavailable');
+    jest
+      .spyOn(S3Client.prototype, 'send')
+      .mockImplementation(() => Promise.reject(error));
+    const log = jest.spyOn(console, 'error').mockImplementation(() => {});
+    const { unit } = await createService();
+    await expect(
+      unit.saveGeneratedImage('prompt', 'chat', 'aW1hZ2U='),
+    ).rejects.toBe(error);
+    expect(log).toHaveBeenCalledWith('Error uploading file:', error);
+  });
 });

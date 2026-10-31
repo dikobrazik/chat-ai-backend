@@ -58,6 +58,57 @@ $ npm run test:e2e
 $ npm run test:cov
 ```
 
+## Alibaba Cloud Model Studio
+
+Provider `6` is named `alibaba`. Its catalog includes Qwen text, coding,
+translation, roleplay, long-context, vision/OCR and Omni models (text/image
+input, text output), third-party text models hosted by Alibaba (including Kimi,
+DeepSeek, GLM and MiniMax), and Qwen Image, Wan and Z-Image generation/editing
+models. Audio/video, embeddings, rerankers and real-time APIs are not included.
+The catalog is an explicit snapshot, not an automatic subscription to future
+models. Model availability depends on the selected region and workspace.
+
+| Variable | Purpose |
+| --- | --- |
+| `ALIBABA_API_KEY` | Required Model Studio API key. |
+| `ALIBABA_BASE_URL` | Required regional OpenAI-compatible base URL, ending in `/compatible-mode/v1`. Used for Chat Completions and Responses. |
+| `ALIBABA_DASHSCOPE_BASE_URL` | Optional regional native API base URL, ending in `/api/v1`. By default derived by replacing `/compatible-mode/v1` in `ALIBABA_BASE_URL`; required explicitly for nonstandard proxy paths. |
+
+Use the [workspace endpoint](https://www.alibabacloud.com/help/en/model-studio/compatibility-of-openai-with-dashscope)
+for the same region as the API key. A proxy must forward both the OpenAI-compatible
+and native DashScope paths, preserving authorization and `X-DashScope-Async`.
+Keys and endpoint URLs are not selected per model: region-only models, such as
+`wanx2.1-imageedit` (Beijing), require an appropriate deployment.
+
+Capabilities and API routing live in `src/model-provider/alibaba-models.ts`;
+seeds derive their catalog from it. All model IDs use
+`alibaba:<API-model-name>`, without legacy `qwen:` aliases.
+No schema change is needed. Default access is Plus for text,
+Pro for images and flagship Max models, and guest for `qwen-flash`.
+
+Text models stream responses, thinking and token usage with chronological chat
+history. Vision models also receive current and historical image attachments.
+Only image attachments are supported; PDF, audio and video attachments are
+rejected. Thinking and search parameters are sent only to models that support
+them; unsupported requested features return an explicit error. Thinking-only
+models always reason, regardless of `with_thinking`. Newer models use the
+Responses API for built-in web search.
+
+Image generation uses native DashScope APIs, not OpenAI's Images API.
+Reference attachments are passed to editing-capable models with model-specific
+limits. One output image is requested per prompt to match the current chat UI.
+Async Wan tasks are created once, polled every 10 seconds, and bounded by a
+10-minute deadline. Unsubscribing aborts local requests/polling; it does not
+cancel an already submitted remote task or its charges. Generated URLs are
+downloaded without forwarding the API key and persisted in the configured S3
+bucket before a successful completion is returned.
+
+Sources: [text catalog](https://help.aliyun.com/zh/model-studio/text-generation-model),
+[vision catalog](https://www.alibabacloud.com/help/en/model-studio/vision-model),
+[image catalog](https://www.alibabacloud.com/help/en/model-studio/image-model),
+[Qwen Image API](https://www.alibabacloud.com/help/en/model-studio/qwen-image-generation-and-editing-api-reference),
+[Wan image API](https://www.alibabacloud.com/help/en/model-studio/wan-image-edit).
+
 ## S3 storage
 
 `FileStorageService` supports cloud S3 and self-hosted SeaweedFS. Configure:

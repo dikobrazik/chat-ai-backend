@@ -5,11 +5,13 @@ import { OpenAIProviderService } from './providers/openai.provider';
 import { GrokProviderService } from './providers/grok.provider';
 import { DeepSeekProviderService } from './providers/deepseek.provider';
 import { ClaudeProviderService } from './providers/claude.provider';
+import { AlibabaProviderService } from './providers/alibaba.provider';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Prompt } from 'src/entities/Prompt';
+import { FileStorageModule } from 'src/file-storage/file-storage.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Prompt])],
+  imports: [TypeOrmModule.forFeature([Prompt]), FileStorageModule],
   providers: [
     ModelProviderService,
     OpenAIProviderService,
@@ -17,6 +19,7 @@ import { Prompt } from 'src/entities/Prompt';
     GrokProviderService,
     DeepSeekProviderService,
     ClaudeProviderService,
+    AlibabaProviderService,
   ],
   exports: [ModelProviderService],
 })

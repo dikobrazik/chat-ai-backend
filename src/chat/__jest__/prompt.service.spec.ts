@@ -1,7 +1,11 @@
 import { TestBed, type Mocked } from '@suites/unit';
 import { getRepositoryToken } from '@nestjs/typeorm';
+import { EMPTY, lastValueFrom, of } from 'rxjs';
+import { Chat } from 'src/entities/Chat';
+import { Model } from 'src/entities/Model';
 import { FileStorageService } from 'src/file-storage/file-storage.service';
 import { ModelProviderService } from 'src/model-provider/model-provider.service';
+import { UnifiedAIStreamChunk } from 'src/model-provider/model-provider.interface';
 import { Prompt } from 'src/entities/Prompt';
 import { PromptFile } from 'src/entities/PromptFile';
 import { PromptMeta } from 'src/entities/PromptMeta';
@@ -14,6 +18,9 @@ const promptRepositoryToken = getRepositoryToken(Prompt) as string;
 describe(PromptService.name, () => {
   let promptService: PromptService;
   let promptRepositoryMock: Mocked<Repository<Prompt>>;
+  let modelProviderMock: Mocked<ModelProviderService>;
+  let fileStorageMock: Mocked<FileStorageService>;
+  let promptFileRepositoryMock: Mocked<Repository<PromptFile>>;
   const queryBuilder = {
     innerJoin: jest.fn().mockReturnThis(),
     select: jest.fn().mockReturnThis(),
@@ -28,23 +35,131 @@ describe(PromptService.name, () => {
   beforeAll(async () => {
     const { unit, unitRef } = await TestBed.solitary(PromptService)
       .mock(ModelProviderService)
-      .impl(() => ({}))
+      .impl(() => ({
+        generateStreamResponse: jest.fn(),
+        generateImageResponse: jest.fn(),
+      }))
       .mock(ChatTitleGeneratorService)
       .impl(() => ({}))
       .mock(FileStorageService)
-      .impl(() => ({}))
+      .impl(() => ({ getFilesByIds: jest.fn(), saveGeneratedImage: jest.fn() }))
       .mock(promptRepositoryToken)
-      .impl(() => ({ createQueryBuilder: jest.fn() }))
+      .impl(() => ({ createQueryBuilder: jest.fn(), insert: jest.fn() }))
       .mock(getRepositoryToken(PromptFile) as string)
-      .impl(() => ({}))
+      .impl(() => ({ insert: jest.fn() }))
       .mock(getRepositoryToken(PromptMeta) as string)
       .impl(() => ({}))
       .compile();
 
     promptService = unit;
     promptRepositoryMock = unitRef.get(promptRepositoryToken);
+    modelProviderMock = unitRef.get(ModelProviderService);
+    fileStorageMock = unitRef.get(FileStorageService);
+    promptFileRepositoryMock = unitRef.get(
+      getRepositoryToken(PromptFile) as string,
+    );
   });
 
+  it('Передаёт внутренний ID чата провайдеру Alibaba для загрузки истории', async () => {
+    const chat = Object.assign(new Chat(), {
+      id: 'chat-id',
+      title: 'Диалог',
+      external_chat_id: 'external-id',
+    });
+    const model = Object.assign(new Model(), {
+      id: 'alibaba:qwen-plus',
+      name: 'qwen-plus',
+      provider_id: 6,
+      for_image: false,
+    });
+    fileStorageMock.getFilesByIds.mockResolvedValueOnce([]);
+    modelProviderMock.generateStreamResponse.mockResolvedValueOnce(EMPTY);
+
+    await promptService.sendStreamPrompt(chat, model, { input: 'Вопрос' });
+
+    expect(modelProviderMock.generateStreamResponse).toHaveBeenCalledWith(
+      model,
+      'Вопрос',
+      'chat-id',
+      { files: [], withSearch: false, withThinking: false },
+    );
+  });
+
+  it('Передаёт изображения для редактирования и сохраняет только итоговую картинку с вложениями', async () => {
+    const chat = Object.assign(new Chat(), {
+      id: 'chat-id',
+      title: 'Картинка',
+      external_chat_id: 'external-id',
+    });
+    const model = Object.assign(new Model(), {
+      name: 'qwen-image-2.0',
+      provider_id: 6,
+      for_image: true,
+    });
+    const file = {
+      id: 'file-id',
+      name: 'input.png',
+      mimeType: 'image/png',
+      blob: new Blob(['image']),
+    };
+    fileStorageMock.getFilesByIds.mockResolvedValueOnce([file]);
+    modelProviderMock.generateImageResponse.mockResolvedValueOnce(
+      of<UnifiedAIStreamChunk[]>(
+        { type: 'meta', promptId: 'response-id', inputTokens: 1 },
+        {
+          type: 'delta',
+          promptId: 'response-id',
+          content: 'Подготовка',
+          index: 0,
+          timestamp: new Date(),
+          isComplete: false,
+        },
+        {
+          type: 'complete',
+          promptId: 'response-id',
+          imageB64: 'aW1hZ2U=',
+          index: -1,
+          timestamp: new Date(),
+          isComplete: true,
+        },
+      ),
+    );
+    promptRepositoryMock.insert.mockResolvedValueOnce({
+      identifiers: [{ id: 'prompt-id' }],
+      generatedMaps: [],
+      raw: [],
+    });
+
+    const stream = await promptService.sendStreamPrompt(chat, model, {
+      input: 'Измени фон',
+      files_ids: ['file-id'],
+    });
+    const result = await lastValueFrom(stream);
+
+    expect(modelProviderMock.generateImageResponse).toHaveBeenCalledWith(
+      model,
+      'Измени фон',
+      'external-id',
+      { files: [file] },
+    );
+    expect(promptRepositoryMock.insert).toHaveBeenCalledTimes(1);
+    expect(promptRepositoryMock.insert).toHaveBeenCalledWith(
+      expect.objectContaining({ is_image: true, response_id: 'response-id' }),
+    );
+    expect(fileStorageMock.saveGeneratedImage).toHaveBeenCalledWith(
+      'prompt-id',
+      'chat-id',
+      'aW1hZ2U=',
+    );
+    expect(promptFileRepositoryMock.insert).toHaveBeenCalledWith([
+      { file_id: 'file-id', prompt_id: 'prompt-id' },
+    ]);
+    expect(result.data).toMatchObject({
+      promptId: 'prompt-id',
+      imageB64: null,
+      isComplete: true,
+    });
+  });
   beforeEach(() => {
     jest.clearAllMocks();
     promptRepositoryMock.createQueryBuilder.mockReturnValue(

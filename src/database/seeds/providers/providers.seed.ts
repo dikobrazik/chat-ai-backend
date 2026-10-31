@@ -4,4 +4,5 @@ export const SEED_PROVIDERS = [
   { id: 3, name: 'grok' },
   { id: 4, name: 'deepseek' },
   { id: 5, name: 'claude' },
+  { id: 6, name: 'alibaba' },
 ];

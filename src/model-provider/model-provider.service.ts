@@ -11,6 +11,7 @@ import { DeepSeekProviderService } from './providers/deepseek.provider';
 import { GoogleProviderService } from './providers/google.provider';
 import { GrokProviderService } from './providers/grok.provider';
 import { OpenAIProviderService } from './providers/openai.provider';
+import { AlibabaProviderService } from './providers/alibaba.provider';
 
 @Injectable()
 export class ModelProviderService {
@@ -22,6 +23,7 @@ export class ModelProviderService {
     private readonly grokProviderService: GrokProviderService,
     private readonly deepSeekProviderService: DeepSeekProviderService,
     private readonly claudeProviderService: ClaudeProviderService,
+    private readonly alibabaProviderService: AlibabaProviderService,
   ) {
     this.providers = [
       this.openAIProviderService,
@@ -29,6 +31,7 @@ export class ModelProviderService {
       this.grokProviderService,
       this.deepSeekProviderService,
       this.claudeProviderService,
+      this.alibabaProviderService,
     ];
   }
 
@@ -66,6 +69,7 @@ export class ModelProviderService {
     model: Model,
     prompt: string,
     conversationId?: string,
+    options?: GenerateStreamResponseOptions,
   ): Promise<Observable<UnifiedAIStreamChunk>> {
     const { provider_id: providerId, name: modelName, for_image } = model;
     // Логика выбора Стратегии: ищем провайдера, который может обработать модель
@@ -76,7 +80,12 @@ export class ModelProviderService {
       return;
     }
 
-    return provider.generateImageResponse(conversationId, modelName, prompt);
+    return provider.generateImageResponse(
+      conversationId,
+      modelName,
+      prompt,
+      options,
+    );
   }
 
   private getProviderById(providerId: number) {

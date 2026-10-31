@@ -18,6 +18,7 @@ export interface IModelProvider {
     conversationId: string,
     model: string,
     input: string,
+    options?: GenerateStreamResponseOptions,
   ): Promise<Observable<UnifiedAIStreamChunk>>;
 }
 

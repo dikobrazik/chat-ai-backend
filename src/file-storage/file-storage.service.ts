@@ -78,6 +78,7 @@ export class FileStorageService {
       )
       .catch((err) => {
         console.error('Error uploading file:', err);
+        throw err;
       });
   }
 
