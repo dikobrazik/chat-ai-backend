@@ -7,7 +7,10 @@ import {
   StartedPostgreSqlContainer,
 } from '@testcontainers/postgresql';
 import { DatabaseSeedService } from 'src/database/database-seed.service';
+import { SEED_MODELS } from 'src/database/seeds/models';
+import { ALIBABA_MODELS } from 'src/database/seeds/models/alibaba/models.seed';
 import { SEED_PROMOTIONS } from 'src/database/seeds/promotions/promotions.seed';
+import { SEED_PROVIDERS } from 'src/database/seeds/providers/providers.seed';
 import { Chat } from 'src/entities/Chat';
 import { FileEntity } from 'src/entities/File';
 import { Model } from 'src/entities/Model';
@@ -85,7 +88,7 @@ describe('Автоматическое заполнение БД', () => {
     await container?.stop();
   });
 
-  it('При запуске создаёт 5 провайдеров, 64 модели и 2 акции', async () => {
+  it('При запуске создаёт провайдеров, модели и акции из seed', async () => {
     await moduleRef.init();
 
     expect(await providers.find({ order: { id: 'ASC' } })).toEqual([
@@ -94,9 +97,10 @@ describe('Автоматическое заполнение БД', () => {
       { id: 3, name: 'grok' },
       { id: 4, name: 'deepseek' },
       { id: 5, name: 'claude' },
+      { id: 6, name: 'alibaba' },
     ]);
     const catalog = await models.find();
-    expect(catalog).toHaveLength(64);
+    expect(catalog).toHaveLength(SEED_MODELS.length);
     expect(
       Object.fromEntries(
         catalog.map((model) => [model.id, model.available_for_status]),
@@ -166,6 +170,9 @@ describe('Автоматическое заполнение БД', () => {
       'claude:claude-sonnet-4-6': UserStatus.SUBSCRIPTION_PRO,
       'claude:claude-opus-4-5-20251101': UserStatus.SUBSCRIPTION_PRO,
       'claude:claude-haiku-4-5-20251001': UserStatus.SUBSCRIPTION_PLUS,
+      ...Object.fromEntries(
+        ALIBABA_MODELS.map((model) => [model.id, model.available_for_status]),
+      ),
     });
     const imageModels = new Set([
       'gpt-image-2.5-sunburst',
@@ -182,11 +189,17 @@ describe('Автоматическое заполнение БД', () => {
       'grok-imagine-image-2.0',
       'grok-imagine-image',
       'grok-imagine-image-quality',
+      ...ALIBABA_MODELS.filter((model) => model.for_image).map(
+        (model) => model.name,
+      ),
     ]);
     expect(catalog.filter((model) => model.provider_id === 1)).toHaveLength(28);
     expect(catalog.filter((model) => model.provider_id === 2)).toHaveLength(14);
     expect(catalog.filter((model) => model.provider_id === 3)).toHaveLength(7);
     expect(catalog.filter((model) => model.provider_id === 5)).toHaveLength(13);
+    expect(catalog.filter((model) => model.provider_id === 6)).toHaveLength(
+      ALIBABA_MODELS.length,
+    );
     for (const model of catalog) {
       const provider = await providers.findOneByOrFail({
         id: model.provider_id,
@@ -229,7 +242,7 @@ describe('Автоматическое заполнение БД', () => {
 
     await seed.onModuleInit();
 
-    expect(await providers.count()).toBe(5);
+    expect(await providers.count()).toBe(SEED_PROVIDERS.length);
     expect(await models.find({ order: { id: 'ASC' } })).toEqual(initialModels);
     expect(await promotions.find({ order: { id: 'ASC' } })).toEqual(
       initialPromotions,
@@ -239,8 +252,8 @@ describe('Автоматическое заполнение БД', () => {
   it('Сериализует одновременные запуски seed без дубликатов', async () => {
     await Promise.all([seed.onModuleInit(), seed.onModuleInit()]);
 
-    expect(await providers.count()).toBe(5);
-    expect(await models.count()).toBe(64);
+    expect(await providers.count()).toBe(SEED_PROVIDERS.length);
+    expect(await models.count()).toBe(SEED_MODELS.length);
     expect(await promotions.count()).toBe(2);
   });
 
@@ -294,8 +307,8 @@ describe('Автоматическое заполнение БД', () => {
 
     await seed.onModuleInit();
 
-    expect(await providers.count()).toBe(6);
-    expect(await models.count()).toBe(65);
+    expect(await providers.count()).toBe(SEED_PROVIDERS.length + 1);
+    expect(await models.count()).toBe(SEED_MODELS.length + 1);
     expect(await models.findOneByOrFail({ id: existing.id })).toMatchObject({
       id: existing.id,
       provider_id: 1,
@@ -337,7 +350,7 @@ describe('Автоматическое заполнение БД', () => {
       id: 1,
       name: 'openai',
     });
-    expect(await providers.count()).toBe(5);
+    expect(await providers.count()).toBe(SEED_PROVIDERS.length);
   });
 
   it('Откатывает все добавленные записи при ошибке заполнения', async () => {
